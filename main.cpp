@@ -23,6 +23,10 @@ namespace {
     std::vector<GLuint> indexes;
   };
 
+  constexpr int kVertexFloatCount = 6;
+  constexpr int kPositionFloatCount = 3;
+  constexpr int kColorFloatCount = 3;
+
   std::string trim(std::string_view value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
     if (begin == std::string_view::npos) {
@@ -118,7 +122,7 @@ namespace {
   TriData loadTriData(const std::filesystem::path &path) {
     std::ifstream file(path);
     if (!file) {
-      throw std::runtime_error("Failed to open " + path.string());
+      throw std::runtime_error("8rJR8DpT9m :: Failed to open " + path.string());
     }
 
     const std::string yaml((std::istreambuf_iterator<char>(file)),
@@ -134,12 +138,12 @@ namespace {
       if (values.empty()) {
         continue;
       }
-      if (values.size() != 6) {
-        throw std::runtime_error("Invalid point row in " + path.string() + ": " + trim(line));
+      if (values.size() != 1 + kVertexFloatCount) {
+        throw std::runtime_error("pSo3Hqn3wN :: Invalid point row in " + path.string() + ": " + trim(line));
       }
 
       const int id = static_cast<int>(values[0]);
-      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / 5));
+      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / kVertexFloatCount));
       result.vertices.insert(result.vertices.end(), values.begin() + 1, values.end());
     }
 
@@ -149,7 +153,7 @@ namespace {
         continue;
       }
       if (values.size() != 3) {
-        throw std::runtime_error("Invalid index row in " + path.string() + ": " + trim(line));
+        throw std::runtime_error("w3jRjFEhtq :: Invalid index row in " + path.string() + ": " + trim(line));
       }
 
       std::array<GLuint, 3> triangle{};
@@ -158,7 +162,7 @@ namespace {
         const int pointId = static_cast<int>(values[i]);
         const auto pointIndex = pointIndexById.find(pointId);
         if (pointIndex == pointIndexById.end()) {
-          std::cerr << "Skipping triangle with missing point id " << pointId
+          std::cerr << "K5fcGkrP2g :: Skipping triangle with missing point id " << pointId
                     << " in " << path << '\n';
           validTriangle = false;
           break;
@@ -172,7 +176,7 @@ namespace {
     }
 
     if (result.vertices.empty() || result.indexes.empty()) {
-      throw std::runtime_error("No drawable triangle data in " + path.string());
+      throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
     }
 
     return result;
@@ -303,10 +307,15 @@ int main(int, char **argv) {
                  triData.indexes.data(),
                  GL_STATIC_DRAW);
 
-    constexpr GLsizei kStride = 5 * sizeof(float);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, kStride, nullptr);
+    constexpr GLsizei kStride = kVertexFloatCount * sizeof(float);
+    glVertexAttribPointer(0, kPositionFloatCount, GL_FLOAT, GL_FALSE, kStride, nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kStride, reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(1,
+                          kColorFloatCount,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          kStride,
+                          reinterpret_cast<void *>(kPositionFloatCount * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     bool running = true;
