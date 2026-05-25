@@ -32,7 +32,7 @@ add_custom_command(
     DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedResources.cmake
     ${RESOURCE_SOURCES}
-    COMMENT "Embedding shader resources"
+    COMMENT "Embedding resources"
     VERBATIM
 )
 
