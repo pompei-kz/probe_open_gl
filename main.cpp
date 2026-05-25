@@ -1,91 +1,69 @@
 #include <epoxy/gl.h>
 #include <SDL2/SDL.h>
 
+#include "shader_resources.hpp"
+
 #include <array>
 #include <iostream>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace {
+  constexpr int kWindowWidth = 800;
+  constexpr int kWindowHeight = 600;
 
-constexpr int kWindowWidth = 800;
-constexpr int kWindowHeight = 600;
+  GLuint compileShader(GLenum type, std::string_view source) {
+    const GLuint shader = glCreateShader(type);
+    const char *sourceData = source.data();
+    const auto sourceLength = static_cast<GLint>(source.size());
+    glShaderSource(shader, 1, &sourceData, &sourceLength);
+    glCompileShader(shader);
 
-constexpr char kVertexShaderSource[] = R"(
-#version 330 core
+    GLint success = GL_FALSE;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (success != GL_TRUE) {
+      GLint logLength = 0;
+      glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+      std::string log(static_cast<std::size_t>(logLength), '\0');
+      glGetShaderInfoLog(shader, logLength, nullptr, log.data());
+      glDeleteShader(shader);
+      throw std::runtime_error("Shader compilation failed: " + log);
+    }
 
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec3 color;
-
-out vec3 vertexColor;
-
-void main() {
-  vertexColor = color;
-  gl_Position = vec4(position, 0.0, 1.0);
-}
-)";
-
-constexpr char kFragmentShaderSource[] = R"(
-#version 330 core
-
-in vec3 vertexColor;
-out vec4 fragmentColor;
-
-void main() {
-  fragmentColor = vec4(vertexColor, 1.0);
-}
-)";
-
-GLuint compileShader(GLenum type, const char* source) {
-  const GLuint shader = glCreateShader(type);
-  glShaderSource(shader, 1, &source, nullptr);
-  glCompileShader(shader);
-
-  GLint success = GL_FALSE;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (success != GL_TRUE) {
-    GLint logLength = 0;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-    std::string log(static_cast<std::size_t>(logLength), '\0');
-    glGetShaderInfoLog(shader, logLength, nullptr, log.data());
-    glDeleteShader(shader);
-    throw std::runtime_error("Shader compilation failed: " + log);
+    return shader;
   }
 
-  return shader;
-}
+  GLuint createShaderProgram() {
+    const GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shader_resources::kTriangleVertex);
+    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shader_resources::kTriangleFragment);
 
-GLuint createShaderProgram() {
-  const GLuint vertexShader = compileShader(GL_VERTEX_SHADER, kVertexShaderSource);
-  const GLuint fragmentShader =
-      compileShader(GL_FRAGMENT_SHADER, kFragmentShaderSource);
+    const GLuint program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
 
-  const GLuint program = glCreateProgram();
-  glAttachShader(program, vertexShader);
-  glAttachShader(program, fragmentShader);
-  glLinkProgram(program);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+    GLint success = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (success != GL_TRUE) {
+      GLint logLength = 0;
+      glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+      std::string log(static_cast<std::size_t>(logLength), '\0');
+      glGetProgramInfoLog(program, logLength, nullptr, log.data());
+      glDeleteProgram(program);
+      throw std::runtime_error("9UITAR1q8U :: Shader link failed: " + log);
+    }
 
-  GLint success = GL_FALSE;
-  glGetProgramiv(program, GL_LINK_STATUS, &success);
-  if (success != GL_TRUE) {
-    GLint logLength = 0;
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-    std::string log(static_cast<std::size_t>(logLength), '\0');
-    glGetProgramInfoLog(program, logLength, nullptr, log.data());
-    glDeleteProgram(program);
-    throw std::runtime_error("Shader link failed: " + log);
+    return program;
   }
+} // namespace
 
-  return program;
-}
-
-}  // namespace
-
-int main(int, char**) {
+int main(int, char **) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    std::cerr << "SDL_Init failed: " << SDL_GetError() << '\n';
+    std::cerr << "mVCKXbMftG :: SDL_Init failed: " << SDL_GetError() << '\n';
     return 1;
   }
 
@@ -94,23 +72,23 @@ int main(int, char**) {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-  SDL_Window* window = SDL_CreateWindow(
-      "OpenGL 3.3 Core Triangle",
-      SDL_WINDOWPOS_CENTERED,
-      SDL_WINDOWPOS_CENTERED,
-      kWindowWidth,
-      kWindowHeight,
-      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+  SDL_Window *window = SDL_CreateWindow(
+    "OpenGL 3.3 Core Triangle",
+    SDL_WINDOWPOS_CENTERED,
+    SDL_WINDOWPOS_CENTERED,
+    kWindowWidth,
+    kWindowHeight,
+    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
   if (window == nullptr) {
-    std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << '\n';
+    std::cerr << "jcxLsEPi1X :: SDL_CreateWindow failed: " << SDL_GetError() << '\n';
     SDL_Quit();
     return 1;
   }
 
   SDL_GLContext context = SDL_GL_CreateContext(window);
   if (context == nullptr) {
-    std::cerr << "SDL_GL_CreateContext failed: " << SDL_GetError() << '\n';
+    std::cerr << "Ivn1fta1oB :: SDL_GL_CreateContext failed: " << SDL_GetError() << '\n';
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 1;
@@ -119,8 +97,8 @@ int main(int, char**) {
   SDL_GL_SetSwapInterval(1);
   glViewport(0, 0, kWindowWidth, kWindowHeight);
 
-  std::cout << "OpenGL: " << glGetString(GL_VERSION) << '\n';
-  std::cout << "GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+  std::cout << "MXL4NrIm8M :: OpenGL: " << glGetString(GL_VERSION) << '\n';
+  std::cout << "DZ2EDsUpuf :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
 
   GLuint shaderProgram = 0;
   GLuint vertexArray = 0;
@@ -130,9 +108,9 @@ int main(int, char**) {
     shaderProgram = createShaderProgram();
 
     constexpr std::array<float, 15> vertices{
-        -0.65F, -0.55F, 1.0F, 0.20F, 0.25F,
-        0.65F, -0.55F, 0.15F, 0.85F, 0.35F,
-        0.0F, 0.65F, 0.25F, 0.45F, 1.0F,
+      -0.65F, -0.55F, 1.0F, 0.20F, 0.25F,
+      0.65F, -0.55F, 0.15F, 0.85F, 0.35F,
+      0.0F, 0.65F, 0.25F, 0.45F, 1.0F,
     };
 
     glGenVertexArrays(1, &vertexArray);
@@ -149,7 +127,7 @@ int main(int, char**) {
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, kStride, nullptr);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
-        1, 3, GL_FLOAT, GL_FALSE, kStride, reinterpret_cast<void*>(2 * sizeof(float)));
+      1, 3, GL_FLOAT, GL_FALSE, kStride, reinterpret_cast<void *>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     bool running = true;
@@ -176,7 +154,7 @@ int main(int, char**) {
 
       SDL_GL_SwapWindow(window);
     }
-  } catch (const std::exception& exception) {
+  } catch (const std::exception &exception) {
     std::cerr << exception.what() << '\n';
   }
 
