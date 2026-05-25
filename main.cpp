@@ -1,7 +1,7 @@
 #include <epoxy/gl.h>
 #include <SDL2/SDL.h>
 
-#include "shader_resources.hpp"
+#include "resources.hpp"
 
 #include <array>
 #include <filesystem>
@@ -200,8 +200,8 @@ namespace {
   }
 
   GLuint createShaderProgram() {
-    const GLuint   vertexShader = compileShader(GL_VERTEX_SHADER  , shader_resources::triangle_vert);
-    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shader_resources::triangle_frag);
+    const GLuint   vertexShader = compileShader(GL_VERTEX_SHADER  , resources::triangle_vert);
+    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, resources::triangle_frag);
 
     const GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);

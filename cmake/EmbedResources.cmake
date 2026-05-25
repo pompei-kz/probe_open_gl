@@ -14,7 +14,7 @@ list(SORT RESOURCE_FILES)
 set(GENERATED_CONTENT "")
 string(APPEND GENERATED_CONTENT "#pragma once\n\n")
 string(APPEND GENERATED_CONTENT "#include <string_view>\n\n")
-string(APPEND GENERATED_CONTENT "namespace shader_resources {\n\n")
+string(APPEND GENERATED_CONTENT "namespace resources {\n\n")
 
 set(RESOURCE_NAMES "")
 foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
@@ -28,7 +28,7 @@ foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
 
     list(FIND RESOURCE_NAMES "${RESOURCE_NAME}" RESOURCE_NAME_INDEX)
     if (NOT RESOURCE_NAME_INDEX EQUAL -1)
-        message(FATAL_ERROR "Duplicate shader resource name after sanitizing: ${RESOURCE_NAME}")
+        message(FATAL_ERROR "Duplicate resource name after sanitizing: ${RESOURCE_NAME}")
     endif ()
     list(APPEND RESOURCE_NAMES "${RESOURCE_NAME}")
 
@@ -40,7 +40,7 @@ foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
     string(APPEND GENERATED_CONTENT ")SHADER\";\n\n")
 endforeach ()
 
-string(APPEND GENERATED_CONTENT "}  // namespace shader_resources\n")
+string(APPEND GENERATED_CONTENT "}  // namespace resources\n")
 
 get_filename_component(OUTPUT_DIRECTORY "${OUTPUT}" DIRECTORY)
 file(MAKE_DIRECTORY "${OUTPUT_DIRECTORY}")

@@ -19,25 +19,25 @@ file(GLOB RESOURCE_SOURCES
 
 add_executable(probe_open_gl main.cpp)
 
-set(GENERATED_SHADER_HEADER
-    ${CMAKE_CURRENT_BINARY_DIR}/generated/shader_resources.hpp
+set(GENERATED_RESOURCE_HEADER
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/resources.hpp
 )
 
 add_custom_command(
-    OUTPUT ${GENERATED_SHADER_HEADER}
+    OUTPUT ${GENERATED_RESOURCE_HEADER}
     COMMAND ${CMAKE_COMMAND}
-    "-DOUTPUT=${GENERATED_SHADER_HEADER}"
+    "-DOUTPUT=${GENERATED_RESOURCE_HEADER}"
     "-DRESOURCE_DIRECTORY=${RESOURCE_DIRECTORY}"
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedResources.cmake
     DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedResources.cmake
     ${RESOURCE_SOURCES}
     COMMENT "Embedding shader resources"
     VERBATIM
 )
 
-add_custom_target(shader_resources DEPENDS ${GENERATED_SHADER_HEADER})
-add_dependencies(probe_open_gl shader_resources)
+add_custom_target(embedded_resources DEPENDS ${GENERATED_RESOURCE_HEADER})
+add_dependencies(probe_open_gl embedded_resources)
 
 target_sources(probe_open_gl
     PRIVATE
