@@ -4,12 +4,18 @@ project(probe_open_gl)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(SHADER_DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+)
+
+file(GLOB SHADER_SOURCES
+        LIST_DIRECTORIES false
+        CONFIGURE_DEPENDS
+        ${SHADER_DIRECTORY}/*
+)
+
 add_executable(probe_open_gl main.cpp)
 
-set(SHADER_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag
-)
 set(GENERATED_SHADER_HEADER
         ${CMAKE_CURRENT_BINARY_DIR}/generated/shader_resources.hpp
 )
@@ -18,8 +24,7 @@ add_custom_command(
         OUTPUT ${GENERATED_SHADER_HEADER}
         COMMAND ${CMAKE_COMMAND}
                 "-DOUTPUT=${GENERATED_SHADER_HEADER}"
-                "-DVERTEX_SHADER=${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.vert"
-                "-DFRAGMENT_SHADER=${CMAKE_CURRENT_SOURCE_DIR}/shaders/triangle.frag"
+                "-DSHADER_DIRECTORY=${SHADER_DIRECTORY}"
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
         DEPENDS
                 ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake

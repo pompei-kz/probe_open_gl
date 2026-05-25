@@ -35,8 +35,8 @@ namespace {
   }
 
   GLuint createShaderProgram() {
-    const GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shader_resources::kTriangleVertex);
-    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shader_resources::kTriangleFragment);
+    const GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shader_resources::triangle_vert);
+    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shader_resources::triangle_frag);
 
     const GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
