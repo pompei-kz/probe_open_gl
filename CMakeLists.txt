@@ -5,58 +5,58 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(RESOURCE_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}/resources
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources
 )
 set(FILES_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}/files
+    ${CMAKE_CURRENT_SOURCE_DIR}/files
 )
 
 file(GLOB RESOURCE_SOURCES
-        LIST_DIRECTORIES false
-        CONFIGURE_DEPENDS
-        ${RESOURCE_DIRECTORY}/*
+    LIST_DIRECTORIES false
+    CONFIGURE_DEPENDS
+    ${RESOURCE_DIRECTORY}/*
 )
 
 add_executable(probe_open_gl main.cpp)
 
 set(GENERATED_SHADER_HEADER
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/shader_resources.hpp
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/shader_resources.hpp
 )
 
 add_custom_command(
-        OUTPUT ${GENERATED_SHADER_HEADER}
-        COMMAND ${CMAKE_COMMAND}
-                "-DOUTPUT=${GENERATED_SHADER_HEADER}"
-                "-DRESOURCE_DIRECTORY=${RESOURCE_DIRECTORY}"
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
-        DEPENDS
-                ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
-                ${RESOURCE_SOURCES}
-        COMMENT "Embedding shader resources"
-        VERBATIM
+    OUTPUT ${GENERATED_SHADER_HEADER}
+    COMMAND ${CMAKE_COMMAND}
+    "-DOUTPUT=${GENERATED_SHADER_HEADER}"
+    "-DRESOURCE_DIRECTORY=${RESOURCE_DIRECTORY}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
+    DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
+    ${RESOURCE_SOURCES}
+    COMMENT "Embedding shader resources"
+    VERBATIM
 )
 
 add_custom_target(shader_resources DEPENDS ${GENERATED_SHADER_HEADER})
 add_dependencies(probe_open_gl shader_resources)
 
 target_sources(probe_open_gl
-        PRIVATE
-        ${RESOURCE_SOURCES}
+    PRIVATE
+    ${RESOURCE_SOURCES}
 )
 
 target_include_directories(probe_open_gl
-        PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}/generated
+    PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 add_custom_command(
-        TARGET probe_open_gl
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${FILES_DIRECTORY}
-                $<TARGET_FILE_DIR:probe_open_gl>
-        COMMENT "Copying runtime files"
-        VERBATIM
+    TARGET probe_open_gl
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${FILES_DIRECTORY}
+    $<TARGET_FILE_DIR:probe_open_gl>
+    COMMENT "Copying runtime files"
+    VERBATIM
 )
 
 find_package(OpenGL REQUIRED)
@@ -65,8 +65,8 @@ pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
 pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
 
 target_link_libraries(probe_open_gl
-        PRIVATE
-        OpenGL::GL
-        PkgConfig::SDL2
-        PkgConfig::EPOXY
+    PRIVATE
+    OpenGL::GL
+    PkgConfig::SDL2
+    PkgConfig::EPOXY
 )
