@@ -16,6 +16,11 @@ file(GLOB RESOURCE_SOURCES
     CONFIGURE_DEPENDS
     ${RESOURCE_DIRECTORY}/*
 )
+file(GLOB_RECURSE RUNTIME_FILES
+    LIST_DIRECTORIES false
+    CONFIGURE_DEPENDS
+    ${FILES_DIRECTORY}/*
+)
 
 add_executable(probe_open_gl main.cpp)
 
@@ -49,15 +54,15 @@ target_include_directories(probe_open_gl
     ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
-add_custom_command(
-    TARGET probe_open_gl
-    POST_BUILD
+add_custom_target(copy_runtime_files ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${FILES_DIRECTORY}
     $<TARGET_FILE_DIR:probe_open_gl>
+    DEPENDS ${RUNTIME_FILES}
     COMMENT "Copying runtime files"
     VERBATIM
 )
+add_dependencies(probe_open_gl copy_runtime_files)
 
 find_package(OpenGL REQUIRED)
 find_package(PkgConfig REQUIRED)
