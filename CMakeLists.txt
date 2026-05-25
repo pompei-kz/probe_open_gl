@@ -4,14 +4,14 @@ project(probe_open_gl)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SHADER_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+set(RESOURCE_DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources
 )
 
-file(GLOB SHADER_SOURCES
+file(GLOB RESOURCE_SOURCES
         LIST_DIRECTORIES false
         CONFIGURE_DEPENDS
-        ${SHADER_DIRECTORY}/*
+        ${RESOURCE_DIRECTORY}/*
 )
 
 add_executable(probe_open_gl main.cpp)
@@ -24,11 +24,11 @@ add_custom_command(
         OUTPUT ${GENERATED_SHADER_HEADER}
         COMMAND ${CMAKE_COMMAND}
                 "-DOUTPUT=${GENERATED_SHADER_HEADER}"
-                "-DSHADER_DIRECTORY=${SHADER_DIRECTORY}"
+                "-DRESOURCE_DIRECTORY=${RESOURCE_DIRECTORY}"
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
         DEPENDS
                 ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedShaders.cmake
-                ${SHADER_SOURCES}
+                ${RESOURCE_SOURCES}
         COMMENT "Embedding shader resources"
         VERBATIM
 )
@@ -38,7 +38,7 @@ add_dependencies(probe_open_gl shader_resources)
 
 target_sources(probe_open_gl
         PRIVATE
-        ${SHADER_SOURCES}
+        ${RESOURCE_SOURCES}
 )
 
 target_include_directories(probe_open_gl

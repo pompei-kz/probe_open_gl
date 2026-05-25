@@ -28,14 +28,14 @@ namespace {
       std::string log(static_cast<std::size_t>(logLength), '\0');
       glGetShaderInfoLog(shader, logLength, nullptr, log.data());
       glDeleteShader(shader);
-      throw std::runtime_error("Shader compilation failed: " + log);
+      throw std::runtime_error("qWcxNTYsV8 :: Shader compilation failed: " + log);
     }
 
     return shader;
   }
 
   GLuint createShaderProgram() {
-    const GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shader_resources::triangle_vert);
+    const GLuint   vertexShader = compileShader(GL_VERTEX_SHADER  , shader_resources::triangle_vert);
     const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shader_resources::triangle_frag);
 
     const GLuint program = glCreateProgram();
@@ -54,7 +54,7 @@ namespace {
       std::string log(static_cast<std::size_t>(logLength), '\0');
       glGetProgramInfoLog(program, logLength, nullptr, log.data());
       glDeleteProgram(program);
-      throw std::runtime_error("9UITAR1q8U :: Shader link failed: " + log);
+      throw std::runtime_error("9UI2AR1q8U :: Shader link failed: " + log);
     }
 
     return program;
@@ -107,7 +107,7 @@ int main(int, char **) {
   try {
     shaderProgram = createShaderProgram();
 
-    constexpr std::array<float, 15> vertices{
+    constexpr std::array vertices{
       -0.65F, -0.55F, 1.0F, 0.20F, 0.25F,
       0.65F, -0.55F, 0.15F, 0.85F, 0.35F,
       0.0F, 0.65F, 0.25F, 0.45F, 1.0F,
@@ -126,8 +126,7 @@ int main(int, char **) {
     constexpr GLsizei kStride = 5 * sizeof(float);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, kStride, nullptr);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-      1, 3, GL_FLOAT, GL_FALSE, kStride, reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, kStride, reinterpret_cast<void *>(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     bool running = true;

@@ -1,15 +1,15 @@
 if (NOT DEFINED OUTPUT)
     message(FATAL_ERROR "OUTPUT is required")
 endif ()
-if (NOT DEFINED SHADER_DIRECTORY)
-    message(FATAL_ERROR "SHADER_DIRECTORY is required")
+if (NOT DEFINED RESOURCE_DIRECTORY)
+    message(FATAL_ERROR "RESOURCE_DIRECTORY is required")
 endif ()
 
-file(GLOB SHADER_FILES
+file(GLOB RESOURCE_FILES
         LIST_DIRECTORIES false
-        "${SHADER_DIRECTORY}/*"
+        "${RESOURCE_DIRECTORY}/*"
 )
-list(SORT SHADER_FILES)
+list(SORT RESOURCE_FILES)
 
 set(GENERATED_CONTENT "")
 string(APPEND GENERATED_CONTENT "#pragma once\n\n")
@@ -17,9 +17,9 @@ string(APPEND GENERATED_CONTENT "#include <string_view>\n\n")
 string(APPEND GENERATED_CONTENT "namespace shader_resources {\n\n")
 
 set(RESOURCE_NAMES "")
-foreach (SHADER_FILE IN LISTS SHADER_FILES)
-    get_filename_component(SHADER_FILE_NAME "${SHADER_FILE}" NAME)
-    set(RESOURCE_NAME "${SHADER_FILE_NAME}")
+foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
+    get_filename_component(RESOURCE_FILE_NAME "${RESOURCE_FILE}" NAME)
+    set(RESOURCE_NAME "${RESOURCE_FILE_NAME}")
     string(REPLACE "." "_" RESOURCE_NAME "${RESOURCE_NAME}")
     string(REGEX REPLACE "[^A-Za-z0-9_]" "_" RESOURCE_NAME "${RESOURCE_NAME}")
     if (RESOURCE_NAME MATCHES "^[0-9]")
@@ -32,11 +32,11 @@ foreach (SHADER_FILE IN LISTS SHADER_FILES)
     endif ()
     list(APPEND RESOURCE_NAMES "${RESOURCE_NAME}")
 
-    file(READ "${SHADER_FILE}" SHADER_SOURCE)
+    file(READ "${RESOURCE_FILE}" RESOURCE_SOURCE)
 
     string(APPEND GENERATED_CONTENT
             "inline constexpr std::string_view ${RESOURCE_NAME} = R\"SHADER(")
-    string(APPEND GENERATED_CONTENT "${SHADER_SOURCE}")
+    string(APPEND GENERATED_CONTENT "${RESOURCE_SOURCE}")
     string(APPEND GENERATED_CONTENT ")SHADER\";\n\n")
 endforeach ()
 
