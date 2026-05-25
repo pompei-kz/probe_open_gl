@@ -113,7 +113,7 @@ int main(int, char **argv) {
   glViewport(0, 0, kWindowWidth, kWindowHeight);
 
   std::cout << "MXL4NrIm8M :: OpenGL: " << glGetString(GL_VERSION) << '\n';
-  std::cout << "DZ2EDsUpuf :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
+  std::cout << "DZ2EDsUp4f :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
 
   GLuint shaderProgram = 0;
   GLuint vertexArray = 0;
@@ -123,9 +123,9 @@ int main(int, char **argv) {
     shaderProgram = createShaderProgram();
 
     constexpr std::array vertices{
-      -0.65F, -0.55F, 1.0F, 0.20F, 0.25F,
-      0.65F, -0.55F, 0.15F, 0.85F, 0.35F,
-      0.0F, 0.65F, 0.25F, 0.45F, 1.0F,
+      -0.65F, -0.55F, 1.0F , 0.20F, 0.25F,
+       0.65F, -0.55F, 0.15F, 0.85F, 0.35F,
+       0.0F ,  0.65F, 0.25F, 0.45F, 1.0F ,
     };
 
     glGenVertexArrays(1, &vertexArray);
