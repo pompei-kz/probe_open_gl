@@ -4,6 +4,8 @@
 #include "shader_resources.hpp"
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -61,7 +63,20 @@ namespace {
   }
 } // namespace
 
-int main(int, char **) {
+int main(int, char **argv) {
+  std::filesystem::path executableDirectory = std::filesystem::path(argv[0]).parent_path();
+  if (executableDirectory.empty()) {
+    executableDirectory = std::filesystem::current_path();
+  }
+
+  const std::filesystem::path intoPath = executableDirectory / "intro.txt";
+  std::ifstream intoFile(intoPath);
+  if (intoFile) {
+    std::cout << intoFile.rdbuf() << '\n';
+  } else {
+    std::cerr << "VpO9pfn9wt :: Failed to open " << intoPath << '\n';
+  }
+
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     std::cerr << "mVCKXbMftG :: SDL_Init failed: " << SDL_GetError() << '\n';
     return 1;

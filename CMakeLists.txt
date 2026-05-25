@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(RESOURCE_DIRECTORY
         ${CMAKE_CURRENT_SOURCE_DIR}/resources
 )
+set(FILES_DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/files
+)
 
 file(GLOB RESOURCE_SOURCES
         LIST_DIRECTORIES false
@@ -44,6 +47,16 @@ target_sources(probe_open_gl
 target_include_directories(probe_open_gl
         PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
+
+add_custom_command(
+        TARGET probe_open_gl
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${FILES_DIRECTORY}
+                $<TARGET_FILE_DIR:probe_open_gl>
+        COMMENT "Copying runtime files"
+        VERBATIM
 )
 
 find_package(OpenGL REQUIRED)
