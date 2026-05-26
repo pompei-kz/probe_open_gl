@@ -24,6 +24,13 @@ file(GLOB_RECURSE RUNTIME_FILES
 
 add_executable(probe_open_gl main.cpp)
 
+target_sources(probe_open_gl
+    PRIVATE
+    FILE_SET CXX_MODULES
+    FILES
+    tri_data.cppm
+)
+
 set(GENERATED_RESOURCE_HEADER
     ${CMAKE_CURRENT_BINARY_DIR}/generated/resources.hpp
 )
