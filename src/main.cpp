@@ -4,117 +4,17 @@
 #include "resources.hpp"
 
 import arguments;
+import main_window;
 import tri_data;
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace {
-  constexpr int kWindowWidth = 800;
-  constexpr int kWindowHeight = 600;
-
-  struct WindowPosition {
-    int left = 0;
-    int top = 0;
-  };
-
-  struct WindowSize {
-    int width = kWindowWidth;
-    int height = kWindowHeight;
-  };
-
-  std::string trim(const std::string_view value) {
-    const auto begin = value.find_first_not_of(" \t\r\n");
-    if (begin == std::string_view::npos) {
-      return {};
-    }
-
-    const auto end = value.find_last_not_of(" \t\r\n");
-    return std::string(value.substr(begin, end - begin + 1));
-  }
-
-  std::optional<WindowPosition> loadWindowPosition(const std::filesystem::path &path) {
-    std::ifstream input(path);
-    if (!input) {
-      return std::nullopt;
-    }
-
-    std::optional<int> left;
-    std::optional<int> top;
-    std::string line;
-    while (std::getline(input, line)) {
-      const std::string cleaned = trim(line.substr(0, line.find('#')));
-      if (cleaned.empty()) {
-        continue;
-      }
-
-      const auto separator = cleaned.find('=');
-      if (separator == std::string::npos) {
-        continue;
-      }
-
-      const std::string key = trim(std::string_view(cleaned).substr(0, separator));
-      const int value = std::stoi(trim(std::string_view(cleaned).substr(separator + 1)));
-      if (key == "left") {
-        left = value;
-      } else if (key == "top") {
-        top = value;
-      }
-    }
-
-    if (!left || !top) {
-      return std::nullopt;
-    }
-    return WindowPosition{*left, *top};
-  }
-
-  std::optional<WindowSize> loadWindowSize(const std::filesystem::path &path) {
-    std::ifstream input(path);
-    if (!input) {
-      return std::nullopt;
-    }
-
-    std::string line;
-    while (std::getline(input, line)) {
-      const std::string cleaned = trim(line.substr(0, line.find('#')));
-      if (cleaned.empty()) {
-        continue;
-      }
-
-      const auto separator = cleaned.find('x');
-      if (separator == std::string::npos) {
-        return std::nullopt;
-      }
-
-      const int width = std::stoi(trim(std::string_view(cleaned).substr(0, separator)));
-      const int height = std::stoi(trim(std::string_view(cleaned).substr(separator + 1)));
-      if (width <= 0 || height <= 0) {
-        return std::nullopt;
-      }
-      return WindowSize{width, height};
-    }
-
-    return std::nullopt;
-  }
-
-  void saveWindowPosition(const std::filesystem::path &path, const WindowPosition position) {
-    std::filesystem::create_directories(path.parent_path());
-    std::ofstream output(path);
-    output << "left=" << position.left << '\n'
-           << "top=" << position.top << '\n';
-  }
-
-  void saveWindowSize(const std::filesystem::path &path, const WindowSize size) {
-    std::filesystem::create_directories(path.parent_path());
-    std::ofstream output(path);
-    output << size.width << 'x' << size.height << '\n';
-  }
-
   GLuint compileShader(GLenum type, std::string_view source) {
     // Создаем объект шейдера указанного типа.
     const GLuint shader = glCreateShader(type);
@@ -184,10 +84,6 @@ int main(int argvCount, char **argv) {
   Arguments args(argvCount, argv);
 
   const std::filesystem::path &executableDirectory = args.executableDirectory();
-  const std::filesystem::path windowPositionPath = args.cacheDirectory() / "main_window_position.txt";
-  const std::filesystem::path windowSizePath = args.cacheDirectory() / "main_window_size.txt";
-  const WindowSize initialWindowSize = loadWindowSize(windowSizePath).value_or(WindowSize{});
-  const std::optional<WindowPosition> initialWindowPosition = loadWindowPosition(windowPositionPath);
 
   const std::filesystem::path intoPath = args.executableDirectory() / "intro.txt";
   if (std::ifstream introFile(intoPath); introFile) {
@@ -210,25 +106,13 @@ int main(int argvCount, char **argv) {
   // Включаем двойную буферизацию для плавного вывода кадра.
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-  SDL_Window *window = SDL_CreateWindow(
-    "OpenGL 3.3 Core Triangle",
-    initialWindowPosition ? initialWindowPosition->left : SDL_WINDOWPOS_CENTERED,
-    initialWindowPosition ? initialWindowPosition->top : SDL_WINDOWPOS_CENTERED,
-    initialWindowSize.width,
-    initialWindowSize.height,
-    SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-
-  if (window == nullptr) {
-    std::cerr << "jcxLsEPi1X :: SDL_CreateWindow failed: " << SDL_GetError() << '\n';
-    SDL_Quit();
-    return 1;
-  }
+  MainWindow window(args.cacheDirectory(), "OpenGL 3.3 Core Triangle");
 
   // Создаем OpenGL-контекст для окна SDL.
-  SDL_GLContext context = SDL_GL_CreateContext(window);
+  SDL_GLContext context = SDL_GL_CreateContext(window.nativeHandle());
   if (context == nullptr) {
     std::cerr << "Ivn1fta1oB :: SDL_GL_CreateContext failed: " << SDL_GetError() << '\n';
-    SDL_DestroyWindow(window);
+    window.close();
     SDL_Quit();
     return 1;
   }
@@ -236,7 +120,7 @@ int main(int argvCount, char **argv) {
   // Синхронизируем обмен буферов с вертикальной разверткой.
   SDL_GL_SetSwapInterval(1);
   // Задаем начальную область вывода OpenGL в размере окна.
-  glViewport(0, 0, initialWindowSize.width, initialWindowSize.height);
+  glViewport(0, 0, window.width(), window.height());
 
   // Читаем строку версии OpenGL у текущего контекста.
   std::cout << "MXL4NrIm8M :: OpenGL: " << glGetString(GL_VERSION) << '\n';
@@ -305,10 +189,9 @@ int main(int argvCount, char **argv) {
                    event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           // Подгоняем область вывода OpenGL под новый размер окна.
           glViewport(0, 0, event.window.data1, event.window.data2);
-          saveWindowSize(windowSizePath, WindowSize{event.window.data1, event.window.data2});
-        } else if (event.type == SDL_WINDOWEVENT &&
-                   event.window.event == SDL_WINDOWEVENT_MOVED) {
-          saveWindowPosition(windowPositionPath, WindowPosition{event.window.data1, event.window.data2});
+        }
+        if (event.type == SDL_WINDOWEVENT) {
+          window.syncWindowEvent(event.window);
         }
       }
 
@@ -328,7 +211,7 @@ int main(int argvCount, char **argv) {
                      nullptr);
 
       // Показываем отрисованный кадр, меняя back/front буферы окна.
-      SDL_GL_SwapWindow(window);
+      SDL_GL_SwapWindow(window.nativeHandle());
     }
   } catch (const std::exception &exception) {
     std::cerr << exception.what() << '\n';
@@ -353,7 +236,7 @@ int main(int argvCount, char **argv) {
 
   // Удаляем OpenGL-контекст SDL.
   SDL_GL_DeleteContext(context);
-  SDL_DestroyWindow(window);
+  window.close();
   SDL_Quit();
   return 0;
 }

@@ -31,6 +31,7 @@ target_sources(probe_open_gl
     FILE_SET CXX_MODULES
     FILES
     src/arguments.cppm
+    src/main_window.cppm
     src/tri_data.cppm
 )
 
