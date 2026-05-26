@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 4.2)
 project(probe_open_gl)
 
+enable_testing()
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -74,6 +76,7 @@ add_dependencies(probe_open_gl copy_runtime_files)
 
 find_package(OpenGL REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(GTest REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
 pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
@@ -85,3 +88,22 @@ target_link_libraries(probe_open_gl
     PkgConfig::SDL2
     PkgConfig::EPOXY
 )
+
+add_executable(tri_data_tests tests/tri_data_tests.cpp)
+
+target_sources(tri_data_tests
+    PRIVATE
+    FILE_SET CXX_MODULES
+    FILES
+    src/tri_data.cppm
+)
+
+target_link_libraries(tri_data_tests
+    PRIVATE
+    yaml-cpp::yaml-cpp
+    PkgConfig::EPOXY
+    GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(tri_data_tests)

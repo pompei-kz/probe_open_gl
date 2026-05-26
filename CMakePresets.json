@@ -18,5 +18,14 @@
       "name": "debug-clang",
       "configurePreset": "debug-clang"
     }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-clang",
+      "configurePreset": "debug-clang",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
   ]
 }
