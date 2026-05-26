@@ -15,10 +15,10 @@ export module main_window;
 export class MainWindow {
 public:
   MainWindow(const std::filesystem::path &cacheDirectory, const char *title)
-      : positionPath_(cacheDirectory / "main_window_position.txt"),
-        sizePath_(cacheDirectory / "main_window_size.txt"),
-        size_(loadWindowSize(sizePath_).value_or(WindowSize{})),
-        position_(loadWindowPosition(positionPath_)) {
+    : positionPath_(cacheDirectory / "main_window_position.txt"),
+      sizePath_(cacheDirectory / "main_window_size.txt"),
+      size_(loadWindowSize(sizePath_).value_or(WindowSize{})),
+      position_(loadWindowPosition(positionPath_)) {
     window_ = SDL_CreateWindow(
       title,
       position_ ? position_->left : SDL_WINDOWPOS_CENTERED,
@@ -33,14 +33,15 @@ public:
   }
 
   MainWindow(const MainWindow &) = delete;
+
   MainWindow &operator=(const MainWindow &) = delete;
 
   MainWindow(MainWindow &&other) noexcept
-      : window_(other.window_),
-        positionPath_(std::move(other.positionPath_)),
-        sizePath_(std::move(other.sizePath_)),
-        size_(other.size_),
-        position_(other.position_) {
+    : window_(other.window_),
+      positionPath_(std::move(other.positionPath_)),
+      sizePath_(std::move(other.sizePath_)),
+      size_(other.size_),
+      position_(other.position_) {
     other.window_ = nullptr;
   }
 
@@ -77,9 +78,13 @@ public:
     if (event.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
       size_ = WindowSize{event.data1, event.data2};
       saveWindowSize(sizePath_, size_);
-    } else if (event.event == SDL_WINDOWEVENT_MOVED) {
+      return;
+    }
+
+    if (event.event == SDL_WINDOWEVENT_MOVED) {
       position_ = WindowPosition{event.data1, event.data2};
       saveWindowPosition(positionPath_, *position_);
+      return;
     }
   }
 
@@ -185,7 +190,7 @@ private:
     std::filesystem::create_directories(path.parent_path());
     std::ofstream output(path);
     output << "left=" << position.left << '\n'
-           << "top=" << position.top << '\n';
+        << "top=" << position.top << '\n';
   }
 
   static void saveWindowSize(const std::filesystem::path &path, const WindowSize size) {
