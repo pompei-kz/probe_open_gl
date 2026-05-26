@@ -22,14 +22,14 @@ file(GLOB_RECURSE RUNTIME_FILES
     ${FILES_DIRECTORY}/*
 )
 
-add_executable(probe_open_gl main.cpp)
+add_executable(probe_open_gl src/main.cpp)
 
 target_sources(probe_open_gl
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
-    arguments.cppm
-    tri_data.cppm
+    src/arguments.cppm
+    src/tri_data.cppm
 )
 
 set(GENERATED_RESOURCE_HEADER
