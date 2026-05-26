@@ -3,3 +3,5 @@
 
 
     sudo apt install libyaml-cpp-dev                                                                                                                         ~/CLionProjects/probe_open_gl
+    sudo apt install libgtest-dev
+Шт
