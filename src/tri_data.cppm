@@ -1,9 +1,9 @@
 module;
 
 #include <epoxy/gl.h>
+#include <yaml-cpp/yaml.h>
 
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -56,14 +56,6 @@ namespace {
     return value;
   }
 
-  std::string stripQuotes(std::string value) {
-    value = trim(value);
-    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
-      return value.substr(1, value.size() - 2);
-    }
-    return value;
-  }
-
   std::vector<std::string> splitWords(const std::string_view value) {
     std::istringstream input{std::string(value)};
     std::vector<std::string> words;
@@ -74,81 +66,48 @@ namespace {
     return words;
   }
 
-  DataSection extractDataSection(const std::string &yaml,
+  YAML::Node requiredMapChild(const YAML::Node &node,
+                              const std::string_view childName,
+                              const std::filesystem::path &path) {
+    const YAML::Node child = node[std::string(childName)];
+    if (!child || !child.IsMap()) {
+      throw std::runtime_error("Afz2db44CN :: Missing YAML map '" + std::string(childName)
+                               + "' in " + path.string());
+    }
+    return child;
+  }
+
+  DataSection extractDataSection(const YAML::Node &document,
                                  const std::string_view figureName,
-                                 const std::string_view sectionName) {
+                                 const std::string_view sectionName,
+                                 const std::filesystem::path &path) {
     if (figureName.empty()) {
       throw std::runtime_error("d5J2Mmx9Ar :: Figure name must not be empty");
     }
 
-    std::istringstream input(yaml);
-    std::string line;
-    bool inMeshes = false;
-    bool inFigure = false;
-    bool inSection = false;
-    bool inData = false;
+    const YAML::Node meshes = requiredMapChild(document, "meshes", path);
+    const YAML::Node figure = requiredMapChild(meshes, figureName, path);
+    const YAML::Node yamlSection = requiredMapChild(figure, sectionName, path);
+
+    const YAML::Node type = yamlSection["type"];
+    if (!type || !type.IsScalar()) {
+      throw std::runtime_error("WQ6V9pIWLa :: Missing YAML scalar '" + std::string(sectionName)
+                               + ".type' in " + path.string());
+    }
+
+    const YAML::Node data = yamlSection["data"];
+    if (!data || !data.IsScalar()) {
+      throw std::runtime_error("Z3H1qvTv5H :: Missing YAML scalar '" + std::string(sectionName)
+                               + ".data' in " + path.string());
+    }
+
     DataSection section;
+    section.type = type.as<std::string>();
 
+    std::istringstream input(data.as<std::string>());
+    std::string line;
     while (std::getline(input, line)) {
-      const std::string trimmed = trim(line);
-      if (trimmed.empty()) {
-        if (inData) {
-          section.lines.emplace_back();
-        }
-        continue;
-      }
-
-      if (!line.starts_with(" ") && trimmed.ends_with(":")) {
-        inMeshes = trimmed == "meshes:";
-        inFigure = false;
-        inSection = false;
-        inData = false;
-        continue;
-      }
-
-      if (!inMeshes) {
-        continue;
-      }
-
-      if (line.starts_with("  ") && !line.starts_with("    ") && trimmed.ends_with(":")) {
-        if (inFigure) {
-          break;
-        }
-
-        inFigure = trimmed == std::string(figureName) + ":";
-        inSection = false;
-        inData = false;
-        continue;
-      }
-
-      if (!inFigure) {
-        continue;
-      }
-
-      if (trimmed == std::string(sectionName) + ":") {
-        inSection = true;
-        inData = false;
-        continue;
-      }
-
-      if (inSection && trimmed.ends_with(":") && trimmed != "data: |") {
-        inSection = false;
-        inData = false;
-      }
-
-      if (inSection && trimmed.starts_with("type:")) {
-        section.type = stripQuotes(trimmed.substr(std::string_view("type:").size()));
-        continue;
-      }
-
-      if (inSection && trimmed == "data: |") {
-        inData = true;
-        continue;
-      }
-
-      if (inData) {
-        section.lines.push_back(line);
-      }
+      section.lines.push_back(line);
     }
 
     return section;
@@ -217,15 +176,9 @@ namespace {
 }
 
 tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path, std::string_view figureName) {
-  std::ifstream file(path);
-  if (!file) {
-    throw std::runtime_error("8rJR8DpT9m :: Failed to open " + path.string());
-  }
-
-  const std::string yaml((std::istreambuf_iterator<char>(file)),
-                         std::istreambuf_iterator<char>());
-  const DataSection points = extractDataSection(yaml, figureName, "points");
-  const DataSection indexes = extractDataSection(yaml, figureName, "indexes");
+  const YAML::Node document = YAML::LoadFile(path.string());
+  const DataSection points = extractDataSection(document, figureName, "points", path);
+  const DataSection indexes = extractDataSection(document, figureName, "indexes", path);
   const PointLayout layout = parsePointLayout(points.type, path);
   const int indexCount = parseIndexCount(indexes.type, path);
 

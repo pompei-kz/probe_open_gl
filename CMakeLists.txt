@@ -73,6 +73,7 @@ add_custom_target(copy_runtime_files ALL
 add_dependencies(probe_open_gl copy_runtime_files)
 
 find_package(OpenGL REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
 pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
@@ -80,6 +81,7 @@ pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
 target_link_libraries(probe_open_gl
     PRIVATE
     OpenGL::GL
+    yaml-cpp::yaml-cpp
     PkgConfig::SDL2
     PkgConfig::EPOXY
 )
