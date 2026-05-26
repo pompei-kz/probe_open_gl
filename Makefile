@@ -1,15 +1,18 @@
-.PHONY: configure build test clean rebuild
+.PHONY: run configure build test clean rebuild
 
 PRESET := debug-clang
 BUILD_DIR := cmake-build-debug-clang
 
+run: build
+	$(BUILD_DIR)/probe_open_gl
+
 configure:
 	cmake --preset $(PRESET)
 
-build:
+build: configure
 	cmake --build --preset $(PRESET)
 
-test: configure build
+test: build
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 rebuild:
