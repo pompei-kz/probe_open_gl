@@ -83,6 +83,7 @@ namespace {
 
     std::istringstream input(yaml);
     std::string line;
+    bool inMeshes = false;
     bool inFigure = false;
     bool inSection = false;
     bool inData = false;
@@ -98,6 +99,18 @@ namespace {
       }
 
       if (!line.starts_with(" ") && trimmed.ends_with(":")) {
+        inMeshes = trimmed == "meshes:";
+        inFigure = false;
+        inSection = false;
+        inData = false;
+        continue;
+      }
+
+      if (!inMeshes) {
+        continue;
+      }
+
+      if (line.starts_with("  ") && !line.starts_with("    ") && trimmed.ends_with(":")) {
         if (inFigure) {
           break;
         }
