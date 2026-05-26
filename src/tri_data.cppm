@@ -38,7 +38,7 @@ namespace {
     int colorFloatCount = 0;
   };
 
-  std::string trim(std::string_view value) {
+  std::string trim(const std::string_view value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
     if (begin == std::string_view::npos) {
       return {};
@@ -64,7 +64,7 @@ namespace {
     return value;
   }
 
-  std::vector<std::string> splitWords(std::string_view value) {
+  std::vector<std::string> splitWords(const std::string_view value) {
     std::istringstream input{std::string(value)};
     std::vector<std::string> words;
     std::string word;
@@ -75,8 +75,8 @@ namespace {
   }
 
   DataSection extractDataSection(const std::string &yaml,
-                                 std::string_view figureName,
-                                 std::string_view sectionName) {
+                                 const std::string_view figureName,
+                                 const std::string_view sectionName) {
     if (figureName.empty()) {
       throw std::runtime_error("d5J2Mmx9Ar :: Figure name must not be empty");
     }
