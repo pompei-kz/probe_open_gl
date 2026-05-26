@@ -84,6 +84,7 @@ namespace {
 
 int main(int argvCount, char **argv) {
   Arguments args(argvCount, argv);
+
   const std::filesystem::path &executableDirectory = args.executableDirectory();
 
   const std::filesystem::path intoPath = args.executableDirectory() / "intro.txt";
