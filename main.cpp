@@ -3,6 +3,7 @@
 
 #include "resources.hpp"
 
+import arguments;
 import tri_data;
 
 #include <filesystem>
@@ -64,13 +65,11 @@ namespace {
   }
 } // namespace
 
-int main(int, char **argv) {
-  std::filesystem::path executableDirectory = std::filesystem::path(argv[0]).parent_path();
-  if (executableDirectory.empty()) {
-    executableDirectory = std::filesystem::current_path();
-  }
+int main(int argvCount, char **argv) {
+  Arguments args(argvCount, argv);
+  const std::filesystem::path &executableDirectory = args.executableDirectory();
 
-  const std::filesystem::path intoPath = executableDirectory / "intro.txt";
+  const std::filesystem::path intoPath = args.executableDirectory() / "intro.txt";
   if (std::ifstream introFile(intoPath); introFile) {
     std::cout << introFile.rdbuf() << '\n';
   } else {

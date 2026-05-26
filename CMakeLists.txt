@@ -28,6 +28,7 @@ target_sources(probe_open_gl
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
+    arguments.cppm
     tri_data.cppm
 )
 
