@@ -141,15 +141,15 @@ int main(int, char **argv) {
                  triData.indexes.data(),
                  GL_STATIC_DRAW);
 
-    constexpr GLsizei kStride = tri_data::kVertexFloatCount * sizeof(float);
-    glVertexAttribPointer(0, tri_data::kPositionFloatCount, GL_FLOAT, GL_FALSE, kStride, nullptr);
+    const auto stride = static_cast<GLsizei>(triData.vertexFloatCount * sizeof(float));
+    glVertexAttribPointer(0, triData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1,
-                          tri_data::kColorFloatCount,
+                          triData.colorFloatCount,
                           GL_FLOAT,
                           GL_FALSE,
-                          kStride,
-                          reinterpret_cast<void *>(tri_data::kPositionFloatCount * sizeof(float)));
+                          stride,
+                          reinterpret_cast<void *>(triData.positionFloatCount * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     bool running = true;

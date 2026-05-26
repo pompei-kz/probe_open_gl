@@ -2,7 +2,6 @@ module;
 
 #include <epoxy/gl.h>
 
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -19,16 +18,26 @@ export namespace tri_data {
   struct TriData {
     std::vector<float> vertices;
     std::vector<GLuint> indexes;
+    int vertexFloatCount = 0;
+    int positionFloatCount = 0;
+    int colorFloatCount = 0;
   };
-
-  constexpr int kVertexFloatCount = 6;
-  constexpr int kPositionFloatCount = 3;
-  constexpr int kColorFloatCount = 3;
 
   TriData loadTriData(const std::filesystem::path &path);
 }
 
 namespace {
+  struct DataSection {
+    std::string type;
+    std::vector<std::string> lines;
+  };
+
+  struct PointLayout {
+    int vertexFloatCount = 0;
+    int positionFloatCount = 0;
+    int colorFloatCount = 0;
+  };
+
   std::string trim(std::string_view value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
     if (begin == std::string_view::npos) {
@@ -47,19 +56,37 @@ namespace {
     return value;
   }
 
-  std::vector<std::string> extractDataBlock(const std::string &yaml, std::string_view sectionName) {
+  std::string stripQuotes(std::string value) {
+    value = trim(value);
+    if (value.size() >= 2 && value.front() == '"' && value.back() == '"') {
+      return value.substr(1, value.size() - 2);
+    }
+    return value;
+  }
+
+  std::vector<std::string> splitWords(std::string_view value) {
+    std::istringstream input{std::string(value)};
+    std::vector<std::string> words;
+    std::string word;
+    while (input >> word) {
+      words.push_back(word);
+    }
+    return words;
+  }
+
+  DataSection extractDataSection(const std::string &yaml, std::string_view sectionName) {
     std::istringstream input(yaml);
     std::string line;
     bool inMainTriData = false;
     bool inSection = false;
     bool inData = false;
-    std::vector<std::string> lines;
+    DataSection section;
 
     while (std::getline(input, line)) {
       const std::string trimmed = trim(line);
       if (trimmed.empty()) {
         if (inData) {
-          lines.emplace_back();
+          section.lines.emplace_back();
         }
         continue;
       }
@@ -90,17 +117,22 @@ namespace {
         inData = false;
       }
 
+      if (inSection && trimmed.starts_with("type:")) {
+        section.type = stripQuotes(trimmed.substr(std::string_view("type:").size()));
+        continue;
+      }
+
       if (inSection && trimmed == "data: |") {
         inData = true;
         continue;
       }
 
       if (inData) {
-        lines.push_back(line);
+        section.lines.push_back(line);
       }
     }
 
-    return lines;
+    return section;
   }
 
   std::vector<float> parseFloatLine(std::string line) {
@@ -120,6 +152,49 @@ namespace {
 
     return values;
   }
+
+  PointLayout parsePointLayout(const std::string &type, const std::filesystem::path &path) {
+    const std::vector<std::string> fields = splitWords(type);
+    if (fields.size() < 2 || fields.front() != "i") {
+      throw std::runtime_error("oGl0vjKJbD :: Invalid points type in " + path.string() + ": " + type);
+    }
+
+    PointLayout layout;
+    bool inColors = false;
+    for (auto field = fields.begin() + 1; field != fields.end(); ++field) {
+      ++layout.vertexFloatCount;
+      if (field->starts_with("C")) {
+        inColors = true;
+        ++layout.colorFloatCount;
+      } else {
+        if (inColors) {
+          throw std::runtime_error("nFRYw69ZVw :: Point position fields must appear before color fields in "
+                                   + path.string() + ": " + type);
+        }
+        ++layout.positionFloatCount;
+      }
+    }
+
+    if (layout.positionFloatCount <= 0 || layout.colorFloatCount <= 0) {
+      throw std::runtime_error("KjYkVw6sAv :: Points type must define position and color fields in "
+                               + path.string() + ": " + type);
+    }
+
+    return layout;
+  }
+
+  int parseIndexCount(const std::string &type, const std::filesystem::path &path) {
+    const std::vector<std::string> fields = splitWords(type);
+    if (fields.empty()) {
+      throw std::runtime_error("gMEOd5Wvmn :: Missing indexes type in " + path.string());
+    }
+    for (const std::string &field: fields) {
+      if (field != "i") {
+        throw std::runtime_error("LVw0x4xKiG :: Invalid indexes type in " + path.string() + ": " + type);
+      }
+    }
+    return static_cast<int>(fields.size());
+  }
 }
 
 tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
@@ -130,38 +205,44 @@ tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
 
   const std::string yaml((std::istreambuf_iterator<char>(file)),
                          std::istreambuf_iterator<char>());
-  const std::vector<std::string> pointLines = extractDataBlock(yaml, "points");
-  const std::vector<std::string> indexLines = extractDataBlock(yaml, "indexes");
+  const DataSection points = extractDataSection(yaml, "points");
+  const DataSection indexes = extractDataSection(yaml, "indexes");
+  const PointLayout layout = parsePointLayout(points.type, path);
+  const int indexCount = parseIndexCount(indexes.type, path);
 
   TriData result;
+  result.vertexFloatCount = layout.vertexFloatCount;
+  result.positionFloatCount = layout.positionFloatCount;
+  result.colorFloatCount = layout.colorFloatCount;
+
   std::unordered_map<int, GLuint> pointIndexById;
 
-  for (const std::string &line: pointLines) {
+  for (const std::string &line: points.lines) {
     const std::vector<float> values = parseFloatLine(line);
     if (values.empty()) {
       continue;
     }
-    if (values.size() != 1 + kVertexFloatCount) {
+    if (values.size() != 1 + static_cast<std::size_t>(result.vertexFloatCount)) {
       throw std::runtime_error("pSo3Hqn3wN :: Invalid point row in " + path.string() + ": " + trim(line));
     }
 
     const int id = static_cast<int>(values[0]);
-    pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / kVertexFloatCount));
+    pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / result.vertexFloatCount));
     result.vertices.insert(result.vertices.end(), values.begin() + 1, values.end());
   }
 
-  for (const std::string &line: indexLines) {
+  for (const std::string &line: indexes.lines) {
     const std::vector<float> values = parseFloatLine(line);
     if (values.empty()) {
       continue;
     }
-    if (values.size() != 3) {
+    if (values.size() != static_cast<std::size_t>(indexCount)) {
       throw std::runtime_error("w3jRjFEhtq :: Invalid index row in " + path.string() + ": " + trim(line));
     }
 
-    std::array<GLuint, 3> triangle{};
+    std::vector<GLuint> triangle(static_cast<std::size_t>(indexCount));
     bool validTriangle = true;
-    for (std::size_t i = 0; i < triangle.size(); ++i) {
+    for (std::size_t i = 0; i < values.size(); ++i) {
       const int pointId = static_cast<int>(values[i]);
       const auto pointIndex = pointIndexById.find(pointId);
       if (pointIndex == pointIndexById.end()) {
