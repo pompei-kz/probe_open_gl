@@ -107,3 +107,19 @@ target_link_libraries(tri_data_tests
 
 include(GoogleTest)
 gtest_discover_tests(tri_data_tests)
+
+add_executable(arguments_tests tests/arguments_tests.cpp)
+
+target_sources(arguments_tests
+    PRIVATE
+    FILE_SET CXX_MODULES
+    FILES
+    src/arguments.cppm
+)
+
+target_link_libraries(arguments_tests
+    PRIVATE
+    GTest::gtest_main
+)
+
+gtest_discover_tests(arguments_tests)
