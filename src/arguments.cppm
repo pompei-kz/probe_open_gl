@@ -10,6 +10,7 @@ export class Arguments {
   std::string appName_;
   std::filesystem::path executableDirectory_;
   std::filesystem::path configDirectory_;
+  std::filesystem::path cacheDirectory_;
 
 public:
   Arguments(int argumentCount, char **arguments) {
@@ -31,8 +32,10 @@ public:
 
     if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
       configDirectory_ = std::filesystem::path(home) / appName_;
+      cacheDirectory_ = std::filesystem::path(home) / ".cache" / appName_;
     } else {
       configDirectory_ = std::filesystem::current_path() / appName_;
+      cacheDirectory_ = std::filesystem::current_path() / ".cache" / appName_;
     }
   }
 
@@ -46,5 +49,9 @@ public:
 
   [[nodiscard]] const std::filesystem::path &configDirectory() const {
     return configDirectory_;
+  }
+
+  [[nodiscard]] const std::filesystem::path &cacheDirectory() const {
+    return cacheDirectory_;
   }
 };

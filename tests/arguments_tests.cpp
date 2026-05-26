@@ -17,6 +17,13 @@ namespace {
     }
     return std::filesystem::current_path() / appName;
   }
+
+  std::filesystem::path expectedCacheDirectory(const std::string &appName) {
+    if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0') {
+      return std::filesystem::path(home) / ".cache" / appName;
+    }
+    return std::filesystem::current_path() / ".cache" / appName;
+  }
 }
 
 TEST(Arguments, ExtractsExecutableDirectoryAndAppNameFromProgramPath) {
@@ -28,6 +35,7 @@ TEST(Arguments, ExtractsExecutableDirectoryAndAppNameFromProgramPath) {
   EXPECT_EQ(arguments.appName(), "probe_open_gl_test_runner");
   EXPECT_EQ(arguments.executableDirectory(), std::filesystem::path("/tmp"));
   EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl_test_runner"));
+  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl_test_runner"));
 }
 
 TEST(Arguments, UsesCurrentDirectoryWhenProgramHasNoParentPath) {
@@ -39,6 +47,7 @@ TEST(Arguments, UsesCurrentDirectoryWhenProgramHasNoParentPath) {
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
   EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
   EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
 }
 
 TEST(Arguments, FallsBackWhenArgumentVectorIsMissing) {
@@ -47,6 +56,7 @@ TEST(Arguments, FallsBackWhenArgumentVectorIsMissing) {
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
   EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
   EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
 }
 
 TEST(Arguments, FallsBackWhenProgramNameIsEmpty) {
@@ -58,4 +68,5 @@ TEST(Arguments, FallsBackWhenProgramNameIsEmpty) {
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
   EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
   EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
 }
