@@ -5,7 +5,9 @@ module;
 export module arguments;
 
 export class Arguments {
+  std::filesystem::path appName_ = "probe_open_gl"; // TODO add getter to it
   std::filesystem::path executableDirectory_;
+  std::filesystem::path configDirectory_;// TODO make it to `~/{appName_}/` and add getter to it
 
 public:
   Arguments(int argumentCount, char **arguments) {
