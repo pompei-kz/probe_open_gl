@@ -23,7 +23,7 @@ export namespace tri_data {
     int colorFloatCount = 0;
   };
 
-  TriData loadTriData(const std::filesystem::path &path);
+  TriData loadTriData(const std::filesystem::path &path, std::string_view figureName);
 }
 
 namespace {
@@ -74,10 +74,16 @@ namespace {
     return words;
   }
 
-  DataSection extractDataSection(const std::string &yaml, std::string_view sectionName) {
+  DataSection extractDataSection(const std::string &yaml,
+                                 std::string_view figureName,
+                                 std::string_view sectionName) {
+    if (figureName.empty()) {
+      throw std::runtime_error("d5J2Mmx9Ar :: Figure name must not be empty");
+    }
+
     std::istringstream input(yaml);
     std::string line;
-    bool inMainTriData = false;
+    bool inFigure = false;
     bool inSection = false;
     bool inData = false;
     DataSection section;
@@ -91,19 +97,19 @@ namespace {
         continue;
       }
 
-      if (trimmed == "main-tri-data:") {
-        inMainTriData = true;
+      if (!line.starts_with(" ") && trimmed.ends_with(":")) {
+        if (inFigure) {
+          break;
+        }
+
+        inFigure = trimmed == std::string(figureName) + ":";
         inSection = false;
         inData = false;
         continue;
       }
 
-      if (!inMainTriData) {
+      if (!inFigure) {
         continue;
-      }
-
-      if (!line.starts_with(" ") && trimmed.ends_with(":")) {
-        break;
       }
 
       if (trimmed == std::string(sectionName) + ":") {
@@ -197,7 +203,7 @@ namespace {
   }
 }
 
-tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
+tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path, std::string_view figureName) {
   std::ifstream file(path);
   if (!file) {
     throw std::runtime_error("8rJR8DpT9m :: Failed to open " + path.string());
@@ -205,8 +211,8 @@ tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
 
   const std::string yaml((std::istreambuf_iterator<char>(file)),
                          std::istreambuf_iterator<char>());
-  const DataSection points = extractDataSection(yaml, "points");
-  const DataSection indexes = extractDataSection(yaml, "indexes");
+  const DataSection points = extractDataSection(yaml, figureName, "points");
+  const DataSection indexes = extractDataSection(yaml, figureName, "indexes");
   const PointLayout layout = parsePointLayout(points.type, path);
   const int indexCount = parseIndexCount(indexes.type, path);
 
@@ -237,7 +243,7 @@ tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
       continue;
     }
     if (values.size() != static_cast<std::size_t>(indexCount)) {
-      throw std::runtime_error("w3jRjFEhtq :: Invalid index row in " + path.string() + ": " + trim(line));
+      throw std::runtime_error("w3jRjFEh8q :: Invalid index row in " + path.string() + ": " + trim(line));
     }
 
     std::vector<GLuint> triangle(static_cast<std::size_t>(indexCount));

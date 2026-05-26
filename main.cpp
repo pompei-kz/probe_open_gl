@@ -123,7 +123,7 @@ int main(int, char **argv) {
   try {
     shaderProgram = createShaderProgram();
 
-    const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
+    const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml", "main-tri-data");
 
     glGenVertexArrays(1, &vertexArray);
     glGenBuffers(1, &vertexBuffer);
