@@ -34,3 +34,35 @@ meshes:
         
         6  7  8
         9 10 11
+
+  green-tri:
+    points:
+      type: "i X Y Z"
+      data: |
+        #i  X       Y     Z
+         0 -0.900   0.40  0
+         1 -0.750   0.10  0
+         2 -0.600   0.40  0
+     
+         3  0.600   0.40  0
+         4  0.750   0.10  0
+         5  0.900   0.40  0
+    indexes:
+      type: "i i i"
+      data: |
+        0 1 2
+        3 4 5
+
+figures:
+  figure_01:
+    mesh:
+      ref: "#main-tri-data"
+    material:
+      type: "solid"
+
+  figure_02:
+    mesh:
+      ref: "#green-tri"
+    material:
+      type: "solid"
+      color: "0.15  0.85  0.35"
