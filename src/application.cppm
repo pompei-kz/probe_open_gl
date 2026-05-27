@@ -115,6 +115,16 @@ private:
       render.setMoveHoriz(MoveHoriz::RIGHT);
       return;
     }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q)
+    {
+      render.setRotateForward(RotateForward::RIGHT);
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_e)
+    {
+      render.setRotateForward(RotateForward::LEFT);
+      return;
+    }
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
     {
       render.setMoveVert(MoveVert::NONE);
@@ -133,6 +143,16 @@ private:
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d)
     {
       render.setMoveHoriz(MoveHoriz::NONE);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_q)
+    {
+      render.setRotateForward(RotateForward::NONE);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_e)
+    {
+      render.setRotateForward(RotateForward::NONE);
       return;
     }
     if (event.type == SDL_MOUSEMOTION && mouseCaptured_)

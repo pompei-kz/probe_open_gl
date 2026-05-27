@@ -25,6 +25,7 @@ cameras:
       sideVelocity: "3"
       forwardMouseSensitivity: "0.10"
       forwardScrollStep: "1"
+      forwardRotateDegPSec: "90"
 
 shapes:
 

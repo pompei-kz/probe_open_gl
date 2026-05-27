@@ -22,7 +22,7 @@ namespace
     }
 
     const std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
-    std::ofstream output(path);
+    std::ofstream               output(path);
     output << yaml;
     return path;
   }
@@ -30,7 +30,7 @@ namespace
   std::filesystem::path writeTextFile(const std::string &fileName, const std::string &content)
   {
     const std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
-    std::ofstream output(path);
+    std::ofstream               output(path);
     output << content;
     return path;
   }
@@ -326,6 +326,7 @@ cameras:
       sideVelocity: "4.5"
       forwardMouseSensitivity: "0.2"
       forwardScrollStep: "2.5"
+      forwardRotateDegPSec: "12.5"
 meshes:
   triangle:
     points:
@@ -400,6 +401,7 @@ shape-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
   EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
+  EXPECT_FLOAT_EQ(data.camera.forwardRotateDegPSec, 12.5F);
   EXPECT_FLOAT_EQ(data.sun.force, 2.5F);
   EXPECT_FLOAT_EQ(data.sun.direction[0], 0.0F);
   EXPECT_FLOAT_EQ(data.sun.direction[1], 0.6F);

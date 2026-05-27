@@ -32,6 +32,13 @@ export enum class MoveHoriz
   RIGHT,
 };
 
+export enum class RotateForward
+{
+  NONE,
+  LEFT,
+  RIGHT,
+};
+
 namespace
 {
   struct ShapeGlBufferIds
@@ -303,6 +310,8 @@ public:
 
   void setMoveHoriz(const MoveHoriz moveHoriz) { moveHoriz_ = moveHoriz; }
 
+  void setRotateForward(const RotateForward rotateForward) { rotateForward_ = rotateForward; }
+
   void rotateCamera(const int mouseDeltaX, const int mouseDeltaY)
   {
     rotateCameraAxes(cameraForward_, cameraUp_, mouseDeltaX, mouseDeltaY, scene_.camera.forwardMouseSensitivity);
@@ -317,6 +326,14 @@ public:
     cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
     const int verticalMovementDirection = (moveVert_ == MoveVert::UP ? 1 : 0) - (moveVert_ == MoveVert::DOWN ? 1 : 0);
     cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * static_cast<float>(verticalMovementDirection) * deltaSeconds;
+    const int forwardRotateDirection = (rotateForward_ == RotateForward::RIGHT ? 1 : 0) - (rotateForward_ == RotateForward::LEFT ? 1 : 0);
+    if (forwardRotateDirection != 0)
+    {
+      const glm::mat4 rollMatrix =
+          glm::rotate(glm::mat4{1.0F}, glm::radians(scene_.camera.forwardRotateDegPSec * static_cast<float>(forwardRotateDirection) * deltaSeconds),
+                      normalize(cameraForward_, "camera.forward"));
+      cameraUp_ = normalize(rollMatrix * glm::vec4(cameraUp_, 0.0F), "camera.up");
+    }
 
     // Задаем цвет очистки кадрового буфера.
     glClearColor(scene_.params.backgroundColor[0], scene_.params.backgroundColor[1], scene_.params.backgroundColor[2], 1.0F);
@@ -388,6 +405,7 @@ private:
   glm::vec3                     cameraPosition_{};
   glm::vec3                     cameraForward_{};
   glm::vec3                     cameraUp_{};
-  MoveVert                      moveVert_  = MoveVert::NONE;
-  MoveHoriz                     moveHoriz_ = MoveHoriz::NONE;
+  MoveVert                      moveVert_      = MoveVert::NONE;
+  MoveHoriz                     moveHoriz_     = MoveHoriz::NONE;
+  RotateForward                 rotateForward_ = RotateForward::NONE;
 };

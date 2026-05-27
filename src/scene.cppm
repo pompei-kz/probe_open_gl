@@ -50,6 +50,7 @@ export namespace scene
     float     sideVelocity            = 0.0F;
     float     forwardMouseSensitivity = 0.0F;
     float     forwardScrollStep       = 0.0F;
+    float     forwardRotateDegPSec    = 0.0F;
   };
 
   struct Sun
@@ -623,6 +624,10 @@ namespace
     result.camera.sideVelocity            = parseFloatScalar(params["sideVelocity"], path, "camera.params.sideVelocity");
     result.camera.forwardMouseSensitivity = parseFloatScalar(params["forwardMouseSensitivity"], path, "camera.params.forwardMouseSensitivity");
     result.camera.forwardScrollStep       = parseFloatScalar(params["forwardScrollStep"], path, "camera.params.forwardScrollStep");
+    if (const YAML::Node forwardRotateDegPSec = params["forwardRotateDegPSec"])
+    {
+      result.camera.forwardRotateDegPSec = parseFloatScalar(forwardRotateDegPSec, path, "camera.params.forwardRotateDegPSec");
+    }
   }
 
   void parseSceneSun(const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
