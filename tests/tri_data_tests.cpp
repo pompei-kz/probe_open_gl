@@ -195,12 +195,12 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[0], -1.0F);
   EXPECT_FLOAT_EQ(data.vertices[3], 0.25F);
   EXPECT_FLOAT_EQ(data.vertices[21], 1.0F);
-  EXPECT_FLOAT_EQ(data.cameraPosition[2], 10.0F);
-  EXPECT_FLOAT_EQ(data.cameraForward[2], -2.0F);
-  EXPECT_FLOAT_EQ(data.cameraUp[2], 0.2F);
-  EXPECT_FLOAT_EQ(data.cameraNear, 0.2F);
-  EXPECT_FLOAT_EQ(data.cameraFar, 250.0F);
-  EXPECT_FLOAT_EQ(data.cameraFovDegrees, 60.0F);
+  EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
+  EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
+  EXPECT_FLOAT_EQ(data.camera.up[2], 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.nearPlane, 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.farPlane, 250.0F);
+  EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
 }
 
 TEST(LoadTriData, ResolvesMeshReferencesFromRelativeFiles) {

@@ -18,15 +18,19 @@ module;
 export module tri_data;
 
 export namespace tri_data {
+  struct Camera {
+    std::array<float, 3> position{0.0F, 0.0F, 1.0F};
+    std::array<float, 3> forward{0.0F, 0.0F, -1.0F};
+    std::array<float, 3> up{0.0F, 1.0F, 0.0F};
+    float nearPlane = 0.1F;
+    float farPlane = 100.0F;
+    float fovDegrees = 45.0F;
+  };
+
   struct TriData {
     std::vector<float> vertices;
     std::vector<GLuint> indexes;
-    std::array<float, 3> cameraPosition{0.0F, 0.0F, 1.0F};
-    std::array<float, 3> cameraForward{0.0F, 0.0F, -1.0F};
-    std::array<float, 3> cameraUp{0.0F, 1.0F, 0.0F};
-    float cameraNear = 0.1F;
-    float cameraFar = 100.0F;
-    float cameraFovDegrees = 45.0F;
+    Camera camera;
     int vertexFloatCount = 0;
     int positionFloatCount = 0;
     int colorFloatCount = 0;
@@ -414,12 +418,12 @@ namespace {
 
     const YAML::Node cameras = requiredMapChild(document, "cameras", path);
     const YAML::Node camera = requiredMapChild(cameras, cameraName.as<std::string>(), path);
-    result.cameraPosition = parseVector3(camera["position"], path, "camera.position");
-    result.cameraForward = parseVector3(camera["forward"], path, "camera.forward");
-    result.cameraUp = parseVector3(camera["up"], path, "camera.up");
-    result.cameraNear = parseFloatScalar(camera["near"], path, "camera.near");
-    result.cameraFar = parseFloatScalar(camera["far"], path, "camera.far");
-    result.cameraFovDegrees = parseFloatScalar(camera["fov"], path, "camera.fov");
+    result.camera.position = parseVector3(camera["position"], path, "camera.position");
+    result.camera.forward = parseVector3(camera["forward"], path, "camera.forward");
+    result.camera.up = parseVector3(camera["up"], path, "camera.up");
+    result.camera.nearPlane = parseFloatScalar(camera["near"], path, "camera.near");
+    result.camera.farPlane = parseFloatScalar(camera["far"], path, "camera.far");
+    result.camera.fovDegrees = parseFloatScalar(camera["fov"], path, "camera.fov");
   }
 }
 

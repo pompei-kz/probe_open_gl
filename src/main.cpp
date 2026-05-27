@@ -290,11 +290,11 @@ int main(int argvCount, char **argv) {
       const int viewportWidth = std::max(window.width(), 1);
       const int viewportHeight = std::max(window.height(), 1);
       const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-      const Mat4 projection = projectionMatrix(triData.cameraFovDegrees,
+      const Mat4 projection = projectionMatrix(triData.camera.fovDegrees,
                                                aspect,
-                                               triData.cameraNear,
-                                               triData.cameraFar);
-      const Mat4 view = viewMatrix(triData.cameraPosition, triData.cameraForward, triData.cameraUp);
+                                               triData.camera.nearPlane,
+                                               triData.camera.farPlane);
+      const Mat4 view = viewMatrix(triData.camera.position, triData.camera.forward, triData.camera.up);
       const Mat4 model = identityMatrix();
       // Передаем матрицу проекции в текущую шейдерную программу.
       glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, projection.data());
