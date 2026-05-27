@@ -2,6 +2,7 @@
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 color;
+layout (location = 2) in vec4 instance;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
@@ -11,5 +12,5 @@ out vec3 vertexColor;
 
 void main() {
   vertexColor = color;
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position + instance.xyz, 1.0);
 }

@@ -74,11 +74,16 @@ figures:
   EXPECT_EQ(data.vertexFloatCount, 6);
   EXPECT_EQ(data.positionFloatCount, 3);
   EXPECT_EQ(data.colorFloatCount, 3);
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_FLOAT_EQ(data.vertices[0], -1.0F);
-  EXPECT_FLOAT_EQ(data.vertices[6], 1.0F);
-  EXPECT_FLOAT_EQ(data.vertices[12], 0.0F);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[12], 0.0F);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
+  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapes[0].instanceCount, 1U);
 }
 
 TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors) {
@@ -110,14 +115,15 @@ figures:
   EXPECT_EQ(data.vertexFloatCount, 6);
   EXPECT_EQ(data.positionFloatCount, 3);
   EXPECT_EQ(data.colorFloatCount, 3);
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.2F);
-  EXPECT_FLOAT_EQ(data.vertices[4], 0.4F);
-  EXPECT_FLOAT_EQ(data.vertices[5], 0.6F);
-  EXPECT_FLOAT_EQ(data.vertices[15], 0.2F);
-  EXPECT_FLOAT_EQ(data.vertices[16], 0.4F);
-  EXPECT_FLOAT_EQ(data.vertices[17], 0.6F);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.2F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.4F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[15], 0.2F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[16], 0.4F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[17], 0.6F);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
 TEST(LoadScene, DoesNotDrawSceneFiguresDirectly) {
@@ -232,18 +238,23 @@ figure-instance-groups:
   data.load(path);
 
   EXPECT_EQ(data.vertexFloatCount, 6);
-  ASSERT_EQ(data.vertices.size(), 36U);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2, 3, 4, 5}));
-  EXPECT_FLOAT_EQ(data.vertices[0], 10.0F);
-  EXPECT_FLOAT_EQ(data.vertices[1], 20.0F);
-  EXPECT_FLOAT_EQ(data.vertices[2], 30.0F);
-  EXPECT_FLOAT_EQ(data.vertices[6], 11.0F);
-  EXPECT_FLOAT_EQ(data.vertices[12], 10.0F);
-  EXPECT_FLOAT_EQ(data.vertices[18], -1.0F);
-  EXPECT_FLOAT_EQ(data.vertices[19], -2.0F);
-  EXPECT_FLOAT_EQ(data.vertices[20], -3.0F);
-  EXPECT_FLOAT_EQ(data.vertices[24], 0.0F);
-  EXPECT_FLOAT_EQ(data.vertices[30], -1.0F);
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 2U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], 0.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[12], 0.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[0], 10.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[1], 20.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[2], 30.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[1], -2.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[2], -3.0F);
+  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
+  EXPECT_EQ(data.instances[1].shapeIndex, 0U);
+  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapes[0].instanceCount, 2U);
   EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
   EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
   EXPECT_FLOAT_EQ(data.camera.up[2], 0.2F);
@@ -254,6 +265,114 @@ figure-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
   EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
+}
+
+TEST(LoadScene, StoresOnlyShapesUsedBySelectedInstanceGroups) {
+  const std::filesystem::path path = writeYaml("stores_only_used_shapes", R"yaml(
+scene:
+  figure-instance-groups:
+    - first_group
+    - second_group
+  camera: "main"
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+meshes:
+  first_mesh:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+  second_mesh:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 2.0 0.0 0.0
+        2 3.0 0.0 0.0
+        3 2.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+  unused_mesh:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 9.0 0.0 0.0
+        2 9.0 1.0 0.0
+        3 9.0 0.0 1.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+figures:
+  first:
+    mesh:
+      ref: "#first_mesh"
+    material:
+      type: "solid"
+      color: "1 0 0"
+  second:
+    mesh:
+      ref: "#second_mesh"
+    material:
+      type: "solid"
+      color: "0 1 0"
+  unused:
+    mesh:
+      ref: "#unused_mesh"
+    material:
+      type: "solid"
+      color: "0 0 1"
+figure-instance-groups:
+  first_group:
+    figure:
+      ref: "#first"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 10 0 0
+        1 11 0 0
+  second_group:
+    figure:
+      ref: "#second"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 20 0 0
+)yaml");
+
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapes.size(), 2U);
+  ASSERT_EQ(data.instances.size(), 3U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], 0.0F);
+  EXPECT_FLOAT_EQ(data.shapes[1].vertices[0], 2.0F);
+  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapes[0].instanceCount, 2U);
+  EXPECT_EQ(data.shapes[1].firstInstance, 2U);
+  EXPECT_EQ(data.shapes[1].instanceCount, 1U);
+  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
+  EXPECT_EQ(data.instances[1].shapeIndex, 0U);
+  EXPECT_EQ(data.instances[2].shapeIndex, 1U);
 }
 
 TEST(LoadScene, ResolvesMeshReferencesFromRelativeFiles) {
@@ -286,9 +405,10 @@ figures:
   data.load(path, "target");
 
   (void)meshPath;
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
 }
 
 TEST(LoadScene, ReadsPointAndIndexDataRefs) {
@@ -323,9 +443,10 @@ figures:
 
   (void)pointsPath;
   (void)indexesPath;
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
 }
 
 TEST(LoadScene, IgnoresEmptyLinesAndCommentsInInlineData) {
@@ -360,11 +481,12 @@ figures:
   scene::Scene data;
   data.load(path, "target");
 
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.7F);
-  EXPECT_FLOAT_EQ(data.vertices[4], 0.8F);
-  EXPECT_FLOAT_EQ(data.vertices[5], 0.9F);
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.7F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.8F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.9F);
 }
 
 TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs) {
@@ -405,11 +527,12 @@ figures:
 
   (void)pointsPath;
   (void)indexesPath;
-  ASSERT_EQ(data.vertices.size(), 18U);
-  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.4F);
-  EXPECT_FLOAT_EQ(data.vertices[4], 0.5F);
-  EXPECT_FLOAT_EQ(data.vertices[5], 0.6F);
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.4F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.5F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
 }
 
 TEST(LoadScene, ThrowsWhenSectionHasDataAndDataRef) {

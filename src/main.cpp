@@ -18,9 +18,17 @@ import scene;
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace
 {
+  struct ShapeGlBuffers
+  {
+    GLuint vertexArray = 0;
+    GLuint vertexBuffer = 0;
+    GLuint indexBuffer = 0;
+  };
+
   glm::vec3 toVec3(const std::array<float, 3> &value)
   {
     return {value[0], value[1], value[2]};
@@ -201,9 +209,8 @@ int main(int argvCount, char **argv)
   std::cout << "DZ2EDsUp4f :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
 
   GLuint shaderProgram        = 0;
-  GLuint vertexArray          = 0;
-  GLuint vertexBuffer         = 0;
-  GLuint indexBuffer          = 0;
+  std::vector<ShapeGlBuffers> shapeBuffers;
+  GLuint instanceBuffer       = 0;
   bool mouseCaptured          = false;
   const auto setMouseCaptured = [&mouseCaptured](const bool captured)
   {
@@ -238,36 +245,53 @@ int main(int argvCount, char **argv)
     glm::vec3 cameraForward  = normalize(toVec3(sceneData.camera.forward), "camera.forward");
     const glm::vec3 cameraUp = toVec3(sceneData.camera.up);
 
-    // Создаем объект Vertex Array Object для описания раскладки вершин.
-    glGenVertexArrays(1, &vertexArray);
-    // Создаем буфер для вершинных данных.
-    glGenBuffers(1, &vertexBuffer);
-    // Создаем буфер для индексов.
-    glGenBuffers(1, &indexBuffer);
+    glGenBuffers(1, &instanceBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sceneData.instances.size() * 4U * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
 
-    // Делаем VAO текущим, чтобы следующие настройки атрибутов записались в него.
-    glBindVertexArray(vertexArray);
-    // Делаем вершинный буфер текущим.
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    // Загружаем массив вершин в память GPU.
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sceneData.vertices.size() * sizeof(float)), sceneData.vertices.data(),
-                 GL_STATIC_DRAW);
-    // Делаем индексный буфер текущим для выбранного VAO.
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-    // Загружаем индексы треугольников в память GPU.
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(sceneData.indexes.size() * sizeof(GLuint)), sceneData.indexes.data(),
-                 GL_STATIC_DRAW);
-
+    shapeBuffers.resize(sceneData.shapes.size());
     const auto stride = static_cast<GLsizei>(sceneData.vertexFloatCount * sizeof(float));
-    // Описываем атрибут позиции вершины.
-    glVertexAttribPointer(0, sceneData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
-    // Включаем атрибут позиции вершины.
-    glEnableVertexAttribArray(0);
-    // Описываем атрибут цвета вершины.
-    glVertexAttribPointer(1, sceneData.colorFloatCount, GL_FLOAT, GL_FALSE, stride,
-                          reinterpret_cast<void *>(sceneData.positionFloatCount * sizeof(float)));
-    // Включаем атрибут цвета вершины.
-    glEnableVertexAttribArray(1);
+    const auto instanceStride = static_cast<GLsizei>(4U * sizeof(float));
+    for (std::size_t shapeIndex = 0; shapeIndex < sceneData.shapes.size(); ++shapeIndex)
+    {
+      const scene::Shape &shape = sceneData.shapes[shapeIndex];
+      ShapeGlBuffers &buffers   = shapeBuffers[shapeIndex];
+
+      // Создаем объект Vertex Array Object для описания раскладки вершин.
+      glGenVertexArrays(1, &buffers.vertexArray);
+      // Создаем буфер для вершинных данных.
+      glGenBuffers(1, &buffers.vertexBuffer);
+      // Создаем буфер для индексов.
+      glGenBuffers(1, &buffers.indexBuffer);
+
+      // Делаем VAO текущим, чтобы следующие настройки атрибутов записались в него.
+      glBindVertexArray(buffers.vertexArray);
+      // Делаем вершинный буфер текущим.
+      glBindBuffer(GL_ARRAY_BUFFER, buffers.vertexBuffer);
+      // Загружаем массив вершин формы в память GPU.
+      glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.vertices.size() * sizeof(float)), shape.vertices.data(),
+                   GL_STATIC_DRAW);
+      // Делаем индексный буфер текущим для выбранного VAO.
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
+      // Загружаем индексы треугольников формы в память GPU.
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.indexes.size() * sizeof(GLuint)), shape.indexes.data(),
+                   GL_STATIC_DRAW);
+
+      // Описываем атрибут позиции вершины.
+      glVertexAttribPointer(0, sceneData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
+      // Включаем атрибут позиции вершины.
+      glEnableVertexAttribArray(0);
+      // Описываем атрибут цвета вершины.
+      glVertexAttribPointer(1, sceneData.colorFloatCount, GL_FLOAT, GL_FALSE, stride,
+                            reinterpret_cast<void *>(sceneData.positionFloatCount * sizeof(float)));
+      // Включаем атрибут цвета вершины.
+      glEnableVertexAttribArray(1);
+      glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
+      glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, instanceStride,
+                            reinterpret_cast<void *>(shape.firstInstance * static_cast<std::size_t>(instanceStride)));
+      glEnableVertexAttribArray(2);
+      glVertexAttribDivisor(2, 1);
+    }
     // Включаем проверку глубины для 3D-сцены.
     glEnable(GL_DEPTH_TEST);
 
@@ -276,6 +300,7 @@ int main(int argvCount, char **argv)
     bool moveBackward      = false;
     bool moveLeft          = false;
     bool moveRight         = false;
+    std::vector<float> instanceData(sceneData.instances.size() * 4U);
     Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running)
     {
@@ -369,6 +394,18 @@ int main(int argvCount, char **argv)
 
       // Активируем шейдерную программу для текущей отрисовки.
       glUseProgram(shaderProgram);
+      for (std::size_t instanceIndex = 0; instanceIndex < sceneData.instances.size(); ++instanceIndex)
+      {
+        const scene::Instance &instance = sceneData.instances[instanceIndex];
+        const std::size_t writeIndex    = instanceIndex * 4U;
+        instanceData[writeIndex]        = instance.offset[0];
+        instanceData[writeIndex + 1U]   = instance.offset[1];
+        instanceData[writeIndex + 2U]   = instance.offset[2];
+        instanceData[writeIndex + 3U]   = static_cast<float>(instance.shapeIndex);
+      }
+      glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
+      glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(instanceData.size() * sizeof(float)), instanceData.data());
+
       const int viewportWidth  = std::max(window.width(), 1);
       const int viewportHeight = std::max(window.height(), 1);
       const float aspect       = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
@@ -382,10 +419,19 @@ int main(int argvCount, char **argv)
       glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
       // Передаем матрицу модели в текущую шейдерную программу.
       glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
-      // Выбираем VAO с раскладкой вершин и индексным буфером.
-      glBindVertexArray(vertexArray);
-      // Рисуем треугольники по индексам из текущего индексного буфера.
-      glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(sceneData.indexes.size()), GL_UNSIGNED_INT, nullptr);
+      for (std::size_t shapeIndex = 0; shapeIndex < sceneData.shapes.size(); ++shapeIndex)
+      {
+        const scene::Shape &shape = sceneData.shapes[shapeIndex];
+        if (shape.instanceCount == 0)
+        {
+          continue;
+        }
+        // Выбираем VAO формы с раскладкой вершин, индексным буфером и диапазоном инстансов.
+        glBindVertexArray(shapeBuffers[shapeIndex].vertexArray);
+        // Рисуем все инстансы формы по индексам из текущего индексного буфера.
+        glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(shape.indexes.size()), GL_UNSIGNED_INT, nullptr,
+                                static_cast<GLsizei>(shape.instanceCount));
+      }
 
       // Показываем отрисованный кадр, меняя back/front буферы окна.
       SDL_GL_SwapWindow(window.nativeHandle());
@@ -400,20 +446,27 @@ int main(int argvCount, char **argv)
   {
     SDL_SetRelativeMouseMode(SDL_FALSE);
   }
-  if (vertexBuffer != 0)
+  if (instanceBuffer != 0)
   {
-    // Освобождаем вершинный буфер в OpenGL.
-    glDeleteBuffers(1, &vertexBuffer);
+    glDeleteBuffers(1, &instanceBuffer);
   }
-  if (indexBuffer != 0)
+  for (const ShapeGlBuffers &buffers : shapeBuffers)
   {
-    // Освобождаем индексный буфер в OpenGL.
-    glDeleteBuffers(1, &indexBuffer);
-  }
-  if (vertexArray != 0)
-  {
-    // Освобождаем VAO в OpenGL.
-    glDeleteVertexArrays(1, &vertexArray);
+    if (buffers.vertexBuffer != 0)
+    {
+      // Освобождаем вершинный буфер в OpenGL.
+      glDeleteBuffers(1, &buffers.vertexBuffer);
+    }
+    if (buffers.indexBuffer != 0)
+    {
+      // Освобождаем индексный буфер в OpenGL.
+      glDeleteBuffers(1, &buffers.indexBuffer);
+    }
+    if (buffers.vertexArray != 0)
+    {
+      // Освобождаем VAO в OpenGL.
+      glDeleteVertexArrays(1, &buffers.vertexArray);
+    }
   }
   if (shaderProgram != 0)
   {

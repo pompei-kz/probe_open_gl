@@ -4,6 +4,8 @@ module;
 #include <yaml-cpp/yaml.h>
 
 #include <array>
+#include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -13,12 +15,26 @@ module;
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 export module scene;
 
 export namespace scene
 {
+  struct Instance
+  {
+    std::array<float, 3> offset{0.0F, 0.0F, 0.0F};
+    std::uint32_t shapeIndex = 0;
+  };
+
+  struct Shape
+  {
+    std::vector<float> vertices;
+    std::vector<GLuint> indexes;
+    std::size_t firstInstance = 0;
+    std::size_t instanceCount = 0;
+  };
 
   struct Camera
   {
@@ -37,8 +53,8 @@ export namespace scene
   class Scene
   {
   public:
-    std::vector<float> vertices;
-    std::vector<GLuint> indexes;
+    std::vector<Shape> shapes;
+    std::vector<Instance> instances;
     Camera camera;
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
@@ -403,8 +419,8 @@ namespace
     return result;
   }
 
-  void appendMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath,
-                  const std::array<float, 3> &offset, scene::Scene &result)
+  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath,
+                         const scene::Scene &sceneData)
   {
     const DataSection points  = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes = extractDataSection(mesh, "indexes", meshPath);
@@ -421,6 +437,7 @@ namespace
       throw std::runtime_error("S9A8rL1zLy :: Mesh without point colors needs solid material color in " + meshPath.string());
     }
 
+    scene::Shape result;
     std::unordered_map<int, GLuint> pointIndexById;
     for (const std::string &line : points.lines)
     {
@@ -435,10 +452,10 @@ namespace
       }
 
       const int id = static_cast<int>(values[0]);
-      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / result.vertexFloatCount));
+      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / sceneData.vertexFloatCount));
       for (int i = 0; i < layout.positionFloatCount; ++i)
       {
-        result.vertices.push_back(values[1 + static_cast<std::size_t>(i)] + offset[static_cast<std::size_t>(i)]);
+        result.vertices.push_back(values[1 + static_cast<std::size_t>(i)]);
       }
       if (layout.colorFloatCount > 0)
       {
@@ -482,36 +499,77 @@ namespace
         result.indexes.insert(result.indexes.end(), triangle.begin(), triangle.end());
       }
     }
+    return result;
   }
 
-  void appendFigure(const std::filesystem::path &path, const YAML::Node &figure, const std::string_view figureName,
-                    const std::array<float, 3> &offset, scene::Scene &result)
+  std::string shapeKey(const std::filesystem::path &path, const std::string_view figureName)
   {
+    return path.lexically_normal().string() + "#" + std::string(figureName);
+  }
+
+  std::uint32_t ensureFigureShape(const std::filesystem::path &path, const YAML::Node &figure, const std::string_view figureName,
+                                  scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
+  {
+    const std::string key = shapeKey(path, figureName);
+    if (const auto shapeIndex = shapeIndexByKey.find(key); shapeIndex != shapeIndexByKey.end())
+    {
+      return shapeIndex->second;
+    }
+
     const MeshRef meshRef         = parseMeshRef(figure, path, figureName);
     const Material material       = parseMaterial(figure, path, figureName);
     const YAML::Node meshDocument = YAML::LoadFile(meshRef.path.string());
     const YAML::Node meshes       = requiredMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    appendMesh(mesh, material, meshRef.path, offset, result);
+    scene::Shape shape            = parseMesh(mesh, material, meshRef.path, result);
+    if (shape.vertices.empty() || shape.indexes.empty())
+    {
+      throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
+    }
+    result.shapes.push_back(std::move(shape));
+    const auto shapeIndex = static_cast<std::uint32_t>(result.shapes.size() - 1U);
+    shapeIndexByKey.emplace(key, shapeIndex);
+    return shapeIndex;
   }
 
   void appendFigure(const std::filesystem::path &path, const YAML::Node &figure, const std::string_view figureName,
-                    scene::Scene &result)
+                    scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
-    appendFigure(path, figure, figureName, zeroOffset, result);
+    const std::uint32_t shapeIndex = ensureFigureShape(path, figure, figureName, result, shapeIndexByKey);
+    result.instances.push_back(scene::Instance{.offset = zeroOffset, .shapeIndex = shapeIndex});
   }
 
   void appendFigureInstanceGroup(const std::filesystem::path &path, const YAML::Node &instanceGroup, const std::string_view groupName,
-                                 scene::Scene &result)
+                                 scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const MeshRef figureRef         = parseFigureRef(instanceGroup, path, groupName);
     const YAML::Node figureDocument = YAML::LoadFile(figureRef.path.string());
     const YAML::Node figures        = requiredMapChild(figureDocument, "figures", figureRef.path);
     const YAML::Node figure         = requiredMapChild(figures, figureRef.id, figureRef.path);
+    const std::uint32_t shapeIndex  = ensureFigureShape(figureRef.path, figure, figureRef.id, result, shapeIndexByKey);
 
     for (const std::array<float, 3> &offset : parseOffsets(instanceGroup, path, groupName))
     {
-      appendFigure(figureRef.path, figure, figureRef.id, offset, result);
+      result.instances.push_back(scene::Instance{.offset = offset, .shapeIndex = shapeIndex});
+    }
+  }
+
+  void updateShapeInstanceRanges(scene::Scene &data)
+  {
+    std::ranges::sort(data.instances, {}, &scene::Instance::shapeIndex);
+    for (scene::Shape &shape : data.shapes)
+    {
+      shape.firstInstance = 0;
+      shape.instanceCount = 0;
+    }
+    for (std::size_t i = 0; i < data.instances.size(); ++i)
+    {
+      scene::Shape &shape = data.shapes[data.instances[i].shapeIndex];
+      if (shape.instanceCount == 0)
+      {
+        shape.firstInstance = i;
+      }
+      ++shape.instanceCount;
     }
   }
 
@@ -551,8 +609,8 @@ namespace
 void scene::Scene::load(const std::filesystem::path &path, const std::string_view figureName)
 {
   const YAML::Node document = YAML::LoadFile(path.string());
-  vertices.clear();
-  indexes.clear();
+  shapes.clear();
+  instances.clear();
   camera = Camera{};
   setDefaultLayout(*this);
   if (figureName.empty())
@@ -561,9 +619,11 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   }
   const YAML::Node figures = requiredMapChild(document, "figures", path);
   const YAML::Node figure  = requiredMapChild(figures, figureName, path);
-  appendFigure(path, figure, figureName, *this);
+  std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
+  appendFigure(path, figure, figureName, *this, shapeIndexByKey);
+  updateShapeInstanceRanges(*this);
 
-  if (vertices.empty() || indexes.empty())
+  if (shapes.empty() || instances.empty())
   {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }
@@ -573,8 +633,8 @@ void scene::Scene::load(const std::filesystem::path &path)
 {
   const YAML::Node document  = YAML::LoadFile(path.string());
   const YAML::Node sceneNode = requiredMapChild(document, "scene", path);
-  vertices.clear();
-  indexes.clear();
+  shapes.clear();
+  instances.clear();
   camera = Camera{};
   setDefaultLayout(*this);
   parseSceneCamera(document, sceneNode, path, *this);
@@ -586,6 +646,7 @@ void scene::Scene::load(const std::filesystem::path &path)
   }
 
   const YAML::Node figureInstanceGroups = requiredMapChild(document, "figure-instance-groups", path);
+  std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
   for (const YAML::Node groupName : sceneFigureInstanceGroups)
   {
     if (!groupName.IsScalar())
@@ -594,10 +655,11 @@ void scene::Scene::load(const std::filesystem::path &path)
     }
     const std::string name         = groupName.as<std::string>();
     const YAML::Node instanceGroup = requiredMapChild(figureInstanceGroups, name, path);
-    appendFigureInstanceGroup(path, instanceGroup, name, *this);
+    appendFigureInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
   }
+  updateShapeInstanceRanges(*this);
 
-  if (vertices.empty() || indexes.empty())
+  if (shapes.empty() || instances.empty())
   {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }
