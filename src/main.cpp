@@ -1,5 +1,8 @@
 #include <epoxy/gl.h>
 #include <SDL2/SDL.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "resources.hpp"
 
@@ -9,84 +12,44 @@ import tri_data;
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <numbers>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace {
-  using Vec3 = std::array<float, 3>;
-  using Mat4 = std::array<float, 16>;
-
-  float dot(const Vec3 &left, const Vec3 &right) {
-    return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+  glm::vec3 toVec3(const std::array<float, 3> &value) {
+    return {value[0], value[1], value[2]};
   }
 
-  Vec3 cross(const Vec3 &left, const Vec3 &right) {
-    return {
-      left[1] * right[2] - left[2] * right[1],
-      left[2] * right[0] - left[0] * right[2],
-      left[0] * right[1] - left[1] * right[0],
-    };
-  }
-
-  Vec3 scale(const Vec3 &value, const float factor) {
-    return {value[0] * factor, value[1] * factor, value[2] * factor};
-  }
-
-  Vec3 normalize(const Vec3 &value, const std::string_view name) {
-    const float length = std::sqrt(dot(value, value));
+  glm::vec3 normalize(const glm::vec3 &value, const std::string_view name) {
+    const float length = glm::length(value);
     if (length <= 0.0F) {
       throw std::runtime_error("gt6x0oIKhs :: Cannot normalize zero vector '" + std::string(name) + "'");
     }
-    return scale(value, 1.0F / length);
+    return glm::normalize(value);
   }
 
-  Mat4 identityMatrix() {
-    return {
-      1.0F, 0.0F, 0.0F, 0.0F,
-      0.0F, 1.0F, 0.0F, 0.0F,
-      0.0F, 0.0F, 1.0F, 0.0F,
-      0.0F, 0.0F, 0.0F, 1.0F,
-    };
-  }
-
-  Mat4 projectionMatrix(const float fovDegrees,
-                        const float aspect,
-                        const float nearPlane,
-                        const float farPlane) {
+  glm::mat4 projectionMatrix(const float fovDegrees,
+                             const float aspect,
+                             const float nearPlane,
+                             const float farPlane) {
     if (aspect <= 0.0F || nearPlane <= 0.0F || farPlane <= nearPlane
         || fovDegrees <= 0.0F || fovDegrees >= 180.0F) {
-      throw std::runtime_error("bE0zxdqKe1 :: Invalid projection camera values");
+      throw std::runtime_error("bE0zx1qKe1 :: Invalid projection camera values");
     }
 
-    const float fovRadians = fovDegrees * std::numbers::pi_v<float> / 180.0F;
-    const float topScale = 1.0F / std::tan(fovRadians / 2.0F);
-    return {
-      topScale / aspect, 0.0F, 0.0F, 0.0F,
-      0.0F, topScale, 0.0F, 0.0F,
-      0.0F, 0.0F, -(farPlane + nearPlane) / (farPlane - nearPlane), -1.0F,
-      0.0F, 0.0F, -(2.0F * farPlane * nearPlane) / (farPlane - nearPlane), 0.0F,
-    };
+    return glm::perspective(glm::radians(fovDegrees), aspect, nearPlane, farPlane);
   }
 
-  Mat4 viewMatrix(const Vec3 &position, const Vec3 &cameraForward, const Vec3 &cameraUp) {
-    const Vec3 forward = normalize(cameraForward, "camera.forward");
-    const Vec3 left = normalize(cross(cameraUp, forward), "camera.left");
-    const Vec3 up = normalize(cross(forward, left), "camera.up2");
-    const Vec3 right = scale(left, -1.0F);
-    const Vec3 backward = scale(forward, -1.0F);
+  glm::mat4 viewMatrix(const glm::vec3 &position, const glm::vec3 &cameraForward, const glm::vec3 &cameraUp) {
+    const glm::vec3 forward = normalize(cameraForward, "camera.forward");
+    const glm::vec3 left = normalize(glm::cross(cameraUp, forward), "camera.left");
+    const glm::vec3 up = normalize(glm::cross(forward, left), "camera.up2");
 
-    return {
-      right[0], up[0], backward[0], 0.0F,
-      right[1], up[1], backward[1], 0.0F,
-      right[2], up[2], backward[2], 0.0F,
-      -dot(right, position), -dot(up, position), -dot(backward, position), 1.0F,
-    };
+    return glm::lookAt(position, position + forward, up);
   }
 
   GLuint compileShader(GLenum type, std::string_view source) {
@@ -290,18 +253,20 @@ int main(int argvCount, char **argv) {
       const int viewportWidth = std::max(window.width(), 1);
       const int viewportHeight = std::max(window.height(), 1);
       const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-      const Mat4 projection = projectionMatrix(triData.camera.fovDegrees,
-                                               aspect,
-                                               triData.camera.nearPlane,
-                                               triData.camera.farPlane);
-      const Mat4 view = viewMatrix(triData.camera.position, triData.camera.forward, triData.camera.up);
-      const Mat4 model = identityMatrix();
+      const glm::mat4 projection = projectionMatrix(triData.camera.fovDegrees,
+                                                    aspect,
+                                                    triData.camera.nearPlane,
+                                                    triData.camera.farPlane);
+      const glm::mat4 view = viewMatrix(toVec3(triData.camera.position),
+                                        toVec3(triData.camera.forward),
+                                        toVec3(triData.camera.up));
+      const glm::mat4 model{1.0F};
       // Передаем матрицу проекции в текущую шейдерную программу.
-      glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, projection.data());
+      glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
       // Передаем матрицу вида в текущую шейдерную программу.
-      glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, view.data());
+      glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
       // Передаем матрицу модели в текущую шейдерную программу.
-      glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, model.data());
+      glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
       // Выбираем VAO с раскладкой вершин и индексным буфером.
       glBindVertexArray(vertexArray);
       // Рисуем треугольники по индексам из текущего индексного буфера.
