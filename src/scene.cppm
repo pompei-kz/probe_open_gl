@@ -10,7 +10,6 @@ module;
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -87,7 +86,7 @@ namespace
 
   struct Material
   {
-    std::optional<std::array<float, 3>> solidColor;
+    std::array<float, 3> solidColor{1.0F, 1.0F, 1.0F};
   };
 
   struct MeshRef
@@ -273,14 +272,6 @@ namespace
 
     PointLayout layout;
 
-    if (fields == std::vector<std::string>{"i", "X", "Y", "Z", "CX", "CY", "CZ"})
-    {
-      layout.vertexFloatCount   = 6;
-      layout.positionFloatCount = 3;
-      layout.colorFloatCount    = 3;
-      return layout;
-    }
-
     if (fields == std::vector<std::string>{"i", "X", "Y", "Z"})
     {
       layout.vertexFloatCount   = 3;
@@ -289,7 +280,7 @@ namespace
       return layout;
     }
 
-    throw std::runtime_error("KjYkVw6sAv :: Points type must be 'i X Y Z CX CY CZ' or 'i X Y Z' in " + path.string() + ": " + type);
+    throw std::runtime_error("KjYkVw6sAv :: Points type must be 'i X Y Z' in " + path.string() + ": " + type);
   }
 
   int parseIndexCount(const std::string &type, const std::filesystem::path &path)
@@ -427,11 +418,6 @@ namespace
     {
       throw std::runtime_error("cDO6R2F96Y :: Index type must be 'i i i' for GL_TRIANGLES in " + meshPath.string() + ": " + indexes.type);
     }
-    if (layout.colorFloatCount == 0 && !material.solidColor)
-    {
-      throw std::runtime_error("S9A8rL1zLy :: Mesh without point colors needs solid material color in " + meshPath.string());
-    }
-
     scene::Shape result;
     std::unordered_map<int, GLuint> pointIndexById;
     for (const std::string &line : points.lines)
@@ -452,14 +438,7 @@ namespace
       {
         result.vertices.push_back(values[1 + static_cast<std::size_t>(i)]);
       }
-      if (layout.colorFloatCount > 0)
-      {
-        result.vertices.insert(result.vertices.end(), values.begin() + 1 + layout.positionFloatCount, values.end());
-      }
-      else
-      {
-        result.vertices.insert(result.vertices.end(), material.solidColor->begin(), material.solidColor->end());
-      }
+      result.vertices.insert(result.vertices.end(), material.solidColor.begin(), material.solidColor.end());
     }
 
     for (const std::string &line : indexes.lines)

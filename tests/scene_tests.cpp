@@ -35,22 +35,22 @@ TEST(LoadScene, LoadsRequestedFigureFromFiguresRoot) {
 meshes:
   ignored:
     points:
-      type: "i X Y Z CX CY CZ"
+      type: "i X Y Z"
       data: |
-        1 0 0 0 1 0 0
-        2 1 0 0 0 1 0
-        3 0 1 0 0 0 1
+        1 0 0 0
+        2 1 0 0
+        3 0 1 0
     indexes:
       type: "i i i"
       data: |
         1 2 3
   target:
     points:
-      type: "i X Y Z CX CY CZ"
+      type: "i X Y Z"
       data: |
-        10 -1.0 0.0 0.0 1.0 0.0 0.0
-        20  1.0 0.0 0.0 0.0 1.0 0.0
-        30  0.0 1.0 0.0 0.0 0.0 1.0
+        10 -1.0 0.0 0.0
+        20  1.0 0.0 0.0
+        30  0.0 1.0 0.0
     indexes:
       type: "i i i"
       data: |
@@ -78,6 +78,9 @@ figures:
   ASSERT_EQ(data.instances.size(), 1U);
   ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[12], 0.0F);
   EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
@@ -149,11 +152,11 @@ cameras:
 meshes:
   first:
     points:
-      type: "i X Y Z CX CY CZ"
+      type: "i X Y Z"
       data: |
-        1 0.0 0.0 0.0 1.0 0.0 0.0
-        2 1.0 0.0 0.0 0.0 1.0 0.0
-        3 0.0 1.0 0.0 0.0 0.0 1.0
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
     indexes:
       type: "i i i"
       data: |
@@ -589,9 +592,9 @@ TEST(LoadScene, ThrowsWhenMeshIsMissing) {
 meshes:
   existing:
     points:
-      type: "i X Y Z CX CY CZ"
+      type: "i X Y Z"
       data: |
-        1 0 0 0 1 0 0
+        1 0 0 0
     indexes:
       type: "i i i"
       data: |
@@ -612,9 +615,9 @@ TEST(LoadScene, ThrowsWhenPointRowDoesNotMatchType) {
 meshes:
   bad:
     points:
-      type: "i X Y Z CX CY CZ"
+      type: "i X Y Z"
       data: |
-        1 0 0 0 1 0
+        1 0 0 0 1
     indexes:
       type: "i i i"
       data: |
