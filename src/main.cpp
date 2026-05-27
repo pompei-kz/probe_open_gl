@@ -25,8 +25,7 @@ namespace {
   }
 
   glm::vec3 normalize(const glm::vec3 &value, const std::string_view name) {
-    const float length = glm::length(value);
-    if (length <= 0.0F) {
+    if (const float length = glm::length(value); length <= 0.0F) {
       throw std::runtime_error("gt6x0oIKhs :: Cannot normalize zero vector '" + std::string(name) + "'");
     }
     return glm::normalize(value);
@@ -76,7 +75,7 @@ namespace {
     }
   }
 
-  GLuint compileShader(GLenum type, std::string_view source) {
+  GLuint compileShader(const GLenum type, const std::string_view source) {
     // Создаем объект шейдера указанного типа.
     const GLuint shader = glCreateShader(type);
     const char *sourceData = source.data();
