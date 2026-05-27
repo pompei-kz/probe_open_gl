@@ -18,6 +18,20 @@ export module render;
 
 import scene;
 
+export enum class MoveVert
+{
+  NONE,
+  UP,
+  DOWN,
+};
+
+export enum class MoveHoriz
+{
+  NONE,
+  LEFT,
+  RIGHT,
+};
+
 namespace
 {
   struct ShapeGlBufferIds
@@ -80,20 +94,27 @@ namespace
 
   GLuint compileShader(const GLenum type, const std::string_view source)
   {
+    // Создаем объект шейдера указанного типа.
     const GLuint shader     = glCreateShader(type);
     const char *sourceData  = source.data();
     const auto sourceLength = static_cast<GLint>(source.size());
+    // Передаем исходный код шейдера в OpenGL.
     glShaderSource(shader, 1, &sourceData, &sourceLength);
+    // Компилируем исходный код шейдера.
     glCompileShader(shader);
 
     GLint success = GL_FALSE;
+    // Проверяем статус компиляции шейдера.
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (success != GL_TRUE)
     {
       GLint logLength = 0;
+      // Узнаем размер диагностического лога компиляции.
       glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
       std::string log(static_cast<std::size_t>(logLength), '\0');
+      // Забираем текст диагностического лога компиляции.
       glGetShaderInfoLog(shader, logLength, nullptr, log.data());
+      // Удаляем неудачно скомпилированный шейдер.
       glDeleteShader(shader);
       throw std::runtime_error("qWcxNTYsV8 :: Shader compilation failed: " + log);
     }
@@ -106,22 +127,32 @@ namespace
     const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, resources::triangle_vert);
     const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, resources::triangle_frag);
 
+    // Создаем шейдерную программу.
     const GLuint program = glCreateProgram();
+    // Подключаем вершинный шейдер к программе.
     glAttachShader(program, vertexShader);
+    // Подключаем фрагментный шейдер к программе.
     glAttachShader(program, fragmentShader);
+    // Линкуем программу из подключенных шейдеров.
     glLinkProgram(program);
 
+    // Удаляем объект вершинного шейдера после линковки.
     glDeleteShader(vertexShader);
+    // Удаляем объект фрагментного шейдера после линковки.
     glDeleteShader(fragmentShader);
 
     GLint success = GL_FALSE;
+    // Проверяем статус линковки шейдерной программы.
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (success != GL_TRUE)
     {
       GLint logLength = 0;
+      // Узнаем размер диагностического лога линковки.
       glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
       std::string log(static_cast<std::size_t>(logLength), '\0');
+      // Забираем текст диагностического лога линковки.
       glGetProgramInfoLog(program, logLength, nullptr, log.data());
+      // Удаляем неудачно слинкованную программу.
       glDeleteProgram(program);
       throw std::runtime_error("9UI2AR1q8U :: Shader link failed: " + log);
     }
@@ -136,11 +167,17 @@ public:
   explicit Render(const std::filesystem::path &scenePath)
   {
     shaderProgram_            = createShaderProgram();
+    // Находим uniform-переменную матрицы проекции.
     projectionMatrixLocation_ = glGetUniformLocation(shaderProgram_, "projectionMatrix");
+    // Находим uniform-переменную матрицы вида.
     viewMatrixLocation_       = glGetUniformLocation(shaderProgram_, "viewMatrix");
+    // Находим uniform-переменную матрицы модели.
     modelMatrixLocation_      = glGetUniformLocation(shaderProgram_, "modelMatrix");
+    // Находим uniform-переменную силы солнечного света.
     sunForceLocation_         = glGetUniformLocation(shaderProgram_, "sunForce");
+    // Находим uniform-переменную направления солнечного света.
     sunDirectionLocation_     = glGetUniformLocation(shaderProgram_, "sunDirection");
+    // Находим uniform-переменную цвета солнечного света.
     sunColorLocation_         = glGetUniformLocation(shaderProgram_, "sunColor");
     if (projectionMatrixLocation_ < 0 || viewMatrixLocation_ < 0 || modelMatrixLocation_ < 0 || sunForceLocation_ < 0 || sunDirectionLocation_ < 0 ||
         sunColorLocation_ < 0)
@@ -153,8 +190,11 @@ public:
     cameraForward_  = normalize(scene_.camera.forward, "camera.forward");
     cameraUp_       = scene_.camera.up;
 
+    // Создаем буфер для данных инстансов.
     glGenBuffers(1, &shapeInstanceGroup_);
+    // Делаем буфер инстансов текущим.
     glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+    // Выделяем память GPU под данные инстансов.
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(scene_.instances.size() * 4U * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
 
     shapeBuffers_.resize(scene_.shapes.size());
@@ -165,28 +205,45 @@ public:
       const scene::Shape &shape = scene_.shapes[shapeIndex];
       ShapeGlBufferIds &buffers = shapeBuffers_[shapeIndex];
 
+      // Создаем VAO для раскладки атрибутов формы.
       glGenVertexArrays(1, &buffers.vertexArray);
+      // Создаем вершинный буфер формы.
       glGenBuffers(1, &buffers.vertexBuffer);
+      // Создаем индексный буфер формы.
       glGenBuffers(1, &buffers.indexBuffer);
 
+      // Делаем VAO формы текущим.
       glBindVertexArray(buffers.vertexArray);
+      // Делаем вершинный буфер формы текущим.
       glBindBuffer(GL_ARRAY_BUFFER, buffers.vertexBuffer);
+      // Загружаем вершины формы в GPU.
       glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.vertices.size() * sizeof(float)), shape.vertices.data(), GL_STATIC_DRAW);
+      // Делаем индексный буфер формы текущим.
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
+      // Загружаем индексы формы в GPU.
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.indexes.size() * sizeof(GLuint)), shape.indexes.data(), GL_STATIC_DRAW);
 
+      // Описываем атрибут позиции вершины.
       glVertexAttribPointer(0, scene_.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
+      // Включаем атрибут позиции вершины.
       glEnableVertexAttribArray(0);
+      // Описываем атрибут цвета вершины.
       glVertexAttribPointer(1, scene_.colorFloatCount, GL_FLOAT, GL_FALSE, stride,
                             reinterpret_cast<void *>(scene_.positionFloatCount * sizeof(float)));
+      // Включаем атрибут цвета вершины.
       glEnableVertexAttribArray(1);
+      // Делаем буфер инстансов текущим.
       glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+      // Описываем атрибут данных инстанса.
       glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, shapeInstanceGroupStride,
                             reinterpret_cast<void *>(shape.firstInstance * static_cast<std::size_t>(shapeInstanceGroupStride)));
+      // Включаем атрибут данных инстанса.
       glEnableVertexAttribArray(2);
+      // Указываем, что атрибут меняется один раз на инстанс.
       glVertexAttribDivisor(2, 1);
     }
 
+    // Включаем проверку глубины для 3D-отрисовки.
     glEnable(GL_DEPTH_TEST);
     instanceData_.resize(scene_.instances.size() * 4U);
   }
@@ -206,6 +263,7 @@ private:
   {
     if (shapeInstanceGroup_ != 0)
     {
+      // Освобождаем буфер инстансов.
       glDeleteBuffers(1, &shapeInstanceGroup_);
       shapeInstanceGroup_ = 0;
     }
@@ -213,35 +271,35 @@ private:
     {
       if (buffers.vertexBuffer != 0)
       {
+        // Освобождаем вершинный буфер формы.
         glDeleteBuffers(1, &buffers.vertexBuffer);
         buffers.vertexBuffer = 0;
       }
       if (buffers.indexBuffer != 0)
       {
+        // Освобождаем индексный буфер формы.
         glDeleteBuffers(1, &buffers.indexBuffer);
         buffers.indexBuffer = 0;
       }
       if (buffers.vertexArray != 0)
       {
+        // Освобождаем VAO формы.
         glDeleteVertexArrays(1, &buffers.vertexArray);
         buffers.vertexArray = 0;
       }
     }
     if (shaderProgram_ != 0)
     {
+      // Освобождаем шейдерную программу.
       glDeleteProgram(shaderProgram_);
       shaderProgram_ = 0;
     }
   }
 
 public:
-  void setMoveUp(const bool enabled) { moveUp_ = enabled; }
+  void setMoveVert(const MoveVert moveVert) { moveVert_ = moveVert; }
 
-  void setMoveDown(const bool enabled) { moveDown_ = enabled; }
-
-  void setMoveLeft(const bool enabled) { moveLeft_ = enabled; }
-
-  void setMoveRight(const bool enabled) { moveRight_ = enabled; }
+  void setMoveHoriz(const MoveHoriz moveHoriz) { moveHoriz_ = moveHoriz; }
 
   void rotateCamera(const int mouseDeltaX, const int mouseDeltaY)
   {
@@ -253,14 +311,17 @@ public:
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
     const glm::vec3 cameraLeft      = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
-    const int sideMovementDirection = (moveRight_ ? 1 : 0) - (moveLeft_ ? 1 : 0);
+    const int sideMovementDirection = (moveHoriz_ == MoveHoriz::RIGHT ? 1 : 0) - (moveHoriz_ == MoveHoriz::LEFT ? 1 : 0);
     cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
-    const int verticalMovementDirection = (moveUp_ ? 1 : 0) - (moveDown_ ? 1 : 0);
+    const int verticalMovementDirection = (moveVert_ == MoveVert::UP ? 1 : 0) - (moveVert_ == MoveVert::DOWN ? 1 : 0);
     cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * static_cast<float>(verticalMovementDirection) * deltaSeconds;
 
-    glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
+    // Задаем цвет очистки кадрового буфера.
+    glClearColor(scene_.params.backgroundColor[0], scene_.params.backgroundColor[1], scene_.params.backgroundColor[2], 1.0F);
+    // Очищаем цветовой буфер и буфер глубины.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Активируем шейдерную программу для текущего кадра.
     glUseProgram(shaderProgram_);
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
@@ -271,7 +332,9 @@ public:
       instanceData_[writeIndex + 2U]       = instance.offset[2];
       instanceData_[writeIndex + 3U]       = static_cast<float>(instance.shapeIndex);
     }
+    // Делаем буфер инстансов текущим перед обновлением.
     glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+    // Загружаем актуальные данные инстансов в GPU.
     glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)), instanceData_.data());
 
     const int width            = std::max(viewportWidth, 1);
@@ -280,11 +343,17 @@ public:
     const glm::mat4 projection = projectionMatrix(scene_.camera.fovDegrees, aspect, scene_.camera.nearPlane, scene_.camera.farPlane);
     const glm::mat4 view       = viewMatrix(cameraPosition_, cameraForward_, cameraUp_);
     const glm::mat4 model{1.0F};
+    // Передаем матрицу проекции в шейдер.
     glUniformMatrix4fv(projectionMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
+    // Передаем матрицу вида в шейдер.
     glUniformMatrix4fv(viewMatrixLocation_, 1, GL_FALSE, glm::value_ptr(view));
+    // Передаем матрицу модели в шейдер.
     glUniformMatrix4fv(modelMatrixLocation_, 1, GL_FALSE, glm::value_ptr(model));
+    // Передаем силу солнечного света в шейдер.
     glUniform1f(sunForceLocation_, scene_.sun.force);
+    // Передаем направление солнечного света в шейдер.
     glUniform3fv(sunDirectionLocation_, 1, glm::value_ptr(scene_.sun.direction));
+    // Передаем цвет солнечного света в шейдер.
     glUniform3fv(sunColorLocation_, 1, glm::value_ptr(scene_.sun.color));
 
     for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
@@ -294,7 +363,9 @@ public:
       {
         continue;
       }
+      // Выбираем VAO формы перед отрисовкой.
       glBindVertexArray(shapeBuffers_[shapeIndex].vertexArray);
+      // Рисуем все инстансы формы по индексам.
       glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(shape.indexes.size()), GL_UNSIGNED_INT, nullptr,
                               static_cast<GLsizei>(shape.instanceCount));
     }
@@ -315,8 +386,6 @@ private:
   glm::vec3 cameraPosition_{};
   glm::vec3 cameraForward_{};
   glm::vec3 cameraUp_{};
-  bool moveUp_    = false;
-  bool moveDown_  = false;
-  bool moveLeft_  = false;
-  bool moveRight_ = false;
+  MoveVert moveVert_   = MoveVert::NONE;
+  MoveHoriz moveHoriz_ = MoveHoriz::NONE;
 };

@@ -25,10 +25,14 @@ public:
       throw std::runtime_error(std::string("Ivn1fta1oB :: SDL_GL_CreateContext failed: ") + SDL_GetError());
     }
 
+    // Включаем синхронизацию смены буферов с вертикальной разверткой.
     SDL_GL_SetSwapInterval(1);
+    // Задаем начальный viewport под текущий размер окна.
     glViewport(0, 0, window_.width(), window_.height());
 
+    // Читаем строку версии текущего OpenGL-контекста.
     std::cout << "MXL4NrIm8M :: OpenGL: " << glGetString(GL_VERSION) << std::endl;
+    // Читаем строку версии GLSL у текущего OpenGL-контекста.
     std::cout << "DZ2EDsUp4f :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
   }
 
@@ -93,42 +97,42 @@ private:
     }
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
     {
-      render.setMoveUp(true);
+      render.setMoveVert(MoveVert::UP);
       return;
     }
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s)
     {
-      render.setMoveDown(true);
+      render.setMoveVert(MoveVert::DOWN);
       return;
     }
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a)
     {
-      render.setMoveLeft(true);
+      render.setMoveHoriz(MoveHoriz::LEFT);
       return;
     }
     if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d)
     {
-      render.setMoveRight(true);
+      render.setMoveHoriz(MoveHoriz::RIGHT);
       return;
     }
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
     {
-      render.setMoveUp(false);
+      render.setMoveVert(MoveVert::NONE);
       return;
     }
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s)
     {
-      render.setMoveDown(false);
+      render.setMoveVert(MoveVert::NONE);
       return;
     }
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a)
     {
-      render.setMoveLeft(false);
+      render.setMoveHoriz(MoveHoriz::NONE);
       return;
     }
     if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d)
     {
-      render.setMoveRight(false);
+      render.setMoveHoriz(MoveHoriz::NONE);
       return;
     }
     if (event.type == SDL_MOUSEMOTION && mouseCaptured_)
@@ -143,6 +147,7 @@ private:
     }
     if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
     {
+      // Обновляем viewport под новый размер окна.
       glViewport(0, 0, event.window.data1, event.window.data2);
       return;
     }

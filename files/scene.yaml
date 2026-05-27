@@ -5,6 +5,8 @@ scene:
     force: "1"
     direction: "0.3 0.3 -0.3"
     color: "1 1 1"
+  params:
+    background-color: "0.2 0.2 0.2"
   shape-instance-groups:
     - ball1
     - ball2

@@ -310,6 +310,8 @@ scene:
     force: "2.5"
     direction: "0 3 4"
     color: "0.7 0.8 0.9"
+  params:
+    background-color: "0.11 0.22 0.33"
 cameras:
   main:
     geom:
@@ -405,6 +407,9 @@ shape-instance-groups:
   EXPECT_FLOAT_EQ(data.sun.color[0], 0.7F);
   EXPECT_FLOAT_EQ(data.sun.color[1], 0.8F);
   EXPECT_FLOAT_EQ(data.sun.color[2], 0.9F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[0], 0.11F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[1], 0.22F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[2], 0.33F);
 }
 
 TEST(LoadScene, ThrowsWhenSunDirectionIsZero)

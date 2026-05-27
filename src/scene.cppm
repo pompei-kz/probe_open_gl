@@ -59,6 +59,11 @@ export namespace scene
     glm::vec3 color     = {1.0F, 1.0F, 1.0F};
   };
 
+  struct SceneParams
+  {
+    glm::vec3 backgroundColor{0.08F, 0.10F, 0.14F};
+  };
+
   class Scene
   {
   public:
@@ -66,6 +71,7 @@ export namespace scene
     std::vector<ShapeInstance> instances;
     Camera camera;
     Sun sun;
+    SceneParams params;
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
     int colorFloatCount    = 0;
@@ -635,6 +641,23 @@ namespace
     result.sun.direction = normalizeVector(parseVector3(sun["direction"], path, "scene.sun.direction"), path, "scene.sun.direction");
     result.sun.color     = parseVector3(sun["color"], path, "scene.sun.color");
   }
+
+  void parseSceneParams(const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
+  {
+    const YAML::Node params = scene["params"];
+    if (!params)
+    {
+      return;
+    }
+    if (!params.IsMap())
+    {
+      throw std::runtime_error("kIrW8mD13T :: YAML container 'scene.params' must be map in " + path.string());
+    }
+    if (const YAML::Node backgroundColor = params["background-color"])
+    {
+      result.params.backgroundColor = parseVector3(backgroundColor, path, "scene.params.background-color");
+    }
+  }
 } // namespace
 
 void scene::Scene::load(const std::filesystem::path &path, const std::string_view shapeName)
@@ -644,6 +667,7 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   instances.clear();
   camera = Camera{};
   sun    = Sun{};
+  params = SceneParams{};
   setDefaultLayout(*this);
   if (shapeName.empty())
   {
@@ -669,9 +693,11 @@ void scene::Scene::load(const std::filesystem::path &path)
   instances.clear();
   camera = Camera{};
   sun    = Sun{};
+  params = SceneParams{};
   setDefaultLayout(*this);
   parseSceneCamera(document, sceneNode, path, *this);
   parseSceneSun(sceneNode, path, *this);
+  parseSceneParams(sceneNode, path, *this);
 
   const YAML::Node sceneShapeInstanceGroups = sceneNode["shape-instance-groups"];
   if (sceneShapeInstanceGroups && !sceneShapeInstanceGroups.IsSequence())
