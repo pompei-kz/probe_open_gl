@@ -288,6 +288,8 @@ int main(int argvCount, char **argv) {
         }
       }
 
+      window.idle();
+
       const Uint64 currentCounter = SDL_GetPerformanceCounter();
       const float deltaSeconds = static_cast<float>(currentCounter - previousCounter)
                                  / static_cast<float>(SDL_GetPerformanceFrequency());

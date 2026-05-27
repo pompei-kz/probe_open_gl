@@ -2,6 +2,7 @@ module;
 
 #include <SDL2/SDL.h>
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -11,6 +12,8 @@ module;
 #include <utility>
 
 export module main_window;
+
+import deferred_tasks;
 
 export class MainWindow {
 public:
@@ -77,13 +80,13 @@ public:
   void syncWindowEvent(const SDL_WindowEvent &event) {
     if (event.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
       size_ = WindowSize{event.data1, event.data2};
-      saveWindowSize(sizePath_, size_);
+      saveWindowSize(size_);
       return;
     }
 
     if (event.event == SDL_WINDOWEVENT_MOVED) {
       position_ = WindowPosition{event.data1, event.data2};
-      saveWindowPosition(positionPath_, *position_);
+      saveWindowPosition(*position_);
       return;
     }
   }
@@ -93,6 +96,10 @@ public:
       SDL_DestroyWindow(window_);
       window_ = nullptr;
     }
+  }
+
+  void idle() {
+    deferredTasks_.idle(std::chrono::system_clock::now());
   }
 
 private:
@@ -111,6 +118,7 @@ private:
   std::filesystem::path sizePath_;
   WindowSize size_;
   std::optional<WindowPosition> position_;
+  DeferredTasks deferredTasks_;
 
   static std::string trim(const std::string_view value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
@@ -186,16 +194,21 @@ private:
     return std::nullopt;
   }
 
-  static void saveWindowPosition(const std::filesystem::path &path, const WindowPosition position) {
-    std::filesystem::create_directories(path.parent_path());
-    std::ofstream output(path);
-    output << "left=" << position.left << '\n'
-        << "top=" << position.top << '\n';
+  void saveWindowPosition(const WindowPosition position) {
+    const std::filesystem::path path = positionPath_;
+    deferredTasks_.add(std::chrono::milliseconds{700}, [path, position] {
+      std::filesystem::create_directories(path.parent_path());
+      std::ofstream output(path);
+      output << "left=" << position.left << '\n' << "top=" << position.top << '\n';
+    });
   }
 
-  static void saveWindowSize(const std::filesystem::path &path, const WindowSize size) {
-    std::filesystem::create_directories(path.parent_path());
-    std::ofstream output(path);
-    output << size.width << 'x' << size.height << '\n';
+  void saveWindowSize(const WindowSize size) {
+    const std::filesystem::path path = sizePath_;
+    deferredTasks_.add(std::chrono::milliseconds{700}, [path, size] {
+      std::filesystem::create_directories(path.parent_path());
+      std::ofstream output(path);
+      output << size.width << 'x' << size.height << '\n';
+    });
   }
 };

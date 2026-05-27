@@ -12,7 +12,7 @@ namespace {
 TEST(DeferredTasks, RunsDueTasksOnIdle) {
   int calls = 0;
   DeferredTasks tasks;
-  tasks.add([&calls] { ++calls; }, std::chrono::milliseconds{20});
+  tasks.add(std::chrono::milliseconds{20}, [&calls] { ++calls; });
 
   tasks.idle(Clock::now() + std::chrono::milliseconds{40});
 
@@ -24,7 +24,7 @@ TEST(DeferredTasks, DoesNotRunTasksBeforeDueTime) {
   int calls = 0;
   DeferredTasks tasks;
   const auto beforeAdd = Clock::now();
-  tasks.add([&calls] { ++calls; }, std::chrono::hours{1});
+  tasks.add(std::chrono::hours{1}, [&calls] { ++calls; });
 
   tasks.idle(beforeAdd + std::chrono::milliseconds{10});
 
@@ -35,7 +35,7 @@ TEST(DeferredTasks, DoesNotRunTasksBeforeDueTime) {
 TEST(DeferredTasks, RunsTasksOnlyOnce) {
   int calls = 0;
   DeferredTasks tasks;
-  tasks.add([&calls] { ++calls; }, std::chrono::milliseconds{20});
+  tasks.add(std::chrono::milliseconds{20}, [&calls] { ++calls; });
 
   tasks.idle(Clock::now() + std::chrono::milliseconds{40});
   tasks.idle(Clock::now() + std::chrono::hours{1});
@@ -46,7 +46,7 @@ TEST(DeferredTasks, RunsTasksOnlyOnce) {
 TEST(DeferredTasks, ClearCancelsTasks) {
   int calls = 0;
   DeferredTasks tasks;
-  tasks.add([&calls] { ++calls; }, std::chrono::milliseconds{20});
+  tasks.add(std::chrono::milliseconds{20}, [&calls] { ++calls; });
 
   tasks.clear();
   tasks.idle(Clock::now() + std::chrono::hours{1});
@@ -55,11 +55,21 @@ TEST(DeferredTasks, ClearCancelsTasks) {
   EXPECT_TRUE(tasks.empty());
 }
 
+TEST(DeferredTasks, DestructorRunsPendingTasksIgnoringTime) {
+  int calls = 0;
+  {
+    DeferredTasks tasks;
+    tasks.add(std::chrono::hours{1}, [&calls] { ++calls; });
+  }
+
+  EXPECT_EQ(calls, 1);
+}
+
 TEST(DeferredTasks, RunsMultipleDueTasks) {
   std::string calls;
   DeferredTasks tasks;
-  tasks.add([&calls] { calls += 'a'; }, std::chrono::milliseconds{10});
-  tasks.add([&calls] { calls += 'b'; }, std::chrono::milliseconds{20});
+  tasks.add(std::chrono::milliseconds{10}, [&calls] { calls += 'a'; });
+  tasks.add(std::chrono::milliseconds{20}, [&calls] { calls += 'b'; });
 
   tasks.idle(Clock::now() + std::chrono::seconds{1});
 
@@ -72,9 +82,9 @@ TEST(DeferredTasks, RunsOnlyTasksWhoseDurationCompleted) {
   std::string calls;
   DeferredTasks tasks;
   const auto beforeAdd = Clock::now();
-  tasks.add([&calls] { calls += 'a'; }, std::chrono::milliseconds{10});
-  tasks.add([&calls] { calls += 'b'; }, std::chrono::minutes{1});
-  tasks.add([&calls] { calls += 'c'; }, std::chrono::minutes{2});
+  tasks.add(std::chrono::milliseconds{10}, [&calls] { calls += 'a'; });
+  tasks.add(std::chrono::minutes{1}, [&calls] { calls += 'b'; });
+  tasks.add(std::chrono::minutes{2}, [&calls] { calls += 'c'; });
 
   tasks.idle(beforeAdd + std::chrono::milliseconds{100});
 

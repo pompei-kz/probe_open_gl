@@ -32,9 +32,11 @@ public:
 
   DeferredTasks &operator=(DeferredTasks &&other) = delete;
 
-  ~DeferredTasks() = default;
+  ~DeferredTasks() {
+    runAll();
+  }
 
-  void add(std::function<void()> task, std::chrono::milliseconds runAfterDuration) {
+  void add(std::chrono::milliseconds runAfterDuration, std::function<void()> task) {
     const int64_t taskId = nextTaskId_++;
     tasks_.put(taskId, Task{
       std::move(task),
@@ -61,5 +63,17 @@ public:
 
   [[nodiscard]] std::size_t size() const {
     return tasks_.size();
+  }
+
+private:
+  void runAll() {
+    while (!tasks_.empty()) {
+      const auto snapshot = tasks_.snapshot();
+      for (const auto &[taskId, task]: snapshot) {
+        if (tasks_.remove(taskId)) {
+          task.task();
+        }
+      }
+    }
   }
 };
