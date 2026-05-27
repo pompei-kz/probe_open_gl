@@ -1,10 +1,11 @@
 module;
 
 #include <epoxy/gl.h>
+#include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -22,9 +23,9 @@ export module scene;
 
 export namespace scene
 {
-  struct ShapeInstanceGroup
+  struct ShapeInstance
   {
-    std::array<float, 3> offset{0.0F, 0.0F, 0.0F};
+    glm::vec3 offset{0.0F, 0.0F, 0.0F};
     std::uint32_t shapeIndex = 0;
   };
 
@@ -32,15 +33,17 @@ export namespace scene
   {
     std::vector<float> vertices;
     std::vector<GLuint> indexes;
+    // Индекс первого инстанса этой формы в общем массиве инстансов сцены.
     std::size_t firstInstance = 0;
+    // Количество подряд идущих инстансов этой формы в общем массиве инстансов сцены.
     std::size_t instanceCount = 0;
   };
 
   struct Camera
   {
-    std::array<float, 3> position{0.0F, 0.0F, 1.0F};
-    std::array<float, 3> forward{0.0F, 0.0F, -1.0F};
-    std::array<float, 3> up{0.0F, 1.0F, 0.0F};
+    glm::vec3 position{0.0F, 0.0F, 1.0F};
+    glm::vec3 forward{0.0F, 0.0F, -1.0F};
+    glm::vec3 up{0.0F, 1.0F, 0.0F};
     float nearPlane               = 0.1F;
     float farPlane                = 100.0F;
     float fovDegrees              = 45.0F;
@@ -54,7 +57,7 @@ export namespace scene
   {
   public:
     std::vector<Shape> shapes;
-    std::vector<ShapeInstanceGroup> instances;
+    std::vector<ShapeInstance> instances;
     Camera camera;
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
@@ -93,11 +96,11 @@ namespace
     std::string id;
   };
 
-  constexpr std::array zeroOffset{0.0F, 0.0F, 0.0F};
+  constexpr glm::vec3 zeroOffset{0.0F, 0.0F, 0.0F};
 
   std::vector<float> parseFloatLine(std::string line);
 
-  std::array<float, 3> parseVector3(const YAML::Node &node, const std::filesystem::path &path, const std::string_view name)
+  glm::vec3 parseVector3(const YAML::Node &node, const std::filesystem::path &path, const std::string_view name)
   {
     if (!node || !node.IsScalar())
     {
@@ -181,21 +184,18 @@ namespace
     return lines;
   }
 
-  std::vector<std::string> readDataRefLines(const YAML::Node &dataRef, const std::filesystem::path &sectionPath,
-                                            const std::string_view sectionName)
+  std::vector<std::string> readDataRefLines(const YAML::Node &dataRef, const std::filesystem::path &sectionPath, const std::string_view sectionName)
   {
     if (!dataRef.IsScalar())
     {
-      throw std::runtime_error("pW2zTu5Lwd :: YAML '" + std::string(sectionName) + ".data-ref' must be scalar in " +
-                               sectionPath.string());
+      throw std::runtime_error("pW2zTu5Lwd :: YAML '" + std::string(sectionName) + ".data-ref' must be scalar in " + sectionPath.string());
     }
 
     const std::filesystem::path dataPath = (sectionPath.parent_path() / dataRef.as<std::string>()).lexically_normal();
     std::ifstream input(dataPath);
     if (!input)
     {
-      throw std::runtime_error("KIu7rNQxT0 :: Failed to open YAML '" + std::string(sectionName) + ".data-ref' file " +
-                               dataPath.string());
+      throw std::runtime_error("KIu7rNQxT0 :: Failed to open YAML '" + std::string(sectionName) + ".data-ref' file " + dataPath.string());
     }
     return readLines(input);
   }
@@ -213,13 +213,12 @@ namespace
     const YAML::Node dataRef = yamlSection["data-ref"];
     if (data && dataRef)
     {
-      throw std::runtime_error("AX1zWXw0cG :: YAML section '" + std::string(sectionName) +
-                               "' must not define both data and data-ref in " + path.string());
+      throw std::runtime_error("AX1zWXw0cG :: YAML section '" + std::string(sectionName) + "' must not define both data and data-ref in " +
+                               path.string());
     }
     if (!data && !dataRef)
     {
-      throw std::runtime_error("Z3H1qvTv5H :: YAML section '" + std::string(sectionName) + "' must define data or data-ref in " +
-                               path.string());
+      throw std::runtime_error("Z3H1qvTv5H :: YAML section '" + std::string(sectionName) + "' must define data or data-ref in " + path.string());
     }
 
     DataSection section;
@@ -310,14 +309,13 @@ namespace
     return static_cast<int>(fields.size());
   }
 
-  std::array<float, 3> parseSolidColor(const YAML::Node &material, const std::filesystem::path &path,
-                                       const std::string_view figureName)
+  std::array<float, 3> parseSolidColor(const YAML::Node &material, const std::filesystem::path &path, const std::string_view figureName)
   {
     const YAML::Node color = material["color"];
     if (!color || !color.IsScalar())
     {
-      throw std::runtime_error("qP8hh93VfV :: Solid material for figure '" + std::string(figureName) +
-                               "' must define scalar color in " + path.string());
+      throw std::runtime_error("qP8hh93VfV :: Solid material for figure '" + std::string(figureName) + "' must define scalar color in " +
+                               path.string());
     }
 
     const std::vector<float> values = parseFloatLine(color.as<std::string>());
@@ -371,8 +369,7 @@ namespace
     const YAML::Node ref  = mesh["ref"];
     if (!ref || !ref.IsScalar())
     {
-      throw std::runtime_error("AoiWfWDZDz :: Missing mesh.ref for figure '" + std::string(figureName) + "' in " +
-                               figurePath.string());
+      throw std::runtime_error("AoiWfWDZDz :: Missing mesh.ref for figure '" + std::string(figureName) + "' in " + figurePath.string());
     }
 
     return parseRefValue(ref.as<std::string>(), figurePath);
@@ -391,17 +388,17 @@ namespace
     return parseRefValue(ref.as<std::string>(), groupPath);
   }
 
-  std::vector<std::array<float, 3>> parseOffsets(const YAML::Node &instanceGroup, const std::filesystem::path &groupPath,
-                                                 const std::string_view groupName)
+  std::vector<glm::vec3> parseOffsets(const YAML::Node &instanceGroup, const std::filesystem::path &groupPath,
+                                      const std::string_view groupName)
   {
     const DataSection offsets = extractDataSection(instanceGroup, "offsets", groupPath);
     if (const std::vector<std::string> fields = splitWords(offsets.type); fields != std::vector<std::string>{"i", "X", "Y", "Z"})
     {
-      throw std::runtime_error("vAdL3uEtH2 :: Offsets type must be 'i X Y Z' for figure instance group '" + std::string(groupName) +
-                               "' in " + groupPath.string());
+      throw std::runtime_error("vAdL3uEtH2 :: Offsets type must be 'i X Y Z' for figure instance group '" + std::string(groupName) + "' in " +
+                               groupPath.string());
     }
 
-    std::vector<std::array<float, 3>> result;
+    std::vector<glm::vec3> result;
     for (const std::string &line : offsets.lines)
     {
       const std::vector<float> values = parseFloatLine(line);
@@ -419,8 +416,7 @@ namespace
     return result;
   }
 
-  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath,
-                         const scene::Scene &sceneData)
+  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath, const scene::Scene &sceneData)
   {
     const DataSection points  = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes = extractDataSection(mesh, "indexes", meshPath);
@@ -429,8 +425,7 @@ namespace
 
     if (indexCount != 3)
     {
-      throw std::runtime_error("cDO6R2F96Y :: Index type must be 'i i i' for GL_TRIANGLES in " + meshPath.string() + ": " +
-                               indexes.type);
+      throw std::runtime_error("cDO6R2F96Y :: Index type must be 'i i i' for GL_TRIANGLES in " + meshPath.string() + ": " + indexes.type);
     }
     if (layout.colorFloatCount == 0 && !material.solidColor)
     {
@@ -532,11 +527,11 @@ namespace
     return shapeIndex;
   }
 
-  void appendFigure(const std::filesystem::path &path, const YAML::Node &figure, const std::string_view figureName,
-                    scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
+  void appendFigure(const std::filesystem::path &path, const YAML::Node &figure, const std::string_view figureName, scene::Scene &result,
+                    std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const std::uint32_t shapeIndex = ensureFigureShape(path, figure, figureName, result, shapeIndexByKey);
-    result.instances.push_back(scene::ShapeInstanceGroup{.offset = zeroOffset, .shapeIndex = shapeIndex});
+    result.instances.push_back(scene::ShapeInstance{.offset = zeroOffset, .shapeIndex = shapeIndex});
   }
 
   void appendFigureInstanceGroup(const std::filesystem::path &path, const YAML::Node &instanceGroup, const std::string_view groupName,
@@ -548,15 +543,15 @@ namespace
     const YAML::Node figure         = requiredMapChild(figures, figureRef.id, figureRef.path);
     const std::uint32_t shapeIndex  = ensureFigureShape(figureRef.path, figure, figureRef.id, result, shapeIndexByKey);
 
-    for (const std::array<float, 3> &offset : parseOffsets(instanceGroup, path, groupName))
+    for (const glm::vec3 &offset : parseOffsets(instanceGroup, path, groupName))
     {
-      result.instances.push_back(scene::ShapeInstanceGroup{.offset = offset, .shapeIndex = shapeIndex});
+      result.instances.push_back(scene::ShapeInstance{.offset = offset, .shapeIndex = shapeIndex});
     }
   }
 
   void updateShapeInstanceRanges(scene::Scene &data)
   {
-    std::ranges::sort(data.instances, {}, &scene::ShapeInstanceGroup::shapeIndex);
+    std::ranges::sort(data.instances, {}, &scene::ShapeInstance::shapeIndex);
     for (scene::Shape &shape : data.shapes)
     {
       shape.firstInstance = 0;
@@ -588,21 +583,20 @@ namespace
       throw std::runtime_error("GM21xOpQV4 :: Missing YAML scalar 'scene.camera' in " + path.string());
     }
 
-    const YAML::Node cameras      = requiredMapChild(document, "cameras", path);
-    const YAML::Node camera       = requiredMapChild(cameras, cameraName.as<std::string>(), path);
-    const YAML::Node geom         = requiredMapChild(camera, "geom", path);
-    result.camera.position        = parseVector3(geom["position"], path, "camera.geom.position");
-    result.camera.forward         = parseVector3(geom["forward"], path, "camera.geom.forward");
-    result.camera.up              = parseVector3(geom["up"], path, "camera.geom.up");
-    result.camera.nearPlane       = parseFloatScalar(geom["near"], path, "camera.geom.near");
-    result.camera.farPlane        = parseFloatScalar(geom["far"], path, "camera.geom.far");
-    result.camera.fovDegrees      = parseFloatScalar(geom["fov"], path, "camera.geom.fov");
-    const YAML::Node params       = requiredMapChild(camera, "params", path);
-    result.camera.forwardVelocity = parseFloatScalar(params["forwardVelocity"], path, "camera.params.forwardVelocity");
-    result.camera.sideVelocity    = parseFloatScalar(params["sideVelocity"], path, "camera.params.sideVelocity");
-    result.camera.forwardMouseSensitivity =
-        parseFloatScalar(params["forwardMouseSensitivity"], path, "camera.params.forwardMouseSensitivity");
-    result.camera.forwardScrollStep = parseFloatScalar(params["forwardScrollStep"], path, "camera.params.forwardScrollStep");
+    const YAML::Node cameras              = requiredMapChild(document, "cameras", path);
+    const YAML::Node camera               = requiredMapChild(cameras, cameraName.as<std::string>(), path);
+    const YAML::Node geom                 = requiredMapChild(camera, "geom", path);
+    result.camera.position                = parseVector3(geom["position"], path, "camera.geom.position");
+    result.camera.forward                 = parseVector3(geom["forward"], path, "camera.geom.forward");
+    result.camera.up                      = parseVector3(geom["up"], path, "camera.geom.up");
+    result.camera.nearPlane               = parseFloatScalar(geom["near"], path, "camera.geom.near");
+    result.camera.farPlane                = parseFloatScalar(geom["far"], path, "camera.geom.far");
+    result.camera.fovDegrees              = parseFloatScalar(geom["fov"], path, "camera.geom.fov");
+    const YAML::Node params               = requiredMapChild(camera, "params", path);
+    result.camera.forwardVelocity         = parseFloatScalar(params["forwardVelocity"], path, "camera.params.forwardVelocity");
+    result.camera.sideVelocity            = parseFloatScalar(params["sideVelocity"], path, "camera.params.sideVelocity");
+    result.camera.forwardMouseSensitivity = parseFloatScalar(params["forwardMouseSensitivity"], path, "camera.params.forwardMouseSensitivity");
+    result.camera.forwardScrollStep       = parseFloatScalar(params["forwardScrollStep"], path, "camera.params.forwardScrollStep");
   }
 } // namespace
 

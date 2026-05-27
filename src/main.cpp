@@ -11,7 +11,6 @@ import main_window;
 import scene;
 
 #include <algorithm>
-#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -22,17 +21,17 @@ import scene;
 
 namespace
 {
-  struct ShapeGlBuffers
+  struct ShapeGlBufferIds
   {
+    // Идентификатор Vertex Array Object, который хранит раскладку атрибутов формы.
     GLuint vertexArray = 0;
+
+    // Идентификатор Vertex Buffer Object с вершинами формы.
     GLuint vertexBuffer = 0;
+
+    // Идентификатор Element Buffer Object с индексами треугольников формы.
     GLuint indexBuffer = 0;
   };
-
-  glm::vec3 toVec3(const std::array<float, 3> &value)
-  {
-    return {value[0], value[1], value[2]};
-  }
 
   glm::vec3 normalize(const glm::vec3 &value, const std::string_view name)
   {
@@ -62,8 +61,7 @@ namespace
     return glm::lookAt(position, position + forward, up);
   }
 
-  void rotateForward(glm::vec3 &forward, const glm::vec3 &cameraUp, const int mouseDeltaX, const int mouseDeltaY,
-                     const float sensitivity)
+  void rotateForward(glm::vec3 &forward, const glm::vec3 &cameraUp, const int mouseDeltaX, const int mouseDeltaY, const float sensitivity)
   {
     if (mouseDeltaX == 0 && mouseDeltaY == 0)
     {
@@ -208,9 +206,9 @@ int main(int argvCount, char **argv)
   // Читаем строку версии GLSL у текущего контекста.
   std::cout << "DZ2EDsUp4f :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n';
 
-  GLuint shaderProgram        = 0;
-  std::vector<ShapeGlBuffers> shapeBuffers;
-  GLuint instanceBuffer       = 0;
+  GLuint shaderProgram = 0;
+  std::vector<ShapeGlBufferIds> shapeBuffers;
+  GLuint shapeInstanceGroup   = 0;
   bool mouseCaptured          = false;
   const auto setMouseCaptured = [&mouseCaptured](const bool captured)
   {
@@ -239,23 +237,26 @@ int main(int argvCount, char **argv)
       throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate matrix uniforms");
     }
 
-    scene::Scene sceneData;
-    sceneData.load(executableDirectory / "scene.yaml");
-    glm::vec3 cameraPosition = toVec3(sceneData.camera.position);
-    glm::vec3 cameraForward  = normalize(toVec3(sceneData.camera.forward), "camera.forward");
-    const glm::vec3 cameraUp = toVec3(sceneData.camera.up);
+    scene::Scene scene;
+    scene.load(executableDirectory / "scene.yaml");
+    glm::vec3 cameraPosition = scene.camera.position;
+    glm::vec3 cameraForward  = normalize(scene.camera.forward, "camera.forward");
+    const glm::vec3 cameraUp = scene.camera.up;
 
-    glGenBuffers(1, &instanceBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sceneData.instances.size() * 4U * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
+    // Создаем буфер для данных инстансов.
+    glGenBuffers(1, &shapeInstanceGroup);
+    // Делаем буфер инстансов текущим.
+    glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup);
+    // Выделяем память GPU под данные инстансов, которые будут обновляться каждый кадр.
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(scene.instances.size() * 4U * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
 
-    shapeBuffers.resize(sceneData.shapes.size());
-    const auto stride = static_cast<GLsizei>(sceneData.vertexFloatCount * sizeof(float));
-    const auto instanceStride = static_cast<GLsizei>(4U * sizeof(float));
-    for (std::size_t shapeIndex = 0; shapeIndex < sceneData.shapes.size(); ++shapeIndex)
+    shapeBuffers.resize(scene.shapes.size());
+    const GLsizei stride                   = static_cast<GLsizei>(scene.vertexFloatCount * sizeof(float));
+    const GLsizei shapeInstanceGroupStride = static_cast<GLsizei>(4U * sizeof(float));
+    for (std::size_t shapeIndex = 0; shapeIndex < scene.shapes.size(); ++shapeIndex)
     {
-      const scene::Shape &shape = sceneData.shapes[shapeIndex];
-      ShapeGlBuffers &buffers   = shapeBuffers[shapeIndex];
+      const scene::Shape &shape = scene.shapes[shapeIndex];
+      ShapeGlBufferIds &buffers = shapeBuffers[shapeIndex];
 
       // Создаем объект Vertex Array Object для описания раскладки вершин.
       glGenVertexArrays(1, &buffers.vertexArray);
@@ -269,38 +270,39 @@ int main(int argvCount, char **argv)
       // Делаем вершинный буфер текущим.
       glBindBuffer(GL_ARRAY_BUFFER, buffers.vertexBuffer);
       // Загружаем массив вершин формы в память GPU.
-      glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.vertices.size() * sizeof(float)), shape.vertices.data(),
-                   GL_STATIC_DRAW);
+      glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.vertices.size() * sizeof(float)), shape.vertices.data(), GL_STATIC_DRAW);
       // Делаем индексный буфер текущим для выбранного VAO.
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
       // Загружаем индексы треугольников формы в память GPU.
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.indexes.size() * sizeof(GLuint)), shape.indexes.data(),
-                   GL_STATIC_DRAW);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.indexes.size() * sizeof(GLuint)), shape.indexes.data(), GL_STATIC_DRAW);
 
       // Описываем атрибут позиции вершины.
-      glVertexAttribPointer(0, sceneData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
+      glVertexAttribPointer(0, scene.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
       // Включаем атрибут позиции вершины.
       glEnableVertexAttribArray(0);
       // Описываем атрибут цвета вершины.
-      glVertexAttribPointer(1, sceneData.colorFloatCount, GL_FLOAT, GL_FALSE, stride,
-                            reinterpret_cast<void *>(sceneData.positionFloatCount * sizeof(float)));
+      glVertexAttribPointer(1, scene.colorFloatCount, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void *>(scene.positionFloatCount * sizeof(float)));
       // Включаем атрибут цвета вершины.
       glEnableVertexAttribArray(1);
-      glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
-      glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, instanceStride,
-                            reinterpret_cast<void *>(shape.firstInstance * static_cast<std::size_t>(instanceStride)));
+      // Делаем буфер инстансов текущим для настройки атрибута смещения.
+      glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup);
+      // Описываем атрибут смещения и индекса формы для одного инстанса.
+      glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, shapeInstanceGroupStride,
+                            reinterpret_cast<void *>(shape.firstInstance * static_cast<std::size_t>(shapeInstanceGroupStride)));
+      // Включаем атрибут инстанса.
       glEnableVertexAttribArray(2);
+      // Указываем, что атрибут инстанса меняется один раз на инстанс, а не на вершину.
       glVertexAttribDivisor(2, 1);
     }
     // Включаем проверку глубины для 3D-сцены.
     glEnable(GL_DEPTH_TEST);
 
-    bool running           = true;
-    bool moveForward       = false;
-    bool moveBackward      = false;
-    bool moveLeft          = false;
-    bool moveRight         = false;
-    std::vector<float> instanceData(sceneData.instances.size() * 4U);
+    bool running      = true;
+    bool moveForward  = false;
+    bool moveBackward = false;
+    bool moveLeft     = false;
+    bool moveRight    = false;
+    std::vector<float> instanceData(scene.instances.size() * 4U);
     Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running)
     {
@@ -358,11 +360,11 @@ int main(int argvCount, char **argv)
         }
         else if (event.type == SDL_MOUSEMOTION && mouseCaptured)
         {
-          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, sceneData.camera.forwardMouseSensitivity);
+          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, scene.camera.forwardMouseSensitivity);
         }
         else if (event.type == SDL_MOUSEWHEEL)
         {
-          cameraPosition += cameraForward * sceneData.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
+          cameraPosition += cameraForward * scene.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
         }
         else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
         {
@@ -378,14 +380,13 @@ int main(int argvCount, char **argv)
       window.idle();
 
       const Uint64 currentCounter = SDL_GetPerformanceCounter();
-      const float deltaSeconds =
-          static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
+      const float deltaSeconds    = static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
       previousCounter             = currentCounter;
       const int movementDirection = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
-      cameraPosition += cameraForward * sceneData.camera.forwardVelocity * static_cast<float>(movementDirection) * deltaSeconds;
+      cameraPosition += cameraForward * scene.camera.forwardVelocity * static_cast<float>(movementDirection) * deltaSeconds;
       const glm::vec3 cameraLeft      = normalize(glm::cross(cameraForward, cameraUp), "camera.left");
       const int sideMovementDirection = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
-      cameraPosition += cameraLeft * sceneData.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
+      cameraPosition += cameraLeft * scene.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
 
       // Задаем цвет очистки кадрового буфера.
       glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
@@ -394,24 +395,25 @@ int main(int argvCount, char **argv)
 
       // Активируем шейдерную программу для текущей отрисовки.
       glUseProgram(shaderProgram);
-      for (std::size_t instanceIndex = 0; instanceIndex < sceneData.instances.size(); ++instanceIndex)
+      for (std::size_t instanceIndex = 0; instanceIndex < scene.instances.size(); ++instanceIndex)
       {
-        const scene::ShapeInstanceGroup &instance = sceneData.instances[instanceIndex];
-        const std::size_t writeIndex    = instanceIndex * 4U;
-        instanceData[writeIndex]        = instance.offset[0];
-        instanceData[writeIndex + 1U]   = instance.offset[1];
-        instanceData[writeIndex + 2U]   = instance.offset[2];
-        instanceData[writeIndex + 3U]   = static_cast<float>(instance.shapeIndex);
+        const scene::ShapeInstance &instance = scene.instances[instanceIndex];
+        const std::size_t writeIndex         = instanceIndex * 4U;
+        instanceData[writeIndex]             = instance.offset[0];
+        instanceData[writeIndex + 1U]        = instance.offset[1];
+        instanceData[writeIndex + 2U]        = instance.offset[2];
+        instanceData[writeIndex + 3U]        = static_cast<float>(instance.shapeIndex);
       }
-      glBindBuffer(GL_ARRAY_BUFFER, instanceBuffer);
+      // Делаем буфер инстансов текущим перед обновлением его содержимого.
+      glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup);
+      // Загружаем актуальные смещения и индексы форм для текущего кадра.
       glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(instanceData.size() * sizeof(float)), instanceData.data());
 
-      const int viewportWidth  = std::max(window.width(), 1);
-      const int viewportHeight = std::max(window.height(), 1);
-      const float aspect       = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-      const glm::mat4 projection =
-          projectionMatrix(sceneData.camera.fovDegrees, aspect, sceneData.camera.nearPlane, sceneData.camera.farPlane);
-      const glm::mat4 view = viewMatrix(cameraPosition, cameraForward, cameraUp);
+      const int viewportWidth    = std::max(window.width(), 1);
+      const int viewportHeight   = std::max(window.height(), 1);
+      const float aspect         = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
+      const glm::mat4 projection = projectionMatrix(scene.camera.fovDegrees, aspect, scene.camera.nearPlane, scene.camera.farPlane);
+      const glm::mat4 view       = viewMatrix(cameraPosition, cameraForward, cameraUp);
       const glm::mat4 model{1.0F};
       // Передаем матрицу проекции в текущую шейдерную программу.
       glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
@@ -419,9 +421,9 @@ int main(int argvCount, char **argv)
       glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
       // Передаем матрицу модели в текущую шейдерную программу.
       glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
-      for (std::size_t shapeIndex = 0; shapeIndex < sceneData.shapes.size(); ++shapeIndex)
+      for (std::size_t shapeIndex = 0; shapeIndex < scene.shapes.size(); ++shapeIndex)
       {
-        const scene::Shape &shape = sceneData.shapes[shapeIndex];
+        const scene::Shape &shape = scene.shapes[shapeIndex];
         if (shape.instanceCount == 0)
         {
           continue;
@@ -446,11 +448,12 @@ int main(int argvCount, char **argv)
   {
     SDL_SetRelativeMouseMode(SDL_FALSE);
   }
-  if (instanceBuffer != 0)
+  if (shapeInstanceGroup != 0)
   {
-    glDeleteBuffers(1, &instanceBuffer);
+    // Освобождаем буфер инстансов в OpenGL.
+    glDeleteBuffers(1, &shapeInstanceGroup);
   }
-  for (const ShapeGlBuffers &buffers : shapeBuffers)
+  for (const ShapeGlBufferIds &buffers : shapeBuffers)
   {
     if (buffers.vertexBuffer != 0)
     {
