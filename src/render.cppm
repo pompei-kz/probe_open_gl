@@ -18,13 +18,15 @@ export module render;
 
 import scene;
 
-export enum class MoveVert {
+export enum class MoveVert
+{
   NONE,
   UP,
   DOWN,
 };
 
-export enum class MoveHoriz {
+export enum class MoveHoriz
+{
   NONE,
   LEFT,
   RIGHT,
@@ -67,26 +69,28 @@ namespace
     return glm::lookAt(position, position + forward, up);
   }
 
-  void rotateForward(glm::vec3 &forward, const glm::vec3 &cameraUp, const int mouseDeltaX, const int mouseDeltaY, const float sensitivity)
+  void rotateCameraAxes(glm::vec3 &forward, glm::vec3 &cameraUp, const int mouseDeltaX, const int mouseDeltaY, const float sensitivity)
   {
     if (mouseDeltaX == 0 && mouseDeltaY == 0)
     {
       return;
     }
 
-    const glm::vec3 up      = normalize(cameraUp, "camera.up");
-    const float     yaw     = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
-    const float     pitch   = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
-    const glm::vec3 vector1 = glm::rotate(glm::mat4{1.0F}, yaw, up) * glm::vec4(forward, 0.0F);
-    forward                 = normalize(vector1, "camera.forward");
+    glm::vec3       up        = normalize(cameraUp, "camera.up");
+    const float     yaw       = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
+    const float     pitch     = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
+    const glm::mat4 yawMatrix = glm::rotate(glm::mat4{1.0F}, yaw, up);
+    forward                   = normalize(yawMatrix * glm::vec4(forward, 0.0F), "camera.forward");
 
     const glm::vec3 right          = normalize(glm::cross(forward, up), "camera.right");
-    const glm::vec3 vector         = glm::rotate(glm::mat4{1.0F}, pitch, right) * glm::vec4(forward, 0.0F);
-    const glm::vec3 pitchedForward = normalize(vector, "camera.forward");
+    const glm::mat4 pitchMatrix    = glm::rotate(glm::mat4{1.0F}, pitch, right);
+    const glm::vec3 pitchedForward = normalize(pitchMatrix * glm::vec4(forward, 0.0F), "camera.forward");
+    const glm::vec3 pitchedUp      = normalize(pitchMatrix * glm::vec4(up, 0.0F), "camera.up");
 
-    if (glm::length(glm::cross(pitchedForward, up)) > 0.001F)
+    if (glm::length(glm::cross(pitchedForward, pitchedUp)) > 0.001F)
     {
-      forward = pitchedForward;
+      forward  = pitchedForward;
+      cameraUp = pitchedUp;
     }
   }
 
@@ -301,7 +305,7 @@ public:
 
   void rotateCamera(const int mouseDeltaX, const int mouseDeltaY)
   {
-    rotateForward(cameraForward_, cameraUp_, mouseDeltaX, mouseDeltaY, scene_.camera.forwardMouseSensitivity);
+    rotateCameraAxes(cameraForward_, cameraUp_, mouseDeltaX, mouseDeltaY, scene_.camera.forwardMouseSensitivity);
   }
 
   void scrollCamera(const int wheelY) { cameraPosition_ += cameraForward_ * scene_.camera.forwardScrollStep * static_cast<float>(wheelY); }
