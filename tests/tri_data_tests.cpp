@@ -118,12 +118,55 @@ figures:
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
-TEST(LoadTriData, LoadsSceneFiguresAndCamera) {
-  const std::filesystem::path path = writeYaml("loads_scene_figures", R"yaml(
+TEST(LoadTriData, DoesNotDrawSceneFiguresDirectly) {
+  const std::filesystem::path path = writeYaml("does_not_draw_scene_figures", R"yaml(
 scene:
   figures:
-    - figure_02
     - figure_01
+  camera: "main"
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+meshes:
+  first:
+    points:
+      type: "i X Y Z CX CY CZ"
+      data: |
+        1 0.0 0.0 0.0 1.0 0.0 0.0
+        2 1.0 0.0 0.0 0.0 1.0 0.0
+        3 0.0 1.0 0.0 0.0 0.0 1.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+figures:
+  figure_01:
+    mesh:
+      ref: "#first"
+    material:
+      type: "solid"
+)yaml");
+
+  EXPECT_THROW((void)tri_data::loadTriData(path), std::runtime_error);
+}
+
+TEST(LoadTriData, LoadsSelectedFigureInstanceGroupsWithOffsets) {
+  const std::filesystem::path path = writeYaml("loads_figure_instance_groups", R"yaml(
+scene:
+  figures:
+    - ignored_direct_figure
+  figure-instance-groups:
+    - selected_group
   camera: "main"
 cameras:
   main:
@@ -139,29 +182,7 @@ cameras:
       forwardMouseSensitivity: "0.2"
       forwardScrollStep: "2.5"
 meshes:
-  first:
-    points:
-      type: "i X Y Z CX CY CZ"
-      data: |
-        1 0.0 0.0 0.0 1.0 0.0 0.0
-        2 1.0 0.0 0.0 0.0 1.0 0.0
-        3 0.0 1.0 0.0 0.0 0.0 1.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-  second:
-    points:
-      type: "i X Y Z"
-      data: |
-        1 -1.0 0.0 0.0
-        2  0.0 0.0 0.0
-        3 -1.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-  ignored:
+  triangle:
     points:
       type: "i X Y Z"
       data: |
@@ -173,33 +194,51 @@ meshes:
       data: |
         1 2 3
 figures:
-  figure_01:
+  ignored_direct_figure:
     mesh:
-      ref: "#first"
-    material:
-      type: "solid"
-  figure_02:
-    mesh:
-      ref: "#second"
-    material:
-      type: "solid"
-      color: "0.25 0.5 0.75"
-  ignored_figure:
-    mesh:
-      ref: "#ignored"
+      ref: "#triangle"
     material:
       type: "solid"
       color: "1.0 1.0 1.0"
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.2 0.4 0.6"
+figure-instance-groups:
+  selected_group:
+    figure:
+      ref: "#target"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 10 20 30
+        1 -1 -2 -3
+  ignored_group:
+    figure:
+      ref: "#target"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 100 200 300
 )yaml");
 
   const tri_data::TriData data = tri_data::loadTriData(path);
 
   EXPECT_EQ(data.vertexFloatCount, 6);
-  EXPECT_EQ(data.vertices.size(), 36U);
+  ASSERT_EQ(data.vertices.size(), 36U);
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2, 3, 4, 5}));
-  EXPECT_FLOAT_EQ(data.vertices[0], -1.0F);
-  EXPECT_FLOAT_EQ(data.vertices[3], 0.25F);
-  EXPECT_FLOAT_EQ(data.vertices[21], 1.0F);
+  EXPECT_FLOAT_EQ(data.vertices[0], 10.0F);
+  EXPECT_FLOAT_EQ(data.vertices[1], 20.0F);
+  EXPECT_FLOAT_EQ(data.vertices[2], 30.0F);
+  EXPECT_FLOAT_EQ(data.vertices[6], 11.0F);
+  EXPECT_FLOAT_EQ(data.vertices[12], 10.0F);
+  EXPECT_FLOAT_EQ(data.vertices[18], -1.0F);
+  EXPECT_FLOAT_EQ(data.vertices[19], -2.0F);
+  EXPECT_FLOAT_EQ(data.vertices[20], -3.0F);
+  EXPECT_FLOAT_EQ(data.vertices[24], 0.0F);
+  EXPECT_FLOAT_EQ(data.vertices[30], -1.0F);
   EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
   EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
   EXPECT_FLOAT_EQ(data.camera.up[2], 0.2F);
