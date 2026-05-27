@@ -14,7 +14,7 @@ export class DeferredTasks
 {
   struct Task
   {
-    std::function<void()> task;
+    std::function<void()>                 task;
     std::chrono::system_clock::time_point whenToRun;
   };
 

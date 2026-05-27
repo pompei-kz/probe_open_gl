@@ -24,9 +24,8 @@ public:
       , size_(loadWindowSize(sizePath_).value_or(WindowSize{}))
       , position_(loadWindowPosition(positionPath_))
   {
-    window_ = SDL_CreateWindow(title, position_ ? position_->left : SDL_WINDOWPOS_CENTERED,
-                               position_ ? position_->top : SDL_WINDOWPOS_CENTERED, size_.width, size_.height,
-                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    window_ = SDL_CreateWindow(title, position_ ? position_->left : SDL_WINDOWPOS_CENTERED, position_ ? position_->top : SDL_WINDOWPOS_CENTERED,
+                               size_.width, size_.height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
     if (window_ == nullptr)
     {
@@ -112,12 +111,12 @@ private:
     int height = 600;
   };
 
-  SDL_Window *window_ = nullptr;
-  std::filesystem::path positionPath_;
-  std::filesystem::path sizePath_;
-  WindowSize size_;
+  SDL_Window                   *window_ = nullptr;
+  std::filesystem::path         positionPath_;
+  std::filesystem::path         sizePath_;
+  WindowSize                    size_;
   std::optional<WindowPosition> position_;
-  DeferredTasks deferredTasks_;
+  DeferredTasks                 deferredTasks_;
 
   static std::string trim(const std::string_view value)
   {
@@ -141,7 +140,7 @@ private:
 
     std::optional<int> left;
     std::optional<int> top;
-    std::string line;
+    std::string        line;
     while (std::getline(input, line))
     {
       const std::string cleaned = trim(line.substr(0, line.find('#')));
@@ -156,8 +155,8 @@ private:
         continue;
       }
 
-      const std::string key = trim(std::string_view(cleaned).substr(0, separator));
-      const int value       = std::stoi(trim(std::string_view(cleaned).substr(separator + 1)));
+      const std::string key   = trim(std::string_view(cleaned).substr(0, separator));
+      const int         value = std::stoi(trim(std::string_view(cleaned).substr(separator + 1)));
       if (key == "left")
       {
         left = value;

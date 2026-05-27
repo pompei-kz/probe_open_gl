@@ -24,13 +24,13 @@ export namespace scene
 {
   struct ShapeInstance
   {
-    glm::vec3 offset{0.0F, 0.0F, 0.0F};
+    glm::vec3     offset{0.0F, 0.0F, 0.0F};
     std::uint32_t shapeIndex = 0;
   };
 
   struct Shape
   {
-    std::vector<float> vertices;
+    std::vector<float>  vertices;
     std::vector<GLuint> indexes;
     // Индекс первого инстанса этой формы в общем массиве инстансов сцены.
     std::size_t firstInstance = 0;
@@ -43,18 +43,18 @@ export namespace scene
     glm::vec3 position{0.0F, 0.0F, 1.0F};
     glm::vec3 forward{0.0F, 0.0F, -1.0F};
     glm::vec3 up{0.0F, 1.0F, 0.0F};
-    float nearPlane               = 0.1F;
-    float farPlane                = 100.0F;
-    float fovDegrees              = 45.0F;
-    float forwardVelocity         = 0.0F;
-    float sideVelocity            = 0.0F;
-    float forwardMouseSensitivity = 0.0F;
-    float forwardScrollStep       = 0.0F;
+    float     nearPlane               = 0.1F;
+    float     farPlane                = 100.0F;
+    float     fovDegrees              = 45.0F;
+    float     forwardVelocity         = 0.0F;
+    float     sideVelocity            = 0.0F;
+    float     forwardMouseSensitivity = 0.0F;
+    float     forwardScrollStep       = 0.0F;
   };
 
   struct Sun
   {
-    float force         = 1.0F;
+    float     force     = 1.0F;
     glm::vec3 direction = {0.0F, 0.0F, -1.0F};
     glm::vec3 color     = {1.0F, 1.0F, 1.0F};
   };
@@ -67,14 +67,14 @@ export namespace scene
   class Scene
   {
   public:
-    std::vector<Shape> shapes;
+    std::vector<Shape>         shapes;
     std::vector<ShapeInstance> instances;
-    Camera camera;
-    Sun sun;
-    SceneParams params;
-    int vertexFloatCount   = 0;
-    int positionFloatCount = 0;
-    int colorFloatCount    = 0;
+    Camera                     camera;
+    Sun                        sun;
+    SceneParams                params;
+    int                        vertexFloatCount   = 0;
+    int                        positionFloatCount = 0;
+    int                        colorFloatCount    = 0;
 
     void load(const std::filesystem::path &path, std::string_view shapeName);
 
@@ -87,7 +87,7 @@ namespace
 {
   struct DataSection
   {
-    std::string type;
+    std::string              type;
     std::vector<std::string> lines;
   };
 
@@ -106,7 +106,7 @@ namespace
   struct MeshRef
   {
     std::filesystem::path path;
-    std::string id;
+    std::string           id;
   };
 
   constexpr glm::vec3 zeroOffset{0.0F, 0.0F, 0.0F};
@@ -175,9 +175,9 @@ namespace
 
   std::vector<std::string> splitWords(const std::string_view value)
   {
-    std::istringstream input{std::string(value)};
+    std::istringstream       input{std::string(value)};
     std::vector<std::string> words;
-    std::string word;
+    std::string              word;
     while (input >> word)
     {
       words.push_back(word);
@@ -224,7 +224,7 @@ namespace
   std::vector<std::string> readLines(std::istream &input)
   {
     std::vector<std::string> lines;
-    std::string line;
+    std::string              line;
     while (std::getline(input, line))
     {
       lines.push_back(line);
@@ -240,7 +240,7 @@ namespace
     }
 
     const std::filesystem::path dataPath = (sectionPath.parent_path() / dataRef.as<std::string>()).lexically_normal();
-    std::ifstream input(dataPath);
+    std::ifstream               input(dataPath);
     if (!input)
     {
       throw std::runtime_error("KIu7rNQxT0 :: Failed to open YAML '" + std::string(sectionName) + ".data-ref' file " + dataPath.string());
@@ -302,7 +302,7 @@ namespace
 
     std::istringstream input(line);
     std::vector<float> values;
-    float value = 0.0F;
+    float              value = 0.0F;
     while (input >> value)
     {
       values.push_back(value);
@@ -456,16 +456,16 @@ namespace
 
   scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath, const scene::Scene &sceneData)
   {
-    const DataSection points  = extractDataSection(mesh, "points", meshPath);
-    const DataSection indexes = extractDataSection(mesh, "indexes", meshPath);
-    const PointLayout layout  = parsePointLayout(points.type, meshPath);
-    const int indexCount      = parseIndexCount(indexes.type, meshPath);
+    const DataSection points     = extractDataSection(mesh, "points", meshPath);
+    const DataSection indexes    = extractDataSection(mesh, "indexes", meshPath);
+    const PointLayout layout     = parsePointLayout(points.type, meshPath);
+    const int         indexCount = parseIndexCount(indexes.type, meshPath);
 
     if (indexCount != 3)
     {
       throw std::runtime_error("cDO6R2F96Y :: Index type must be 'i i i' for GL_TRIANGLES in " + meshPath.string() + ": " + indexes.type);
     }
-    scene::Shape result;
+    scene::Shape                    result;
     std::unordered_map<int, GLuint> pointIndexById;
     for (const std::string &line : points.lines)
     {
@@ -501,10 +501,10 @@ namespace
       }
 
       std::array<GLuint, 3> triangle{};
-      bool validTriangle = true;
+      bool                  validTriangle = true;
       for (std::size_t i = 0; i < values.size(); ++i)
       {
-        const int pointId     = static_cast<int>(values[i]);
+        const int  pointId    = static_cast<int>(values[i]);
         const auto pointIndex = pointIndexById.find(pointId);
         if (pointIndex == pointIndexById.end())
         {
@@ -537,12 +537,12 @@ namespace
       return shapeIndex->second;
     }
 
-    const MeshRef meshRef         = parseMeshRef(shapeNode, path, shapeName);
-    const Material material       = parseMaterial(shapeNode, path, shapeName);
+    const MeshRef    meshRef      = parseMeshRef(shapeNode, path, shapeName);
+    const Material   material     = parseMaterial(shapeNode, path, shapeName);
     const YAML::Node meshDocument = loadYamlFile(meshRef.path);
     const YAML::Node meshes       = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Shape parsedShape      = parseMesh(mesh, material, meshRef.path, result);
+    scene::Shape     parsedShape  = parseMesh(mesh, material, meshRef.path, result);
     if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
     {
       throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
@@ -563,11 +563,11 @@ namespace
   void appendShapeInstanceGroup(const std::filesystem::path &path, const YAML::Node &instanceGroup, const std::string_view groupName,
                                 scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
-    const MeshRef shapeRef         = parseShapeRef(instanceGroup, path, groupName);
-    const YAML::Node shapeDocument = loadYamlFile(shapeRef.path);
-    const YAML::Node shapeNodes    = optionalMapChild(shapeDocument, "shapes", shapeRef.path);
-    const YAML::Node shape         = requiredMapChild(shapeNodes, shapeRef.id, shapeRef.path);
-    const std::uint32_t shapeIndex = ensureShape(shapeRef.path, shape, shapeRef.id, result, shapeIndexByKey);
+    const MeshRef       shapeRef      = parseShapeRef(instanceGroup, path, groupName);
+    const YAML::Node    shapeDocument = loadYamlFile(shapeRef.path);
+    const YAML::Node    shapeNodes    = optionalMapChild(shapeDocument, "shapes", shapeRef.path);
+    const YAML::Node    shape         = requiredMapChild(shapeNodes, shapeRef.id, shapeRef.path);
+    const std::uint32_t shapeIndex    = ensureShape(shapeRef.path, shape, shapeRef.id, result, shapeIndexByKey);
 
     for (const glm::vec3 &offset : parseOffsets(instanceGroup, path, groupName))
     {
@@ -673,8 +673,8 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   {
     throw std::runtime_error("d5J2Mmx9Ar :: Shape name must not be empty");
   }
-  const YAML::Node shapeNodes = optionalMapChild(document, "shapes", path);
-  const YAML::Node shape      = requiredMapChild(shapeNodes, shapeName, path);
+  const YAML::Node                               shapeNodes = optionalMapChild(document, "shapes", path);
+  const YAML::Node                               shape      = requiredMapChild(shapeNodes, shapeName, path);
   std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
   appendShape(path, shape, shapeName, *this, shapeIndexByKey);
   updateShapeInstanceRanges(*this);
@@ -705,7 +705,7 @@ void scene::Scene::load(const std::filesystem::path &path)
     throw std::runtime_error("EJEw5s6sPl :: YAML container 'scene.shape-instance-groups' must be sequence in " + path.string());
   }
 
-  const YAML::Node shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
+  const YAML::Node                               shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
   std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
   if (sceneShapeInstanceGroups)
   {
@@ -715,8 +715,8 @@ void scene::Scene::load(const std::filesystem::path &path)
       {
         throw std::runtime_error("eLfoLjxgQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
       }
-      const std::string name         = groupName.as<std::string>();
-      const YAML::Node instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
+      const std::string name          = groupName.as<std::string>();
+      const YAML::Node  instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
       appendShapeInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
     }
   }

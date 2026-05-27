@@ -10,7 +10,7 @@ export module arguments;
 
 export class Arguments
 {
-  std::string appName_;
+  std::string           appName_;
   std::filesystem::path exeFolder_;
   std::filesystem::path configFolder_;
   std::filesystem::path cacheFolder_;
@@ -21,7 +21,7 @@ public:
     if (argumentCount <= 0 || arguments == nullptr || arguments[0] == nullptr)
     {
       exeFolder_ = std::filesystem::current_path();
-      appName_             = "probe_open_gl";
+      appName_   = "probe_open_gl";
     }
     else
     {

@@ -18,15 +18,13 @@ export module render;
 
 import scene;
 
-export enum class MoveVert
-{
+export enum class MoveVert {
   NONE,
   UP,
   DOWN,
 };
 
-export enum class MoveHoriz
-{
+export enum class MoveHoriz {
   NONE,
   LEFT,
   RIGHT,
@@ -77,8 +75,8 @@ namespace
     }
 
     const glm::vec3 up      = normalize(cameraUp, "camera.up");
-    const float yaw         = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
-    const float pitch       = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
+    const float     yaw     = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
+    const float     pitch   = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
     const glm::vec3 vector1 = glm::rotate(glm::mat4{1.0F}, yaw, up) * glm::vec4(forward, 0.0F);
     forward                 = normalize(vector1, "camera.forward");
 
@@ -95,9 +93,9 @@ namespace
   GLuint compileShader(const GLenum type, const std::string_view source)
   {
     // Создаем объект шейдера указанного типа.
-    const GLuint shader     = glCreateShader(type);
-    const char *sourceData  = source.data();
-    const auto sourceLength = static_cast<GLint>(source.size());
+    const GLuint shader       = glCreateShader(type);
+    const char  *sourceData   = source.data();
+    const auto   sourceLength = static_cast<GLint>(source.size());
     // Передаем исходный код шейдера в OpenGL.
     glShaderSource(shader, 1, &sourceData, &sourceLength);
     // Компилируем исходный код шейдера.
@@ -199,11 +197,11 @@ public:
 
     shapeBuffers_.resize(scene_.shapes.size());
     const GLsizei stride                   = static_cast<GLsizei>(scene_.vertexFloatCount * sizeof(float));
-    const GLsizei shapeInstanceGroupStride = static_cast<GLsizei>(4U * sizeof(float));
+    const GLsizei shapeInstanceGroupStride = 4U * sizeof(float);
     for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
     {
-      const scene::Shape &shape = scene_.shapes[shapeIndex];
-      ShapeGlBufferIds &buffers = shapeBuffers_[shapeIndex];
+      const scene::Shape &shape   = scene_.shapes[shapeIndex];
+      ShapeGlBufferIds   &buffers = shapeBuffers_[shapeIndex];
 
       // Создаем VAO для раскладки атрибутов формы.
       glGenVertexArrays(1, &buffers.vertexArray);
@@ -310,8 +308,8 @@ public:
 
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
-    const glm::vec3 cameraLeft      = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
-    const int sideMovementDirection = (moveHoriz_ == MoveHoriz::RIGHT ? 1 : 0) - (moveHoriz_ == MoveHoriz::LEFT ? 1 : 0);
+    const glm::vec3 cameraLeft            = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
+    const int       sideMovementDirection = (moveHoriz_ == MoveHoriz::RIGHT ? 1 : 0) - (moveHoriz_ == MoveHoriz::LEFT ? 1 : 0);
     cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
     const int verticalMovementDirection = (moveVert_ == MoveVert::UP ? 1 : 0) - (moveVert_ == MoveVert::DOWN ? 1 : 0);
     cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * static_cast<float>(verticalMovementDirection) * deltaSeconds;
@@ -325,21 +323,21 @@ public:
     glUseProgram(shaderProgram_);
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
-      const scene::ShapeInstance &instance = scene_.instances[instanceIndex];
-      const std::size_t writeIndex         = instanceIndex * 4U;
-      instanceData_[writeIndex]            = instance.offset[0];
-      instanceData_[writeIndex + 1U]       = instance.offset[1];
-      instanceData_[writeIndex + 2U]       = instance.offset[2];
-      instanceData_[writeIndex + 3U]       = static_cast<float>(instance.shapeIndex);
+      const scene::ShapeInstance &instance   = scene_.instances[instanceIndex];
+      const std::size_t           writeIndex = instanceIndex * 4U;
+      instanceData_[writeIndex]              = instance.offset[0];
+      instanceData_[writeIndex + 1U]         = instance.offset[1];
+      instanceData_[writeIndex + 2U]         = instance.offset[2];
+      instanceData_[writeIndex + 3U]         = static_cast<float>(instance.shapeIndex);
     }
     // Делаем буфер инстансов текущим перед обновлением.
     glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
     // Загружаем актуальные данные инстансов в GPU.
     glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)), instanceData_.data());
 
-    const int width            = std::max(viewportWidth, 1);
-    const int height           = std::max(viewportHeight, 1);
-    const float aspect         = static_cast<float>(width) / static_cast<float>(height);
+    const int       width      = std::max(viewportWidth, 1);
+    const int       height     = std::max(viewportHeight, 1);
+    const float     aspect     = static_cast<float>(width) / static_cast<float>(height);
     const glm::mat4 projection = projectionMatrix(scene_.camera.fovDegrees, aspect, scene_.camera.nearPlane, scene_.camera.farPlane);
     const glm::mat4 view       = viewMatrix(cameraPosition_, cameraForward_, cameraUp_);
     const glm::mat4 model{1.0F};
@@ -372,20 +370,20 @@ public:
   }
 
 private:
-  scene::Scene scene_;
-  GLuint shaderProgram_           = 0;
-  GLuint shapeInstanceGroup_      = 0;
-  GLint projectionMatrixLocation_ = -1;
-  GLint viewMatrixLocation_       = -1;
-  GLint modelMatrixLocation_      = -1;
-  GLint sunForceLocation_         = -1;
-  GLint sunDirectionLocation_     = -1;
-  GLint sunColorLocation_         = -1;
+  scene::Scene                  scene_;
+  GLuint                        shaderProgram_            = 0;
+  GLuint                        shapeInstanceGroup_       = 0;
+  GLint                         projectionMatrixLocation_ = -1;
+  GLint                         viewMatrixLocation_       = -1;
+  GLint                         modelMatrixLocation_      = -1;
+  GLint                         sunForceLocation_         = -1;
+  GLint                         sunDirectionLocation_     = -1;
+  GLint                         sunColorLocation_         = -1;
   std::vector<ShapeGlBufferIds> shapeBuffers_;
-  std::vector<float> instanceData_;
-  glm::vec3 cameraPosition_{};
-  glm::vec3 cameraForward_{};
-  glm::vec3 cameraUp_{};
-  MoveVert moveVert_   = MoveVert::NONE;
-  MoveHoriz moveHoriz_ = MoveHoriz::NONE;
+  std::vector<float>            instanceData_;
+  glm::vec3                     cameraPosition_{};
+  glm::vec3                     cameraForward_{};
+  glm::vec3                     cameraUp_{};
+  MoveVert                      moveVert_  = MoveVert::NONE;
+  MoveHoriz                     moveHoriz_ = MoveHoriz::NONE;
 };

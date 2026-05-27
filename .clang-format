@@ -22,3 +22,5 @@ AlignConsecutiveAssignments:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: true
+
+AlignConsecutiveDeclarations: true

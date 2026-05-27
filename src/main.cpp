@@ -9,10 +9,10 @@ import render;
 
 int main(const int argvCount, char **argv)
 {
-  const Arguments args(argvCount, argv);
-
   try
   {
+    const Arguments args(argvCount, argv);
+
     args.printIntro();
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -30,7 +30,7 @@ int main(const int argvCount, char **argv)
 
     {
       Application application(window);
-      Render render(args.exeFolder() / "scene.yaml");
+      Render      render(args.exeFolder() / "scene.yaml");
 
       application.run(render);
     }

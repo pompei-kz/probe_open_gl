@@ -64,7 +64,7 @@ public:
       window_.idle();
 
       const Uint64 currentCounter = SDL_GetPerformanceCounter();
-      const float deltaSeconds    = static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
+      const float  deltaSeconds   = static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
       previousCounter             = currentCounter;
       render.drawFrame(window_.width(), window_.height(), deltaSeconds);
 
@@ -181,8 +181,8 @@ private:
     mouseCaptured_ = captured;
   }
 
-  MainWindow &window_;
-  SDL_GLContext context_ = nullptr;
-  bool mouseCaptured_    = false;
-  bool running_          = false;
+  MainWindow   &window_;
+  SDL_GLContext context_       = nullptr;
+  bool          mouseCaptured_ = false;
+  bool          running_       = false;
 };
