@@ -237,6 +237,88 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
 }
 
+TEST(LoadTriData, IgnoresEmptyLinesAndCommentsInInlineData) {
+  const std::filesystem::path path = writeYaml("inline_empty_lines_and_comments", R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data: |
+        # point id and coordinates
+        1 0.0 0.0 0.0
+
+        2 1.0 0.0 0.0 # trailing comment
+
+        # another comment
+        3 0.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        # one triangle
+
+        1 2 3 # by point ids
+figures:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.7 0.8 0.9"
+)yaml");
+
+  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+
+  ASSERT_EQ(data.vertices.size(), 18U);
+  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.vertices[3], 0.7F);
+  EXPECT_FLOAT_EQ(data.vertices[4], 0.8F);
+  EXPECT_FLOAT_EQ(data.vertices[5], 0.9F);
+}
+
+TEST(LoadTriData, IgnoresEmptyLinesAndCommentsInDataRefs) {
+  const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_comments_ref.txt", R"txt(
+# point id and coordinates
+1 0.0 0.0 0.0
+
+2 1.0 0.0 0.0 # trailing comment
+
+# another comment
+3 0.0 1.0 0.0
+)txt");
+  const std::filesystem::path indexesPath = writeTextFile("probe_open_gl_indexes_comments_ref.txt", R"txt(
+# one triangle
+
+1 2 3 # by point ids
+)txt");
+  const std::filesystem::path path = writeYaml("data_refs_empty_lines_and_comments", R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data-ref: "probe_open_gl_points_comments_ref.txt"
+    indexes:
+      type: "i i i"
+      data-ref: "probe_open_gl_indexes_comments_ref.txt"
+figures:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.4 0.5 0.6"
+)yaml");
+
+  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+
+  (void)pointsPath;
+  (void)indexesPath;
+  ASSERT_EQ(data.vertices.size(), 18U);
+  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.vertices[3], 0.4F);
+  EXPECT_FLOAT_EQ(data.vertices[4], 0.5F);
+  EXPECT_FLOAT_EQ(data.vertices[5], 0.6F);
+}
+
 TEST(LoadTriData, ThrowsWhenSectionHasDataAndDataRef) {
   const std::filesystem::path path = writeYaml("data_and_data_ref", R"yaml(
 meshes:
