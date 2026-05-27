@@ -208,8 +208,11 @@ int main(int argvCount, char **argv) {
 
   try {
     shaderProgram = createShaderProgram();
+    // Находим uniform-переменную матрицы проекции в шейдерной программе.
     const GLint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
+    // Находим uniform-переменную матрицы вида в шейдерной программе.
     const GLint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
+    // Находим uniform-переменную матрицы модели в шейдерной программе.
     const GLint modelMatrixLocation = glGetUniformLocation(shaderProgram, "modelMatrix");
     if (projectionMatrixLocation < 0 || viewMatrixLocation < 0 || modelMatrixLocation < 0) {
       throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate matrix uniforms");
@@ -293,8 +296,11 @@ int main(int argvCount, char **argv) {
                                                triData.cameraFar);
       const Mat4 view = viewMatrix(triData.cameraPosition, triData.cameraForward, triData.cameraUp);
       const Mat4 model = identityMatrix();
+      // Передаем матрицу проекции в текущую шейдерную программу.
       glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, projection.data());
+      // Передаем матрицу вида в текущую шейдерную программу.
       glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, view.data());
+      // Передаем матрицу модели в текущую шейдерную программу.
       glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, model.data());
       // Выбираем VAO с раскладкой вершин и индексным буфером.
       glBindVertexArray(vertexArray);
