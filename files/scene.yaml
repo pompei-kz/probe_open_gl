@@ -20,46 +20,17 @@ cameras:
       forwardMouseSensitivity: "0.10"
       forwardScrollStep: "1"
 
-meshes:
-  main-tri-data:
-
-    points:
-      type: "i X Y Z"
-      data-ref: "./main-tri-data-points.txt"
-
-    indexes:
-      type: "i i i"
-      data-ref: "./main-tri-data-indexes.txt"
-
-  green-tri:
-    points:
-      type: "i X Y Z"
-      data: |
-        #i  X       Y     Z
-         0 -0.900   0.40  0
-         1 -0.750   0.10  0
-         2 -0.600   0.40  0
-     
-         3  0.600   0.40  0
-         4  0.750   0.10  0
-         5  0.900   0.40  0
-    indexes:
-      type: "i i i"
-      data: |
-        0 1 2
-        3 4 5
-
 shapes:
   shape_01:
     mesh:
-      ref: "#main-tri-data"
+      ref: "meshes.yaml#main-tri-data"
     material:
       type: "solid"
       color: "0.15  0.85  0.35"
 
   shape_02:
     mesh:
-      ref: "#green-tri"
+      ref: "meshes.yaml#green-tri"
     material:
       type: "solid"
       color: "0.00  0.10  0.9"
