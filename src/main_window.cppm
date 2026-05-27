@@ -85,7 +85,7 @@ public:
     }
 
     if (event.event == SDL_WINDOWEVENT_MOVED) {
-      position_ = WindowPosition{event.data1, event.data2};
+      position_ = outerWindowPosition(WindowPosition{event.data1, event.data2});
       saveWindowPosition(*position_);
       return;
     }
@@ -192,6 +192,20 @@ private:
     }
 
     return std::nullopt;
+  }
+
+  [[nodiscard]] WindowPosition outerWindowPosition(const WindowPosition reportedPosition) const {
+    int top = 0;
+    int left = 0;
+    int bottom = 0;
+    int right = 0;
+    if (window_ != nullptr && SDL_GetWindowBordersSize(window_, &top, &left, &bottom, &right) == 0) {
+      return WindowPosition{
+        reportedPosition.left - left,
+        reportedPosition.top - top,
+      };
+    }
+    return reportedPosition;
   }
 
   void saveWindowPosition(const WindowPosition position) {
