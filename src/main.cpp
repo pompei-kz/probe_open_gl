@@ -8,7 +8,7 @@
 
 import arguments;
 import main_window;
-import tri_data;
+import scene;
 
 #include <algorithm>
 #include <array>
@@ -215,10 +215,11 @@ int main(int argvCount, char **argv) {
       throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate matrix uniforms");
     }
 
-    const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
-    glm::vec3 cameraPosition = toVec3(triData.camera.position);
-    glm::vec3 cameraForward = normalize(toVec3(triData.camera.forward), "camera.forward");
-    const glm::vec3 cameraUp = toVec3(triData.camera.up);
+    scene::Scene sceneData;
+    sceneData.load(executableDirectory / "tri-data.yaml");
+    glm::vec3 cameraPosition = toVec3(sceneData.camera.position);
+    glm::vec3 cameraForward = normalize(toVec3(sceneData.camera.forward), "camera.forward");
+    const glm::vec3 cameraUp = toVec3(sceneData.camera.up);
 
     // Создаем объект Vertex Array Object для описания раскладки вершин.
     glGenVertexArrays(1, &vertexArray);
@@ -233,29 +234,29 @@ int main(int argvCount, char **argv) {
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     // Загружаем массив вершин в память GPU.
     glBufferData(GL_ARRAY_BUFFER,
-                 static_cast<GLsizeiptr>(triData.vertices.size() * sizeof(float)),
-                 triData.vertices.data(),
+                 static_cast<GLsizeiptr>(sceneData.vertices.size() * sizeof(float)),
+                 sceneData.vertices.data(),
                  GL_STATIC_DRAW);
     // Делаем индексный буфер текущим для выбранного VAO.
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
     // Загружаем индексы треугольников в память GPU.
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 static_cast<GLsizeiptr>(triData.indexes.size() * sizeof(GLuint)),
-                 triData.indexes.data(),
+                 static_cast<GLsizeiptr>(sceneData.indexes.size() * sizeof(GLuint)),
+                 sceneData.indexes.data(),
                  GL_STATIC_DRAW);
 
-    const auto stride = static_cast<GLsizei>(triData.vertexFloatCount * sizeof(float));
+    const auto stride = static_cast<GLsizei>(sceneData.vertexFloatCount * sizeof(float));
     // Описываем атрибут позиции вершины.
-    glVertexAttribPointer(0, triData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
+    glVertexAttribPointer(0, sceneData.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
     // Включаем атрибут позиции вершины.
     glEnableVertexAttribArray(0);
     // Описываем атрибут цвета вершины.
     glVertexAttribPointer(1,
-                          triData.colorFloatCount,
+                          sceneData.colorFloatCount,
                           GL_FLOAT,
                           GL_FALSE,
                           stride,
-                          reinterpret_cast<void *>(triData.positionFloatCount * sizeof(float)));
+                          reinterpret_cast<void *>(sceneData.positionFloatCount * sizeof(float)));
     // Включаем атрибут цвета вершины.
     glEnableVertexAttribArray(1);
     // Включаем проверку глубины для 3D-сцены.
@@ -286,9 +287,9 @@ int main(int argvCount, char **argv) {
         } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s) {
           moveBackward = false;
         } else if (event.type == SDL_MOUSEMOTION && mouseCaptured) {
-          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, triData.camera.forwardMouseSensitivity);
+          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, sceneData.camera.forwardMouseSensitivity);
         } else if (event.type == SDL_MOUSEWHEEL) {
-          cameraPosition += cameraForward * triData.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
+          cameraPosition += cameraForward * sceneData.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
         } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           // Подгоняем область вывода OpenGL под новый размер окна.
           glViewport(0, 0, event.window.data1, event.window.data2);
@@ -305,7 +306,7 @@ int main(int argvCount, char **argv) {
                                  / static_cast<float>(SDL_GetPerformanceFrequency());
       previousCounter = currentCounter;
       const int movementDirection = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
-      cameraPosition += cameraForward * triData.camera.forwardVelocity
+      cameraPosition += cameraForward * sceneData.camera.forwardVelocity
                         * static_cast<float>(movementDirection)
                         * deltaSeconds;
 
@@ -319,10 +320,10 @@ int main(int argvCount, char **argv) {
       const int viewportWidth = std::max(window.width(), 1);
       const int viewportHeight = std::max(window.height(), 1);
       const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-      const glm::mat4 projection = projectionMatrix(triData.camera.fovDegrees,
+      const glm::mat4 projection = projectionMatrix(sceneData.camera.fovDegrees,
                                                     aspect,
-                                                    triData.camera.nearPlane,
-                                                    triData.camera.farPlane);
+                                                    sceneData.camera.nearPlane,
+                                                    sceneData.camera.farPlane);
       const glm::mat4 view = viewMatrix(cameraPosition,
                                         cameraForward,
                                         cameraUp);
@@ -337,7 +338,7 @@ int main(int argvCount, char **argv) {
       glBindVertexArray(vertexArray);
       // Рисуем треугольники по индексам из текущего индексного буфера.
       glDrawElements(GL_TRIANGLES,
-                     static_cast<GLsizei>(triData.indexes.size()),
+                     static_cast<GLsizei>(sceneData.indexes.size()),
                      GL_UNSIGNED_INT,
                      nullptr);
 

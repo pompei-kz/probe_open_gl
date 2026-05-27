@@ -15,9 +15,9 @@ module;
 #include <unordered_map>
 #include <vector>
 
-export module tri_data;
+export module scene;
 
-export namespace tri_data {
+export namespace scene {
   struct Camera {
     std::array<float, 3> position{0.0F, 0.0F, 1.0F};
     std::array<float, 3> forward{0.0F, 0.0F, -1.0F};
@@ -30,17 +30,18 @@ export namespace tri_data {
     float forwardScrollStep = 0.0F;
   };
 
-  struct TriData {
+  class Scene {
+  public:
     std::vector<float> vertices;
     std::vector<GLuint> indexes;
     Camera camera;
     int vertexFloatCount = 0;
     int positionFloatCount = 0;
     int colorFloatCount = 0;
-  };
 
-  TriData loadTriData(const std::filesystem::path &path, std::string_view figureName);
-  TriData loadTriData(const std::filesystem::path &path);
+    void load(const std::filesystem::path &path, std::string_view figureName);
+    void load(const std::filesystem::path &path);
+  };
 }
 
 namespace {
@@ -94,7 +95,7 @@ namespace {
 
     const std::vector<float> values = parseFloatLine(node.as<std::string>());
     if (values.size() != 1U) {
-      throw std::runtime_error("MkrD0LxmpS :: YAML scalar '" + std::string(name)
+      throw std::runtime_error("MkrD0Lx4pS :: YAML scalar '" + std::string(name)
                                + "' must contain 1 float in " + path.string());
     }
     return values[0];
@@ -160,7 +161,7 @@ namespace {
       (sectionPath.parent_path() / dataRef.as<std::string>()).lexically_normal();
     std::ifstream input(dataPath);
     if (!input) {
-      throw std::runtime_error("KIuhrNQxT0 :: Failed to open YAML '" + std::string(sectionName)
+      throw std::runtime_error("KIu7rNQxT0 :: Failed to open YAML '" + std::string(sectionName)
                                + ".data-ref' file " + dataPath.string());
     }
     return readLines(input);
@@ -179,7 +180,7 @@ namespace {
     const YAML::Node data = yamlSection["data"];
     const YAML::Node dataRef = yamlSection["data-ref"];
     if (data && dataRef) {
-      throw std::runtime_error("AX1zWXwocG :: YAML section '" + std::string(sectionName)
+      throw std::runtime_error("AX1zWXw0cG :: YAML section '" + std::string(sectionName)
                                + "' must not define both data and data-ref in " + path.string());
     }
     if (!data && !dataRef) {
@@ -331,6 +332,7 @@ namespace {
   MeshRef parseFigureRef(const YAML::Node &instanceGroup,
                          const std::filesystem::path &groupPath,
                          const std::string_view groupName) {
+
     const YAML::Node figure = requiredMapChild(instanceGroup, "figure", groupPath);
     const YAML::Node ref = figure["ref"];
     if (!ref || !ref.IsScalar()) {
@@ -370,7 +372,8 @@ namespace {
                   const Material &material,
                   const std::filesystem::path &meshPath,
                   const std::array<float, 3> &offset,
-                  tri_data::TriData &result) {
+                  scene::Scene &result) {
+
     const DataSection points = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes = extractDataSection(mesh, "indexes", meshPath);
     const PointLayout layout = parsePointLayout(points.type, meshPath);
@@ -442,7 +445,8 @@ namespace {
                     const YAML::Node &figure,
                     const std::string_view figureName,
                     const std::array<float, 3> &offset,
-                    tri_data::TriData &result) {
+                    scene::Scene &result) {
+
     const MeshRef meshRef = parseMeshRef(figure, path, figureName);
     const Material material = parseMaterial(figure, path, figureName);
     const YAML::Node meshDocument = YAML::LoadFile(meshRef.path.string());
@@ -454,14 +458,14 @@ namespace {
   void appendFigure(const std::filesystem::path &path,
                     const YAML::Node &figure,
                     const std::string_view figureName,
-                    tri_data::TriData &result) {
+                    scene::Scene &result) {
     appendFigure(path, figure, figureName, zeroOffset, result);
   }
 
   void appendFigureInstanceGroup(const std::filesystem::path &path,
                                  const YAML::Node &instanceGroup,
                                  const std::string_view groupName,
-                                 tri_data::TriData &result) {
+                                 scene::Scene &result) {
     const MeshRef figureRef = parseFigureRef(instanceGroup, path, groupName);
     const YAML::Node figureDocument = YAML::LoadFile(figureRef.path.string());
     const YAML::Node figures = requiredMapChild(figureDocument, "figures", figureRef.path);
@@ -472,7 +476,7 @@ namespace {
     }
   }
 
-  void setDefaultLayout(tri_data::TriData &data) {
+  void setDefaultLayout(scene::Scene &data) {
     data.vertexFloatCount = 6;
     data.positionFloatCount = 3;
     data.colorFloatCount = 3;
@@ -481,7 +485,7 @@ namespace {
   void parseSceneCamera(const YAML::Node &document,
                         const YAML::Node &scene,
                         const std::filesystem::path &path,
-                        tri_data::TriData &result) {
+                        scene::Scene &result) {
     const YAML::Node cameraName = scene["camera"];
     if (!cameraName || !cameraName.IsScalar()) {
       throw std::runtime_error("GM21xOpQV4 :: Missing YAML scalar 'scene.camera' in " + path.string());
@@ -509,32 +513,34 @@ namespace {
   }
 }
 
-tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path, std::string_view figureName) {
+void scene::Scene::load(const std::filesystem::path &path, std::string_view figureName) {
   const YAML::Node document = YAML::LoadFile(path.string());
-  TriData result;
-  setDefaultLayout(result);
+  vertices.clear();
+  indexes.clear();
+  camera = Camera{};
+  setDefaultLayout(*this);
   if (figureName.empty()) {
     throw std::runtime_error("d5J2Mmx9Ar :: Figure name must not be empty");
   }
   const YAML::Node figures = requiredMapChild(document, "figures", path);
   const YAML::Node figure = requiredMapChild(figures, figureName, path);
-  appendFigure(path, figure, figureName, result);
+  appendFigure(path, figure, figureName, *this);
 
-  if (result.vertices.empty() || result.indexes.empty()) {
+  if (vertices.empty() || indexes.empty()) {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }
-
-  return result;
 }
 
-tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
+void scene::Scene::load(const std::filesystem::path &path) {
   const YAML::Node document = YAML::LoadFile(path.string());
-  const YAML::Node scene = requiredMapChild(document, "scene", path);
-  TriData result;
-  setDefaultLayout(result);
-  parseSceneCamera(document, scene, path, result);
+  const YAML::Node sceneNode = requiredMapChild(document, "scene", path);
+  vertices.clear();
+  indexes.clear();
+  camera = Camera{};
+  setDefaultLayout(*this);
+  parseSceneCamera(document, sceneNode, path, *this);
 
-  const YAML::Node sceneFigureInstanceGroups = scene["figure-instance-groups"];
+  const YAML::Node sceneFigureInstanceGroups = sceneNode["figure-instance-groups"];
   if (!sceneFigureInstanceGroups || !sceneFigureInstanceGroups.IsSequence()) {
     throw std::runtime_error("EJEwbs6sPl :: Missing YAML sequence 'scene.figure-instance-groups' in "
                              + path.string());
@@ -548,12 +554,10 @@ tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
     }
     const std::string name = groupName.as<std::string>();
     const YAML::Node instanceGroup = requiredMapChild(figureInstanceGroups, name, path);
-    appendFigureInstanceGroup(path, instanceGroup, name, result);
+    appendFigureInstanceGroup(path, instanceGroup, name, *this);
   }
 
-  if (result.vertices.empty() || result.indexes.empty()) {
+  if (vertices.empty() || indexes.empty()) {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }
-
-  return result;
 }

@@ -1,7 +1,7 @@
 #include <epoxy/gl.h>
 #include <gtest/gtest.h>
 
-import tri_data;
+import scene;
 
 #include <filesystem>
 #include <fstream>
@@ -30,7 +30,7 @@ namespace {
   }
 }
 
-TEST(LoadTriData, LoadsRequestedFigureFromFiguresRoot) {
+TEST(LoadScene, LoadsRequestedFigureFromFiguresRoot) {
   const std::filesystem::path path = writeYaml("loads_requested_figure", R"yaml(
 meshes:
   ignored:
@@ -68,7 +68,8 @@ figures:
       type: "solid"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   EXPECT_EQ(data.vertexFloatCount, 6);
   EXPECT_EQ(data.positionFloatCount, 3);
@@ -80,7 +81,7 @@ figures:
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
-TEST(LoadTriData, UsesSolidMaterialColorWhenMeshHasNoColors) {
+TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors) {
   const std::filesystem::path path = writeYaml("uses_material_color", R"yaml(
 meshes:
   triangle:
@@ -103,7 +104,8 @@ figures:
       color: "0.2 0.4 0.6"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   EXPECT_EQ(data.vertexFloatCount, 6);
   EXPECT_EQ(data.positionFloatCount, 3);
@@ -118,7 +120,7 @@ figures:
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
-TEST(LoadTriData, DoesNotDrawSceneFiguresDirectly) {
+TEST(LoadScene, DoesNotDrawSceneFiguresDirectly) {
   const std::filesystem::path path = writeYaml("does_not_draw_scene_figures", R"yaml(
 scene:
   figures:
@@ -157,10 +159,10 @@ figures:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW((void)tri_data::loadTriData(path), std::runtime_error);
+  EXPECT_THROW({ scene::Scene data; data.load(path); }, std::runtime_error);
 }
 
-TEST(LoadTriData, LoadsSelectedFigureInstanceGroupsWithOffsets) {
+TEST(LoadScene, LoadsSelectedFigureInstanceGroupsWithOffsets) {
   const std::filesystem::path path = writeYaml("loads_figure_instance_groups", R"yaml(
 scene:
   figures:
@@ -224,7 +226,8 @@ figure-instance-groups:
         0 100 200 300
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path);
+  scene::Scene data;
+  data.load(path);
 
   EXPECT_EQ(data.vertexFloatCount, 6);
   ASSERT_EQ(data.vertices.size(), 36U);
@@ -250,7 +253,7 @@ figure-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
 }
 
-TEST(LoadTriData, ResolvesMeshReferencesFromRelativeFiles) {
+TEST(LoadScene, ResolvesMeshReferencesFromRelativeFiles) {
   const std::filesystem::path meshPath = writeYaml("external_meshes", R"yaml(
 meshes:
   external:
@@ -276,7 +279,8 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   (void)meshPath;
   ASSERT_EQ(data.vertices.size(), 18U);
@@ -284,7 +288,7 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
 }
 
-TEST(LoadTriData, ReadsPointAndIndexDataRefs) {
+TEST(LoadScene, ReadsPointAndIndexDataRefs) {
   const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_data_ref.txt", R"txt(
 1 0.0 0.0 0.0
 2 1.0 0.0 0.0
@@ -311,7 +315,8 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   (void)pointsPath;
   (void)indexesPath;
@@ -320,7 +325,7 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
 }
 
-TEST(LoadTriData, IgnoresEmptyLinesAndCommentsInInlineData) {
+TEST(LoadScene, IgnoresEmptyLinesAndCommentsInInlineData) {
   const std::filesystem::path path = writeYaml("inline_empty_lines_and_comments", R"yaml(
 meshes:
   triangle:
@@ -349,7 +354,8 @@ figures:
       color: "0.7 0.8 0.9"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   ASSERT_EQ(data.vertices.size(), 18U);
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
@@ -358,7 +364,7 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[5], 0.9F);
 }
 
-TEST(LoadTriData, IgnoresEmptyLinesAndCommentsInDataRefs) {
+TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs) {
   const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_comments_ref.txt", R"txt(
 # point id and coordinates
 1 0.0 0.0 0.0
@@ -391,7 +397,8 @@ figures:
       color: "0.4 0.5 0.6"
 )yaml");
 
-  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+  scene::Scene data;
+  data.load(path, "target");
 
   (void)pointsPath;
   (void)indexesPath;
@@ -402,7 +409,7 @@ figures:
   EXPECT_FLOAT_EQ(data.vertices[5], 0.6F);
 }
 
-TEST(LoadTriData, ThrowsWhenSectionHasDataAndDataRef) {
+TEST(LoadScene, ThrowsWhenSectionHasDataAndDataRef) {
   const std::filesystem::path path = writeYaml("data_and_data_ref", R"yaml(
 meshes:
   triangle:
@@ -426,10 +433,10 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  EXPECT_THROW((void)tri_data::loadTriData(path, "target"), std::runtime_error);
+  EXPECT_THROW({ scene::Scene data; data.load(path, "target"); }, std::runtime_error);
 }
 
-TEST(LoadTriData, ThrowsWhenSectionHasNeitherDataNorDataRef) {
+TEST(LoadScene, ThrowsWhenSectionHasNeitherDataNorDataRef) {
   const std::filesystem::path path = writeYaml("no_data_or_data_ref", R"yaml(
 meshes:
   triangle:
@@ -448,10 +455,10 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  EXPECT_THROW((void)tri_data::loadTriData(path, "target"), std::runtime_error);
+  EXPECT_THROW({ scene::Scene data; data.load(path, "target"); }, std::runtime_error);
 }
 
-TEST(LoadTriData, ThrowsWhenMeshIsMissing) {
+TEST(LoadScene, ThrowsWhenMeshIsMissing) {
   const std::filesystem::path path = writeYaml("missing_mesh", R"yaml(
 meshes:
   existing:
@@ -471,10 +478,10 @@ figures:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW((void)tri_data::loadTriData(path, "missing"), std::runtime_error);
+  EXPECT_THROW({ scene::Scene data; data.load(path, "missing"); }, std::runtime_error);
 }
 
-TEST(LoadTriData, ThrowsWhenPointRowDoesNotMatchType) {
+TEST(LoadScene, ThrowsWhenPointRowDoesNotMatchType) {
   const std::filesystem::path path = writeYaml("invalid_point_row", R"yaml(
 meshes:
   bad:
@@ -494,5 +501,5 @@ figures:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW((void)tri_data::loadTriData(path, "bad"), std::runtime_error);
+  EXPECT_THROW({ scene::Scene data; data.load(path, "bad"); }, std::runtime_error);
 }

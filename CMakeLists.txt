@@ -33,8 +33,8 @@ target_sources(probe_open_gl
     src/arguments.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm
+    src/scene.cppm
     src/sync_map.cppm
-    src/tri_data.cppm
 )
 
 set(GENERATED_RESOURCE_HEADER
@@ -94,16 +94,16 @@ target_link_libraries(probe_open_gl
     PkgConfig::EPOXY
 )
 
-add_executable(tri_data_tests tests/tri_data_tests.cpp)
+add_executable(scene_tests tests/scene_tests.cpp)
 
-target_sources(tri_data_tests
+target_sources(scene_tests
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
-    src/tri_data.cppm
+    src/scene.cppm
 )
 
-target_link_libraries(tri_data_tests
+target_link_libraries(scene_tests
     PRIVATE
     yaml-cpp::yaml-cpp
     PkgConfig::EPOXY
@@ -111,7 +111,7 @@ target_link_libraries(tri_data_tests
 )
 
 include(GoogleTest)
-gtest_discover_tests(tri_data_tests)
+gtest_discover_tests(scene_tests)
 
 add_executable(arguments_tests tests/arguments_tests.cpp)
 
