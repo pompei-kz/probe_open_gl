@@ -182,6 +182,8 @@ int main(int argvCount, char **argv) {
     }
 
     const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
+    glm::vec3 cameraPosition = toVec3(triData.camera.position);
+    const glm::vec3 cameraForward = normalize(toVec3(triData.camera.forward), "camera.forward");
 
     // Создаем объект Vertex Array Object для описания раскладки вершин.
     glGenVertexArrays(1, &vertexArray);
@@ -225,6 +227,9 @@ int main(int argvCount, char **argv) {
     glEnable(GL_DEPTH_TEST);
 
     bool running = true;
+    bool moveForward = false;
+    bool moveBackward = false;
+    Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running) {
       SDL_Event event{};
       while (SDL_PollEvent(&event) != 0) {
@@ -233,6 +238,18 @@ int main(int argvCount, char **argv) {
         } else if (event.type == SDL_KEYDOWN &&
                    event.key.keysym.sym == SDLK_ESCAPE) {
           running = false;
+        } else if (event.type == SDL_KEYDOWN &&
+                   event.key.keysym.sym == SDLK_w) {
+          moveForward = true;
+        } else if (event.type == SDL_KEYDOWN &&
+                   event.key.keysym.sym == SDLK_s) {
+          moveBackward = true;
+        } else if (event.type == SDL_KEYUP &&
+                   event.key.keysym.sym == SDLK_w) {
+          moveForward = false;
+        } else if (event.type == SDL_KEYUP &&
+                   event.key.keysym.sym == SDLK_s) {
+          moveBackward = false;
         } else if (event.type == SDL_WINDOWEVENT &&
                    event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           // Подгоняем область вывода OpenGL под новый размер окна.
@@ -242,6 +259,15 @@ int main(int argvCount, char **argv) {
           window.syncWindowEvent(event.window);
         }
       }
+
+      const Uint64 currentCounter = SDL_GetPerformanceCounter();
+      const float deltaSeconds = static_cast<float>(currentCounter - previousCounter)
+                                 / static_cast<float>(SDL_GetPerformanceFrequency());
+      previousCounter = currentCounter;
+      const int movementDirection = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
+      cameraPosition += cameraForward * triData.camera.forwardVelocity
+                        * static_cast<float>(movementDirection)
+                        * deltaSeconds;
 
       // Задаем цвет очистки кадрового буфера.
       glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
@@ -257,8 +283,8 @@ int main(int argvCount, char **argv) {
                                                     aspect,
                                                     triData.camera.nearPlane,
                                                     triData.camera.farPlane);
-      const glm::mat4 view = viewMatrix(toVec3(triData.camera.position),
-                                        toVec3(triData.camera.forward),
+      const glm::mat4 view = viewMatrix(cameraPosition,
+                                        cameraForward,
                                         toVec3(triData.camera.up));
       const glm::mat4 model{1.0F};
       // Передаем матрицу проекции в текущую шейдерную программу.

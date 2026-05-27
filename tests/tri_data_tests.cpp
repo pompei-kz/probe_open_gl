@@ -134,6 +134,8 @@ cameras:
       near: "0.2"
       far: "250"
       fov: "60"
+    params:
+      forwardVelocity: "1.5"
 meshes:
   first:
     points:
@@ -202,6 +204,7 @@ figures:
   EXPECT_FLOAT_EQ(data.camera.nearPlane, 0.2F);
   EXPECT_FLOAT_EQ(data.camera.farPlane, 250.0F);
   EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
+  EXPECT_FLOAT_EQ(data.camera.forwardVelocity, 1.5F);
 }
 
 TEST(LoadTriData, ResolvesMeshReferencesFromRelativeFiles) {

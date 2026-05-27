@@ -14,6 +14,8 @@ cameras:
       near: "0.1"
       far: "100.0"
       fov: "25"
+    params:
+      forwardVelocity: "3"
 
 meshes:
   main-tri-data:

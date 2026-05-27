@@ -25,6 +25,7 @@ export namespace tri_data {
     float nearPlane = 0.1F;
     float farPlane = 100.0F;
     float fovDegrees = 45.0F;
+    float forwardVelocity = 0.0F;
   };
 
   struct TriData {
@@ -425,6 +426,10 @@ namespace {
     result.camera.nearPlane = parseFloatScalar(geom["near"], path, "camera.geom.near");
     result.camera.farPlane = parseFloatScalar(geom["far"], path, "camera.geom.far");
     result.camera.fovDegrees = parseFloatScalar(geom["fov"], path, "camera.geom.fov");
+    const YAML::Node params = requiredMapChild(camera, "params", path);
+    result.camera.forwardVelocity = parseFloatScalar(params["forwardVelocity"],
+                                                     path,
+                                                     "camera.params.forwardVelocity");
   }
 }
 
