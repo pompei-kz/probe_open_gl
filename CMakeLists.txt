@@ -31,7 +31,9 @@ target_sources(probe_open_gl
     FILE_SET CXX_MODULES
     FILES
     src/arguments.cppm
+    src/deferred_tasks.cppm
     src/main_window.cppm
+    src/sync_map.cppm
     src/tri_data.cppm
 )
 
@@ -126,3 +128,35 @@ target_link_libraries(arguments_tests
 )
 
 gtest_discover_tests(arguments_tests)
+
+add_executable(deferred_tasks_tests tests/deferred_tasks_tests.cpp)
+
+target_sources(deferred_tasks_tests
+    PRIVATE
+    FILE_SET CXX_MODULES
+    FILES
+    src/deferred_tasks.cppm
+)
+
+target_link_libraries(deferred_tasks_tests
+    PRIVATE
+    GTest::gtest_main
+)
+
+gtest_discover_tests(deferred_tasks_tests)
+
+add_executable(sync_map_tests tests/sync_map_tests.cpp)
+
+target_sources(sync_map_tests
+    PRIVATE
+    FILE_SET CXX_MODULES
+    FILES
+    src/sync_map.cppm
+)
+
+target_link_libraries(sync_map_tests
+    PRIVATE
+    GTest::gtest_main
+)
+
+gtest_discover_tests(sync_map_tests)
