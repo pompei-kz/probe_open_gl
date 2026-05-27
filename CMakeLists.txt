@@ -135,6 +135,7 @@ target_sources(deferred_tasks_tests
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
+    src/sync_map.cppm
     src/deferred_tasks.cppm
 )
 
