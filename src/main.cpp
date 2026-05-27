@@ -135,7 +135,7 @@ int main(int argvCount, char **argv) {
   try {
     shaderProgram = createShaderProgram();
 
-    const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml", "main-tri-data");
+    const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
 
     // Создаем объект Vertex Array Object для описания раскладки вершин.
     glGenVertexArrays(1, &vertexArray);
