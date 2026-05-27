@@ -21,6 +21,13 @@ namespace {
     output << yaml;
     return path;
   }
+
+  std::filesystem::path writeTextFile(const std::string &fileName, const std::string &content) {
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
+    std::ofstream output(path);
+    output << content;
+    return path;
+  }
 }
 
 TEST(LoadTriData, LoadsRequestedFigureFromFiguresRoot) {
@@ -192,6 +199,91 @@ figures:
   ASSERT_EQ(data.vertices.size(), 18U);
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
   EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
+}
+
+TEST(LoadTriData, ReadsPointAndIndexDataRefs) {
+  const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_data_ref.txt", R"txt(
+1 0.0 0.0 0.0
+2 1.0 0.0 0.0
+3 0.0 1.0 0.0
+)txt");
+  const std::filesystem::path indexesPath = writeTextFile("probe_open_gl_indexes_data_ref.txt", R"txt(
+1 2 3
+)txt");
+  const std::filesystem::path path = writeYaml("data_refs", R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data-ref: "probe_open_gl_points_data_ref.txt"
+    indexes:
+      type: "i i i"
+      data-ref: "probe_open_gl_indexes_data_ref.txt"
+figures:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.1 0.2 0.3"
+)yaml");
+
+  const tri_data::TriData data = tri_data::loadTriData(path, "target");
+
+  (void)pointsPath;
+  (void)indexesPath;
+  ASSERT_EQ(data.vertices.size(), 18U);
+  EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.vertices[3], 0.1F);
+}
+
+TEST(LoadTriData, ThrowsWhenSectionHasDataAndDataRef) {
+  const std::filesystem::path path = writeYaml("data_and_data_ref", R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
+      data-ref: "unused.txt"
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+figures:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.1 0.2 0.3"
+)yaml");
+
+  EXPECT_THROW((void)tri_data::loadTriData(path, "target"), std::runtime_error);
+}
+
+TEST(LoadTriData, ThrowsWhenSectionHasNeitherDataNorDataRef) {
+  const std::filesystem::path path = writeYaml("no_data_or_data_ref", R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+figures:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+      color: "0.1 0.2 0.3"
+)yaml");
+
+  EXPECT_THROW((void)tri_data::loadTriData(path, "target"), std::runtime_error);
 }
 
 TEST(LoadTriData, ThrowsWhenMeshIsMissing) {

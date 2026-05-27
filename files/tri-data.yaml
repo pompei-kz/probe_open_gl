@@ -3,37 +3,11 @@ meshes:
 
     points:
       type: "i X Y Z CX CY CZ"
-      data: |
-        #   coordinates          colors
-         0 -0.65  -0.55  0       1.0   0.20  0.25 
-         1  0.65  -0.55  0       0.15  0.85  0.35 
-         2  0.0    0.65  0       0.25  0.45  1.0  
-         
-         # it is comment 34
-         
-         #  coordinates          colors
-         3 -0.500   0.50  0      1.0   0.20  0.25 
-         4  0.500   0.50  0      0.15  0.85  0.35 
-         5  0.0    -0.90  0      0.25  0.45  1.0  
-         
-         6 -0.750   0.90  0      0.0   1.0   0.0
-         7 -0.900   0.60  0      0.0   0.0   1.0
-         8 -0.600   0.60  0      0.0   1.0   1.0
-         
-         9  0.750   0.90  0      1.0   0.20  0.25
-        10  0.600   0.60  0      0.15  0.85  0.35
-        11  0.900   0.60  0      0.25  0.45  1.0
+      data-ref: "./main-tri-data-points.txt"
 
     indexes:
       type: "i i i"
-      data: |
-        0  1  2
-        0  2  3
-        1  4  2
-        0  5  1
-        
-        6  7  8
-        9 10 11
+      data-ref: "./main-tri-data-indexes.txt"
 
   green-tri:
     points:

@@ -5,6 +5,7 @@ module;
 
 #include <array>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -89,6 +90,33 @@ namespace {
     return child;
   }
 
+  std::vector<std::string> readLines(std::istream &input) {
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(input, line)) {
+      lines.push_back(line);
+    }
+    return lines;
+  }
+
+  std::vector<std::string> readDataRefLines(const YAML::Node &dataRef,
+                                            const std::filesystem::path &sectionPath,
+                                            const std::string_view sectionName) {
+    if (!dataRef.IsScalar()) {
+      throw std::runtime_error("pW2zTu5Lwd :: YAML '" + std::string(sectionName)
+                               + ".data-ref' must be scalar in " + sectionPath.string());
+    }
+
+    const std::filesystem::path dataPath =
+      (sectionPath.parent_path() / dataRef.as<std::string>()).lexically_normal();
+    std::ifstream input(dataPath);
+    if (!input) {
+      throw std::runtime_error("KIuhrNQxT0 :: Failed to open YAML '" + std::string(sectionName)
+                               + ".data-ref' file " + dataPath.string());
+    }
+    return readLines(input);
+  }
+
   DataSection extractDataSection(const YAML::Node &mesh,
                                  const std::string_view sectionName,
                                  const std::filesystem::path &path) {
@@ -100,19 +128,31 @@ namespace {
     }
 
     const YAML::Node data = yamlSection["data"];
-    if (!data || !data.IsScalar()) {
-      throw std::runtime_error("Z3H1qvTv5H :: Missing YAML scalar '" + std::string(sectionName)
-                               + ".data' in " + path.string());
+    const YAML::Node dataRef = yamlSection["data-ref"];
+    if (data && dataRef) {
+      throw std::runtime_error("AX1zWXwocG :: YAML section '" + std::string(sectionName)
+                               + "' must not define both data and data-ref in " + path.string());
+    }
+    if (!data && !dataRef) {
+      throw std::runtime_error("Z3H1qvTv5H :: YAML section '" + std::string(sectionName)
+                               + "' must define data or data-ref in " + path.string());
     }
 
     DataSection section;
     section.type = type.as<std::string>();
 
-    std::istringstream input(data.as<std::string>());
-    std::string line;
-    while (std::getline(input, line)) {
-      section.lines.push_back(line);
+    if (dataRef) {
+      section.lines = readDataRefLines(dataRef, path, sectionName);
+      return section;
     }
+
+    if (!data.IsScalar()) {
+      throw std::runtime_error("Om2FLJyLYx :: YAML '" + std::string(sectionName)
+                               + ".data' must be scalar in " + path.string());
+    }
+
+    std::istringstream input(data.as<std::string>());
+    section.lines = readLines(input);
 
     return section;
   }
