@@ -33,6 +33,7 @@ target_sources(probe_open_gl
     src/arguments.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm
+    src/render.cppm
     src/scene.cppm
     src/sync_map.cppm
 )
