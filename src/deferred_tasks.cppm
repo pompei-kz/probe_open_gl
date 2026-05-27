@@ -33,8 +33,7 @@ public:
     runAll();
   }
 
-  void add(const std::chrono::milliseconds runAfterDuration, const std::string_view taskName,
-           std::function<void()> task) {
+  void add(const std::chrono::milliseconds runAfterDuration, const std::string_view taskName, std::function<void()> task) {
     tasks_.remove(std::string(taskName));
     tasks_.put(std::string(taskName), Task{
                  std::move(task),
