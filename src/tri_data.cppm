@@ -21,6 +21,12 @@ export namespace tri_data {
   struct TriData {
     std::vector<float> vertices;
     std::vector<GLuint> indexes;
+    std::array<float, 3> cameraPosition{0.0F, 0.0F, 1.0F};
+    std::array<float, 3> cameraForward{0.0F, 0.0F, -1.0F};
+    std::array<float, 3> cameraUp{0.0F, 1.0F, 0.0F};
+    float cameraNear = 0.1F;
+    float cameraFar = 100.0F;
+    float cameraFovDegrees = 45.0F;
     int vertexFloatCount = 0;
     int positionFloatCount = 0;
     int colorFloatCount = 0;
@@ -50,6 +56,40 @@ namespace {
     std::filesystem::path path;
     std::string id;
   };
+
+  std::vector<float> parseFloatLine(std::string line);
+
+  std::array<float, 3> parseVector3(const YAML::Node &node,
+                                    const std::filesystem::path &path,
+                                    const std::string_view name) {
+    if (!node || !node.IsScalar()) {
+      throw std::runtime_error("U3GddI64FP :: Missing YAML scalar '" + std::string(name)
+                               + "' in " + path.string());
+    }
+
+    const std::vector<float> values = parseFloatLine(node.as<std::string>());
+    if (values.size() != 3U) {
+      throw std::runtime_error("zAGgTfSyde :: YAML scalar '" + std::string(name)
+                               + "' must contain 3 floats in " + path.string());
+    }
+    return {values[0], values[1], values[2]};
+  }
+
+  float parseFloatScalar(const YAML::Node &node,
+                         const std::filesystem::path &path,
+                         const std::string_view name) {
+    if (!node || !node.IsScalar()) {
+      throw std::runtime_error("OtQRq1JqtC :: Missing YAML scalar '" + std::string(name)
+                               + "' in " + path.string());
+    }
+
+    const std::vector<float> values = parseFloatLine(node.as<std::string>());
+    if (values.size() != 1U) {
+      throw std::runtime_error("MkrD0LxmpS :: YAML scalar '" + std::string(name)
+                               + "' must contain 1 float in " + path.string());
+    }
+    return values[0];
+  }
 
   std::string trim(const std::string_view value) {
     const auto begin = value.find_first_not_of(" \t\r\n");
@@ -356,14 +396,37 @@ namespace {
     const YAML::Node mesh = requiredMapChild(meshes, meshRef.id, meshRef.path);
     appendMesh(mesh, material, meshRef.path, result);
   }
+
+  void setDefaultLayout(tri_data::TriData &data) {
+    data.vertexFloatCount = 6;
+    data.positionFloatCount = 3;
+    data.colorFloatCount = 3;
+  }
+
+  void parseSceneCamera(const YAML::Node &document,
+                        const YAML::Node &scene,
+                        const std::filesystem::path &path,
+                        tri_data::TriData &result) {
+    const YAML::Node cameraName = scene["camera"];
+    if (!cameraName || !cameraName.IsScalar()) {
+      throw std::runtime_error("GM21xOpQV4 :: Missing YAML scalar 'scene.camera' in " + path.string());
+    }
+
+    const YAML::Node cameras = requiredMapChild(document, "cameras", path);
+    const YAML::Node camera = requiredMapChild(cameras, cameraName.as<std::string>(), path);
+    result.cameraPosition = parseVector3(camera["position"], path, "camera.position");
+    result.cameraForward = parseVector3(camera["forward"], path, "camera.forward");
+    result.cameraUp = parseVector3(camera["up"], path, "camera.up");
+    result.cameraNear = parseFloatScalar(camera["near"], path, "camera.near");
+    result.cameraFar = parseFloatScalar(camera["far"], path, "camera.far");
+    result.cameraFovDegrees = parseFloatScalar(camera["fov"], path, "camera.fov");
+  }
 }
 
 tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path, std::string_view figureName) {
   const YAML::Node document = YAML::LoadFile(path.string());
   TriData result;
-  result.vertexFloatCount = 6;
-  result.positionFloatCount = 3;
-  result.colorFloatCount = 3;
+  setDefaultLayout(result);
   if (figureName.empty()) {
     throw std::runtime_error("d5J2Mmx9Ar :: Figure name must not be empty");
   }
@@ -380,14 +443,23 @@ tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path, std::
 
 tri_data::TriData tri_data::loadTriData(const std::filesystem::path &path) {
   const YAML::Node document = YAML::LoadFile(path.string());
+  const YAML::Node scene = requiredMapChild(document, "scene", path);
+  const YAML::Node sceneFigures = scene["figures"];
+  if (!sceneFigures || !sceneFigures.IsSequence()) {
+    throw std::runtime_error("mXM3mP9a4X :: Missing YAML sequence 'scene.figures' in " + path.string());
+  }
   const YAML::Node figures = requiredMapChild(document, "figures", path);
   TriData result;
-  result.vertexFloatCount = 6;
-  result.positionFloatCount = 3;
-  result.colorFloatCount = 3;
+  setDefaultLayout(result);
+  parseSceneCamera(document, scene, path, result);
 
-  for (const auto figure: figures) {
-    appendFigure(path, figure.second, figure.first.as<std::string>(), result);
+  for (const YAML::Node figureName: sceneFigures) {
+    if (!figureName.IsScalar()) {
+      throw std::runtime_error("r6FNtRCvBb :: YAML 'scene.figures' values must be scalar in " + path.string());
+    }
+    const std::string name = figureName.as<std::string>();
+    const YAML::Node figure = requiredMapChild(figures, name, path);
+    appendFigure(path, figure, name, result);
   }
 
   if (result.vertices.empty() || result.indexes.empty()) {

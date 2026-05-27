@@ -7,14 +7,88 @@ import arguments;
 import main_window;
 import tri_data;
 
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <numbers>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 
 namespace {
+  using Vec3 = std::array<float, 3>;
+  using Mat4 = std::array<float, 16>;
+
+  float dot(const Vec3 &left, const Vec3 &right) {
+    return left[0] * right[0] + left[1] * right[1] + left[2] * right[2];
+  }
+
+  Vec3 cross(const Vec3 &left, const Vec3 &right) {
+    return {
+      left[1] * right[2] - left[2] * right[1],
+      left[2] * right[0] - left[0] * right[2],
+      left[0] * right[1] - left[1] * right[0],
+    };
+  }
+
+  Vec3 scale(const Vec3 &value, const float factor) {
+    return {value[0] * factor, value[1] * factor, value[2] * factor};
+  }
+
+  Vec3 normalize(const Vec3 &value, const std::string_view name) {
+    const float length = std::sqrt(dot(value, value));
+    if (length <= 0.0F) {
+      throw std::runtime_error("gt6x0oIKhs :: Cannot normalize zero vector '" + std::string(name) + "'");
+    }
+    return scale(value, 1.0F / length);
+  }
+
+  Mat4 identityMatrix() {
+    return {
+      1.0F, 0.0F, 0.0F, 0.0F,
+      0.0F, 1.0F, 0.0F, 0.0F,
+      0.0F, 0.0F, 1.0F, 0.0F,
+      0.0F, 0.0F, 0.0F, 1.0F,
+    };
+  }
+
+  Mat4 projectionMatrix(const float fovDegrees,
+                        const float aspect,
+                        const float nearPlane,
+                        const float farPlane) {
+    if (aspect <= 0.0F || nearPlane <= 0.0F || farPlane <= nearPlane
+        || fovDegrees <= 0.0F || fovDegrees >= 180.0F) {
+      throw std::runtime_error("bE0zxdqKe1 :: Invalid projection camera values");
+    }
+
+    const float fovRadians = fovDegrees * std::numbers::pi_v<float> / 180.0F;
+    const float topScale = 1.0F / std::tan(fovRadians / 2.0F);
+    return {
+      topScale / aspect, 0.0F, 0.0F, 0.0F,
+      0.0F, topScale, 0.0F, 0.0F,
+      0.0F, 0.0F, -(farPlane + nearPlane) / (farPlane - nearPlane), -1.0F,
+      0.0F, 0.0F, -(2.0F * farPlane * nearPlane) / (farPlane - nearPlane), 0.0F,
+    };
+  }
+
+  Mat4 viewMatrix(const Vec3 &position, const Vec3 &cameraForward, const Vec3 &cameraUp) {
+    const Vec3 forward = normalize(cameraForward, "camera.forward");
+    const Vec3 left = normalize(cross(cameraUp, forward), "camera.left");
+    const Vec3 up = normalize(cross(forward, left), "camera.up2");
+    const Vec3 right = scale(left, -1.0F);
+    const Vec3 backward = scale(forward, -1.0F);
+
+    return {
+      right[0], up[0], backward[0], 0.0F,
+      right[1], up[1], backward[1], 0.0F,
+      right[2], up[2], backward[2], 0.0F,
+      -dot(right, position), -dot(up, position), -dot(backward, position), 1.0F,
+    };
+  }
+
   GLuint compileShader(GLenum type, std::string_view source) {
     // Создаем объект шейдера указанного типа.
     const GLuint shader = glCreateShader(type);
@@ -134,6 +208,12 @@ int main(int argvCount, char **argv) {
 
   try {
     shaderProgram = createShaderProgram();
+    const GLint projectionMatrixLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
+    const GLint viewMatrixLocation = glGetUniformLocation(shaderProgram, "viewMatrix");
+    const GLint modelMatrixLocation = glGetUniformLocation(shaderProgram, "modelMatrix");
+    if (projectionMatrixLocation < 0 || viewMatrixLocation < 0 || modelMatrixLocation < 0) {
+      throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate matrix uniforms");
+    }
 
     const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
 
@@ -175,6 +255,8 @@ int main(int argvCount, char **argv) {
                           reinterpret_cast<void *>(triData.positionFloatCount * sizeof(float)));
     // Включаем атрибут цвета вершины.
     glEnableVertexAttribArray(1);
+    // Включаем проверку глубины для 3D-сцены.
+    glEnable(GL_DEPTH_TEST);
 
     bool running = true;
     while (running) {
@@ -198,10 +280,22 @@ int main(int argvCount, char **argv) {
       // Задаем цвет очистки кадрового буфера.
       glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
       // Очищаем цветовой буфер перед отрисовкой нового кадра.
-      glClear(GL_COLOR_BUFFER_BIT);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       // Активируем шейдерную программу для текущей отрисовки.
       glUseProgram(shaderProgram);
+      const int viewportWidth = std::max(window.width(), 1);
+      const int viewportHeight = std::max(window.height(), 1);
+      const float aspect = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
+      const Mat4 projection = projectionMatrix(triData.cameraFovDegrees,
+                                               aspect,
+                                               triData.cameraNear,
+                                               triData.cameraFar);
+      const Mat4 view = viewMatrix(triData.cameraPosition, triData.cameraForward, triData.cameraUp);
+      const Mat4 model = identityMatrix();
+      glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, projection.data());
+      glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, view.data());
+      glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, model.data());
       // Выбираем VAO с раскладкой вершин и индексным буфером.
       glBindVertexArray(vertexArray);
       // Рисуем треугольники по индексам из текущего индексного буфера.

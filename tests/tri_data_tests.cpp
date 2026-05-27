@@ -118,8 +118,21 @@ figures:
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
-TEST(LoadTriData, LoadsAllFigures) {
-  const std::filesystem::path path = writeYaml("loads_all_figures", R"yaml(
+TEST(LoadTriData, LoadsSceneFiguresAndCamera) {
+  const std::filesystem::path path = writeYaml("loads_scene_figures", R"yaml(
+scene:
+  figures:
+    - figure_02
+    - figure_01
+  camera: "main"
+cameras:
+  main:
+    position: "0 0 10"
+    forward: "0 0 -2"
+    up: "0 1 0.2"
+    near: "0.2"
+    far: "250"
+    fov: "60"
 meshes:
   first:
     points:
@@ -143,6 +156,17 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
+  ignored:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
 figures:
   figure_01:
     mesh:
@@ -155,6 +179,12 @@ figures:
     material:
       type: "solid"
       color: "0.25 0.5 0.75"
+  ignored_figure:
+    mesh:
+      ref: "#ignored"
+    material:
+      type: "solid"
+      color: "1.0 1.0 1.0"
 )yaml");
 
   const tri_data::TriData data = tri_data::loadTriData(path);
@@ -162,9 +192,15 @@ figures:
   EXPECT_EQ(data.vertexFloatCount, 6);
   EXPECT_EQ(data.vertices.size(), 36U);
   EXPECT_EQ(data.indexes, (std::vector<GLuint>{0, 1, 2, 3, 4, 5}));
-  EXPECT_FLOAT_EQ(data.vertices[21], 0.25F);
-  EXPECT_FLOAT_EQ(data.vertices[22], 0.5F);
-  EXPECT_FLOAT_EQ(data.vertices[23], 0.75F);
+  EXPECT_FLOAT_EQ(data.vertices[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.vertices[3], 0.25F);
+  EXPECT_FLOAT_EQ(data.vertices[21], 1.0F);
+  EXPECT_FLOAT_EQ(data.cameraPosition[2], 10.0F);
+  EXPECT_FLOAT_EQ(data.cameraForward[2], -2.0F);
+  EXPECT_FLOAT_EQ(data.cameraUp[2], 0.2F);
+  EXPECT_FLOAT_EQ(data.cameraNear, 0.2F);
+  EXPECT_FLOAT_EQ(data.cameraFar, 250.0F);
+  EXPECT_FLOAT_EQ(data.cameraFovDegrees, 60.0F);
 }
 
 TEST(LoadTriData, ResolvesMeshReferencesFromRelativeFiles) {
