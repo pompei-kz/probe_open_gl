@@ -5,6 +5,7 @@ import scene;
 
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 namespace
@@ -32,6 +33,34 @@ namespace
     std::ofstream output(path);
     output << content;
     return path;
+  }
+
+  void expectRuntimeErrorContains(const std::filesystem::path &path, const std::string &text)
+  {
+    try
+    {
+      scene::Scene data;
+      data.load(path);
+      FAIL() << "Expected std::runtime_error";
+    }
+    catch (const std::runtime_error &exception)
+    {
+      EXPECT_NE(std::string(exception.what()).find(text), std::string::npos);
+    }
+  }
+
+  void expectRuntimeErrorContains(const std::filesystem::path &path, const std::string &shapeName, const std::string &text)
+  {
+    try
+    {
+      scene::Scene data;
+      data.load(path, shapeName);
+      FAIL() << "Expected std::runtime_error";
+    }
+    catch (const std::runtime_error &exception)
+    {
+      EXPECT_NE(std::string(exception.what()).find(text), std::string::npos);
+    }
   }
 } // namespace
 
@@ -93,6 +122,89 @@ shapes:
   EXPECT_EQ(data.instances[0].shapeIndex, 0U);
   EXPECT_EQ(data.shapes[0].firstInstance, 0U);
   EXPECT_EQ(data.shapes[0].instanceCount, 1U);
+}
+
+TEST(LoadScene, TreatsMissingShapesContainerAsEmpty)
+{
+  const std::filesystem::path path = writeYaml("missing_shapes_container", R"yaml(
+meshes: {}
+)yaml");
+
+  expectRuntimeErrorContains(path, "target", " :: Missing YAML map 'target'");
+}
+
+TEST(LoadScene, TreatsMissingMeshesContainerAsEmpty)
+{
+  const std::filesystem::path path = writeYaml("missing_meshes_container", R"yaml(
+shapes:
+  target:
+    mesh:
+      ref: "#triangle"
+    material:
+      type: "solid"
+)yaml");
+
+  expectRuntimeErrorContains(path, "target", " :: Missing YAML map 'triangle'");
+}
+
+TEST(LoadScene, TreatsMissingCamerasContainerAsEmpty)
+{
+  const std::filesystem::path path = writeYaml("missing_cameras_container", R"yaml(
+scene:
+  camera: "main"
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: Missing YAML map 'main'");
+}
+
+TEST(LoadScene, TreatsMissingShapeInstanceGroupsContainerAsEmpty)
+{
+  const std::filesystem::path path = writeYaml("missing_shape_instance_groups_container", R"yaml(
+scene:
+  camera: "main"
+  shape-instance-groups:
+    - selected_group
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: Missing YAML map 'selected_group'");
+}
+
+TEST(LoadScene, TreatsMissingSceneShapeInstanceGroupsAsEmpty)
+{
+  const std::filesystem::path path = writeYaml("missing_scene_shape_instance_groups", R"yaml(
+scene:
+  camera: "main"
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: No drawable triangle data");
 }
 
 TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors)

@@ -172,6 +172,32 @@ namespace
     return child;
   }
 
+  YAML::Node optionalMapChild(const YAML::Node &node, const std::string_view childName, const std::filesystem::path &path)
+  {
+    const YAML::Node child = node[std::string(childName)];
+    if (!child)
+    {
+      return YAML::Node(YAML::NodeType::Map);
+    }
+    if (!child.IsMap())
+    {
+      throw std::runtime_error("pOqSmJ7kVE :: YAML container '" + std::string(childName) + "' must be map in " + path.string());
+    }
+    return child;
+  }
+
+  YAML::Node loadYamlFile(const std::filesystem::path &path)
+  {
+    try
+    {
+      return YAML::LoadFile(path.string());
+    }
+    catch (const YAML::Exception &exception)
+    {
+      throw std::runtime_error("iLwL6RWoAE :: Failed to load YAML file " + path.string() + ": " + exception.what());
+    }
+  }
+
   std::vector<std::string> readLines(std::istream &input)
   {
     std::vector<std::string> lines;
@@ -490,8 +516,8 @@ namespace
 
     const MeshRef meshRef         = parseMeshRef(shapeNode, path, shapeName);
     const Material material       = parseMaterial(shapeNode, path, shapeName);
-    const YAML::Node meshDocument = YAML::LoadFile(meshRef.path.string());
-    const YAML::Node meshes       = requiredMapChild(meshDocument, "meshes", meshRef.path);
+    const YAML::Node meshDocument = loadYamlFile(meshRef.path);
+    const YAML::Node meshes       = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
     scene::Shape parsedShape      = parseMesh(mesh, material, meshRef.path, result);
     if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
@@ -515,8 +541,8 @@ namespace
                                 scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const MeshRef shapeRef         = parseShapeRef(instanceGroup, path, groupName);
-    const YAML::Node shapeDocument = YAML::LoadFile(shapeRef.path.string());
-    const YAML::Node shapeNodes    = requiredMapChild(shapeDocument, "shapes", shapeRef.path);
+    const YAML::Node shapeDocument = loadYamlFile(shapeRef.path);
+    const YAML::Node shapeNodes    = optionalMapChild(shapeDocument, "shapes", shapeRef.path);
     const YAML::Node shape         = requiredMapChild(shapeNodes, shapeRef.id, shapeRef.path);
     const std::uint32_t shapeIndex = ensureShape(shapeRef.path, shape, shapeRef.id, result, shapeIndexByKey);
 
@@ -560,7 +586,7 @@ namespace
       throw std::runtime_error("GM21xOpQV4 :: Missing YAML scalar 'scene.camera' in " + path.string());
     }
 
-    const YAML::Node cameras              = requiredMapChild(document, "cameras", path);
+    const YAML::Node cameras              = optionalMapChild(document, "cameras", path);
     const YAML::Node camera               = requiredMapChild(cameras, cameraName.as<std::string>(), path);
     const YAML::Node geom                 = requiredMapChild(camera, "geom", path);
     result.camera.position                = parseVector3(geom["position"], path, "camera.geom.position");
@@ -579,7 +605,7 @@ namespace
 
 void scene::Scene::load(const std::filesystem::path &path, const std::string_view shapeName)
 {
-  const YAML::Node document = YAML::LoadFile(path.string());
+  const YAML::Node document = loadYamlFile(path);
   shapes.clear();
   instances.clear();
   camera = Camera{};
@@ -588,7 +614,7 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   {
     throw std::runtime_error("d5J2Mmx9Ar :: Shape name must not be empty");
   }
-  const YAML::Node shapeNodes = requiredMapChild(document, "shapes", path);
+  const YAML::Node shapeNodes = optionalMapChild(document, "shapes", path);
   const YAML::Node shape      = requiredMapChild(shapeNodes, shapeName, path);
   std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
   appendShape(path, shape, shapeName, *this, shapeIndexByKey);
@@ -602,7 +628,7 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
 
 void scene::Scene::load(const std::filesystem::path &path)
 {
-  const YAML::Node document  = YAML::LoadFile(path.string());
+  const YAML::Node document  = loadYamlFile(path);
   const YAML::Node sceneNode = requiredMapChild(document, "scene", path);
   shapes.clear();
   instances.clear();
@@ -611,22 +637,25 @@ void scene::Scene::load(const std::filesystem::path &path)
   parseSceneCamera(document, sceneNode, path, *this);
 
   const YAML::Node sceneShapeInstanceGroups = sceneNode["shape-instance-groups"];
-  if (!sceneShapeInstanceGroups || !sceneShapeInstanceGroups.IsSequence())
+  if (sceneShapeInstanceGroups && !sceneShapeInstanceGroups.IsSequence())
   {
-    throw std::runtime_error("EJEw5s6sPl :: Missing YAML sequence 'scene.shape-instance-groups' in " + path.string());
+    throw std::runtime_error("EJEw5s6sPl :: YAML container 'scene.shape-instance-groups' must be sequence in " + path.string());
   }
 
-  const YAML::Node shapeInstanceGroups = requiredMapChild(document, "shape-instance-groups", path);
+  const YAML::Node shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
   std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
-  for (const YAML::Node groupName : sceneShapeInstanceGroups)
+  if (sceneShapeInstanceGroups)
   {
-    if (!groupName.IsScalar())
+    for (const YAML::Node groupName : sceneShapeInstanceGroups)
     {
-      throw std::runtime_error("eLfoLjxgQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
+      if (!groupName.IsScalar())
+      {
+        throw std::runtime_error("eLfoLjxgQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
+      }
+      const std::string name         = groupName.as<std::string>();
+      const YAML::Node instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
+      appendShapeInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
     }
-    const std::string name         = groupName.as<std::string>();
-    const YAML::Node instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
-    appendShapeInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
   }
   updateShapeInstanceRanges(*this);
 

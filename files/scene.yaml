@@ -4,6 +4,7 @@ scene:
   shape-instance-groups:
     - shape_01-group_one
     - shape_02-group_one
+    - ball
 
 cameras:
   main:
@@ -34,6 +35,13 @@ shapes:
     material:
       type: "solid"
       color: "0.00  0.10  0.9"
+
+  sphera_16x16:
+    mesh:
+      ref: "meshes2.yaml#sphera_16x16"
+    material:
+      type: "solid"
+      color: "0.15  0.85  0.10"
 
 shape-instance-groups:
   shape_01-group_one:
@@ -69,3 +77,12 @@ shape-instance-groups:
          6   -3     3     1
          7   -3    -3     1
          8    3    -3     1
+
+  ball:
+    shape:
+      ref: "#sphera_16x16"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        # comments
+         0    0   0   0
