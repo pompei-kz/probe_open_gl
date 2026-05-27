@@ -41,10 +41,15 @@ public:
   }
 
   void add(std::function<void()> task, std::chrono::milliseconds runAfterDuration) {
-
+    // TODO remember this task in `tasks_` with `whenToRun := now + runAfterDuration`
+    // ID for task extract like `id = nextTaskId_++`
   }
 
   void clear() {
     tasks_.clear();
+  }
+
+  void idle(std::chrono::system_clock::time_point now) {
+    // TODO run and remove here tasks, with `whenToRun` after `now`
   }
 };
