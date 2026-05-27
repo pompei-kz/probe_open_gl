@@ -7,11 +7,15 @@ import scene;
 #include <fstream>
 #include <string>
 
-namespace {
-  std::filesystem::path writeYaml(const std::string &testName, const std::string &yaml) {
+namespace
+{
+  std::filesystem::path writeYaml(const std::string &testName, const std::string &yaml)
+  {
     std::string fileName = "probe_open_gl_" + testName + ".yaml";
-    for (char &symbol: fileName) {
-      if (symbol == '/' || symbol == '\\' || symbol == ' ') {
+    for (char &symbol : fileName)
+    {
+      if (symbol == '/' || symbol == '\\' || symbol == ' ')
+      {
         symbol = '_';
       }
     }
@@ -22,16 +26,18 @@ namespace {
     return path;
   }
 
-  std::filesystem::path writeTextFile(const std::string &fileName, const std::string &content) {
+  std::filesystem::path writeTextFile(const std::string &fileName, const std::string &content)
+  {
     const std::filesystem::path path = std::filesystem::temp_directory_path() / fileName;
     std::ofstream output(path);
     output << content;
     return path;
   }
-}
+} // namespace
 
-TEST(LoadScene, LoadsRequestedFigureFromFiguresRoot) {
-  const std::filesystem::path path = writeYaml("loads_requested_figure", R"yaml(
+TEST(LoadScene, LoadsRequestedShapeFromShapesRoot)
+{
+  const std::filesystem::path path = writeYaml("loads_requested_shape", R"yaml(
 meshes:
   ignored:
     points:
@@ -55,8 +61,8 @@ meshes:
       type: "i i i"
       data: |
         10 20 30
-figures:
-  ignored_figure:
+shapes:
+  ignored_shape:
     mesh:
       ref: "#ignored"
     material:
@@ -89,7 +95,8 @@ figures:
   EXPECT_EQ(data.shapes[0].instanceCount, 1U);
 }
 
-TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors) {
+TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors)
+{
   const std::filesystem::path path = writeYaml("uses_material_color", R"yaml(
 meshes:
   triangle:
@@ -103,7 +110,7 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -129,11 +136,12 @@ figures:
   EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
 }
 
-TEST(LoadScene, DoesNotDrawSceneFiguresDirectly) {
-  const std::filesystem::path path = writeYaml("does_not_draw_scene_figures", R"yaml(
+TEST(LoadScene, DoesNotDrawSceneShapesDirectly)
+{
+  const std::filesystem::path path = writeYaml("does_not_draw_scene_shapes", R"yaml(
 scene:
-  figures:
-    - figure_01
+  shapes:
+    - shape_01
   camera: "main"
 cameras:
   main:
@@ -161,23 +169,29 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
-  figure_01:
+shapes:
+  shape_01:
     mesh:
       ref: "#first"
     material:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW({ scene::Scene data; data.load(path); }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        scene::Scene data;
+        data.load(path);
+      },
+      std::runtime_error);
 }
 
-TEST(LoadScene, LoadsSelectedFigureInstanceGroupsWithOffsets) {
-  const std::filesystem::path path = writeYaml("loads_figure_instance_groups", R"yaml(
+TEST(LoadScene, LoadsSelectedShapeInstanceGroupsWithOffsets)
+{
+  const std::filesystem::path path = writeYaml("loads_shape_instance_groups", R"yaml(
 scene:
-  figures:
-    - ignored_direct_figure
-  figure-instance-groups:
+  shapes:
+    - ignored_direct_shape
+  shape-instance-groups:
     - selected_group
   camera: "main"
 cameras:
@@ -206,8 +220,8 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
-  ignored_direct_figure:
+shapes:
+  ignored_direct_shape:
     mesh:
       ref: "#triangle"
     material:
@@ -219,9 +233,9 @@ figures:
     material:
       type: "solid"
       color: "0.2 0.4 0.6"
-figure-instance-groups:
+shape-instance-groups:
   selected_group:
-    figure:
+    shape:
       ref: "#target"
     offsets:
       type: "i X Y Z"
@@ -229,7 +243,7 @@ figure-instance-groups:
         0 10 20 30
         1 -1 -2 -3
   ignored_group:
-    figure:
+    shape:
       ref: "#target"
     offsets:
       type: "i X Y Z"
@@ -270,10 +284,11 @@ figure-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
 }
 
-TEST(LoadScene, StoresOnlyShapesUsedBySelectedInstanceGroups) {
+TEST(LoadScene, StoresOnlyShapesUsedBySelectedInstanceGroups)
+{
   const std::filesystem::path path = writeYaml("stores_only_used_shapes", R"yaml(
 scene:
-  figure-instance-groups:
+  shape-instance-groups:
     - first_group
     - second_group
   camera: "main"
@@ -325,7 +340,7 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
+shapes:
   first:
     mesh:
       ref: "#first_mesh"
@@ -344,9 +359,9 @@ figures:
     material:
       type: "solid"
       color: "0 0 1"
-figure-instance-groups:
+shape-instance-groups:
   first_group:
-    figure:
+    shape:
       ref: "#first"
     offsets:
       type: "i X Y Z"
@@ -354,7 +369,7 @@ figure-instance-groups:
         0 10 0 0
         1 11 0 0
   second_group:
-    figure:
+    shape:
       ref: "#second"
     offsets:
       type: "i X Y Z"
@@ -378,7 +393,8 @@ figure-instance-groups:
   EXPECT_EQ(data.instances[2].shapeIndex, 1U);
 }
 
-TEST(LoadScene, ResolvesMeshReferencesFromRelativeFiles) {
+TEST(LoadScene, ResolvesMeshReferencesFromRelativeFiles)
+{
   const std::filesystem::path meshPath = writeYaml("external_meshes", R"yaml(
 meshes:
   external:
@@ -395,7 +411,7 @@ meshes:
 )yaml");
 
   const std::filesystem::path path = writeYaml("relative_mesh_ref", R"yaml(
-figures:
+shapes:
   target:
     mesh:
       ref: "probe_open_gl_external_meshes.yaml#external"
@@ -414,8 +430,9 @@ figures:
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
 }
 
-TEST(LoadScene, ReadsPointAndIndexDataRefs) {
-  const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_data_ref.txt", R"txt(
+TEST(LoadScene, ReadsPointAndIndexDataRefs)
+{
+  const std::filesystem::path pointsPath  = writeTextFile("probe_open_gl_points_data_ref.txt", R"txt(
 1 0.0 0.0 0.0
 2 1.0 0.0 0.0
 3 0.0 1.0 0.0
@@ -423,7 +440,7 @@ TEST(LoadScene, ReadsPointAndIndexDataRefs) {
   const std::filesystem::path indexesPath = writeTextFile("probe_open_gl_indexes_data_ref.txt", R"txt(
 1 2 3
 )txt");
-  const std::filesystem::path path = writeYaml("data_refs", R"yaml(
+  const std::filesystem::path path        = writeYaml("data_refs", R"yaml(
 meshes:
   triangle:
     points:
@@ -432,7 +449,7 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "probe_open_gl_indexes_data_ref.txt"
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -452,7 +469,8 @@ figures:
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
 }
 
-TEST(LoadScene, IgnoresEmptyLinesAndCommentsInInlineData) {
+TEST(LoadScene, IgnoresEmptyLinesAndCommentsInInlineData)
+{
   const std::filesystem::path path = writeYaml("inline_empty_lines_and_comments", R"yaml(
 meshes:
   triangle:
@@ -472,7 +490,7 @@ meshes:
         # one triangle
 
         1 2 3 # by point ids
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -492,8 +510,9 @@ figures:
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.9F);
 }
 
-TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs) {
-  const std::filesystem::path pointsPath = writeTextFile("probe_open_gl_points_comments_ref.txt", R"txt(
+TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs)
+{
+  const std::filesystem::path pointsPath  = writeTextFile("probe_open_gl_points_comments_ref.txt", R"txt(
 # point id and coordinates
 1 0.0 0.0 0.0
 
@@ -507,7 +526,7 @@ TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs) {
 
 1 2 3 # by point ids
 )txt");
-  const std::filesystem::path path = writeYaml("data_refs_empty_lines_and_comments", R"yaml(
+  const std::filesystem::path path        = writeYaml("data_refs_empty_lines_and_comments", R"yaml(
 meshes:
   triangle:
     points:
@@ -516,7 +535,7 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "probe_open_gl_indexes_comments_ref.txt"
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -538,7 +557,8 @@ figures:
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
 }
 
-TEST(LoadScene, ThrowsWhenSectionHasDataAndDataRef) {
+TEST(LoadScene, ThrowsWhenSectionHasDataAndDataRef)
+{
   const std::filesystem::path path = writeYaml("data_and_data_ref", R"yaml(
 meshes:
   triangle:
@@ -553,7 +573,7 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -562,10 +582,16 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  EXPECT_THROW({ scene::Scene data; data.load(path, "target"); }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        scene::Scene data;
+        data.load(path, "target");
+      },
+      std::runtime_error);
 }
 
-TEST(LoadScene, ThrowsWhenSectionHasNeitherDataNorDataRef) {
+TEST(LoadScene, ThrowsWhenSectionHasNeitherDataNorDataRef)
+{
   const std::filesystem::path path = writeYaml("no_data_or_data_ref", R"yaml(
 meshes:
   triangle:
@@ -575,7 +601,7 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-figures:
+shapes:
   target:
     mesh:
       ref: "#triangle"
@@ -584,10 +610,16 @@ figures:
       color: "0.1 0.2 0.3"
 )yaml");
 
-  EXPECT_THROW({ scene::Scene data; data.load(path, "target"); }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        scene::Scene data;
+        data.load(path, "target");
+      },
+      std::runtime_error);
 }
 
-TEST(LoadScene, ThrowsWhenMeshIsMissing) {
+TEST(LoadScene, ThrowsWhenMeshIsMissing)
+{
   const std::filesystem::path path = writeYaml("missing_mesh", R"yaml(
 meshes:
   existing:
@@ -599,7 +631,7 @@ meshes:
       type: "i i i"
       data: |
         1 1 1
-figures:
+shapes:
   existing:
     mesh:
       ref: "#existing"
@@ -607,10 +639,16 @@ figures:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW({ scene::Scene data; data.load(path, "missing"); }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        scene::Scene data;
+        data.load(path, "missing");
+      },
+      std::runtime_error);
 }
 
-TEST(LoadScene, ThrowsWhenPointRowDoesNotMatchType) {
+TEST(LoadScene, ThrowsWhenPointRowDoesNotMatchType)
+{
   const std::filesystem::path path = writeYaml("invalid_point_row", R"yaml(
 meshes:
   bad:
@@ -622,7 +660,7 @@ meshes:
       type: "i i i"
       data: |
         1 1 1
-figures:
+shapes:
   bad:
     mesh:
       ref: "#bad"
@@ -630,5 +668,10 @@ figures:
       type: "solid"
 )yaml");
 
-  EXPECT_THROW({ scene::Scene data; data.load(path, "bad"); }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        scene::Scene data;
+        data.load(path, "bad");
+      },
+      std::runtime_error);
 }
