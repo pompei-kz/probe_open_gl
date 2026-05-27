@@ -279,6 +279,8 @@ int main(int argvCount, char **argv) {
           moveBackward = false;
         } else if (event.type == SDL_MOUSEMOTION && mouseCaptured) {
           rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, triData.camera.forwardMouseSensitivity);
+        } else if (event.type == SDL_MOUSEWHEEL) {
+          cameraPosition += cameraForward * triData.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
         } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           // Подгоняем область вывода OpenGL под новый размер окна.
           glViewport(0, 0, event.window.data1, event.window.data2);

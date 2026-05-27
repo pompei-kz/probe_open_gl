@@ -1,9 +1,11 @@
 
 scene:
+  camera: "main"
   figures:
     - figure_01
     - figure_02
-  camera: "main"
+  figure-instance-groups:
+    - figure_01-one
 
 cameras:
   main:
@@ -17,6 +19,7 @@ cameras:
     params:
       forwardVelocity: "3"
       forwardMouseSensitivity: "0.10"
+      forwardScrollStep: "1"
 
 meshes:
   main-tri-data:
@@ -60,3 +63,12 @@ figures:
     material:
       type: "solid"
       color: "0.15  0.85  0.35"
+
+figure-instances:
+  figure_01-one:
+    figure:
+      ref: "#figure_01"
+    offsets:
+      type: "i X Y Z Rx Ry"
+      data: |
+        #

@@ -137,6 +137,7 @@ cameras:
     params:
       forwardVelocity: "1.5"
       forwardMouseSensitivity: "0.2"
+      forwardScrollStep: "2.5"
 meshes:
   first:
     points:
@@ -207,6 +208,7 @@ figures:
   EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
   EXPECT_FLOAT_EQ(data.camera.forwardVelocity, 1.5F);
   EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
 }
 
 TEST(LoadTriData, ResolvesMeshReferencesFromRelativeFiles) {
