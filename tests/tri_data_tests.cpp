@@ -127,12 +127,13 @@ scene:
   camera: "main"
 cameras:
   main:
-    position: "0 0 10"
-    forward: "0 0 -2"
-    up: "0 1 0.2"
-    near: "0.2"
-    far: "250"
-    fov: "60"
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -2"
+      up: "0 1 0.2"
+      near: "0.2"
+      far: "250"
+      fov: "60"
 meshes:
   first:
     points:

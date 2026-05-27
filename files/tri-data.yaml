@@ -7,12 +7,13 @@ scene:
 
 cameras:
   main:
-    position: "0 0 10.0"
-    forward: "0 0 -1.0"
-    up: "0 1 0"
-    near: "0.1"
-    far: "100.0"
-    fov: "45"
+    geom:
+      position: "0 0 10.0"
+      forward: "0 0 -1.0"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100.0"
+      fov: "25"
 
 meshes:
   main-tri-data:

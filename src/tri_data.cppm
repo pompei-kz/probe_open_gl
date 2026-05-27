@@ -418,12 +418,13 @@ namespace {
 
     const YAML::Node cameras = requiredMapChild(document, "cameras", path);
     const YAML::Node camera = requiredMapChild(cameras, cameraName.as<std::string>(), path);
-    result.camera.position = parseVector3(camera["position"], path, "camera.position");
-    result.camera.forward = parseVector3(camera["forward"], path, "camera.forward");
-    result.camera.up = parseVector3(camera["up"], path, "camera.up");
-    result.camera.nearPlane = parseFloatScalar(camera["near"], path, "camera.near");
-    result.camera.farPlane = parseFloatScalar(camera["far"], path, "camera.far");
-    result.camera.fovDegrees = parseFloatScalar(camera["fov"], path, "camera.fov");
+    const YAML::Node geom = requiredMapChild(camera, "geom", path);
+    result.camera.position = parseVector3(geom["position"], path, "camera.geom.position");
+    result.camera.forward = parseVector3(geom["forward"], path, "camera.geom.forward");
+    result.camera.up = parseVector3(geom["up"], path, "camera.geom.up");
+    result.camera.nearPlane = parseFloatScalar(geom["near"], path, "camera.geom.near");
+    result.camera.farPlane = parseFloatScalar(geom["far"], path, "camera.geom.far");
+    result.camera.fovDegrees = parseFloatScalar(geom["fov"], path, "camera.geom.fov");
   }
 }
 
