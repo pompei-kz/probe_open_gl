@@ -50,81 +50,12 @@ public:
 
   void run(Render &render)
   {
-
-    bool running           = true;
     Uint64 previousCounter = SDL_GetPerformanceCounter();
 
-    while (running)
+    running_ = true;
+    while (running_)
     {
-      SDL_Event event{};
-
-      while (SDL_PollEvent(&event) != 0)
-      {
-        if (event.type == SDL_QUIT)
-        {
-          running = false;
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q && (event.key.keysym.mod & KMOD_CTRL) != 0)
-        {
-          running = false;
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE && event.key.repeat == 0)
-        {
-          setMouseCaptured(!mouseCaptured_);
-        }
-        else if (event.type == SDL_MOUSEBUTTONDOWN && mouseCaptured_)
-        {
-          setMouseCaptured(false);
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
-        {
-          render.setMoveUp(true);
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s)
-        {
-          render.setMoveDown(true);
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a)
-        {
-          render.setMoveLeft(true);
-        }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d)
-        {
-          render.setMoveRight(true);
-        }
-        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
-        {
-          render.setMoveUp(false);
-        }
-        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s)
-        {
-          render.setMoveDown(false);
-        }
-        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a)
-        {
-          render.setMoveLeft(false);
-        }
-        else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d)
-        {
-          render.setMoveRight(false);
-        }
-        else if (event.type == SDL_MOUSEMOTION && mouseCaptured_)
-        {
-          render.rotateCamera(event.motion.xrel, event.motion.yrel);
-        }
-        else if (event.type == SDL_MOUSEWHEEL)
-        {
-          render.scrollCamera(event.wheel.y);
-        }
-        else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-        {
-          glViewport(0, 0, event.window.data1, event.window.data2);
-        }
-        if (event.type == SDL_WINDOWEVENT)
-        {
-          window_.syncWindowEvent(event.window);
-        }
-      }
+      processEvents(render);
 
       window_.idle();
 
@@ -138,6 +69,100 @@ public:
   }
 
 private:
+  void processEvent(const SDL_Event &event, Render &render)
+  {
+    if (event.type == SDL_QUIT)
+    {
+      running_ = false;
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q && (event.key.keysym.mod & KMOD_CTRL) != 0)
+    {
+      running_ = false;
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE && event.key.repeat == 0)
+    {
+      setMouseCaptured(!mouseCaptured_);
+      return;
+    }
+    if (event.type == SDL_MOUSEBUTTONDOWN && mouseCaptured_)
+    {
+      setMouseCaptured(false);
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
+    {
+      render.setMoveUp(true);
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s)
+    {
+      render.setMoveDown(true);
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a)
+    {
+      render.setMoveLeft(true);
+      return;
+    }
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d)
+    {
+      render.setMoveRight(true);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
+    {
+      render.setMoveUp(false);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s)
+    {
+      render.setMoveDown(false);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a)
+    {
+      render.setMoveLeft(false);
+      return;
+    }
+    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d)
+    {
+      render.setMoveRight(false);
+      return;
+    }
+    if (event.type == SDL_MOUSEMOTION && mouseCaptured_)
+    {
+      render.rotateCamera(event.motion.xrel, event.motion.yrel);
+      return;
+    }
+    if (event.type == SDL_MOUSEWHEEL)
+    {
+      render.scrollCamera(event.wheel.y);
+      return;
+    }
+    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+    {
+      glViewport(0, 0, event.window.data1, event.window.data2);
+      return;
+    }
+  }
+
+  void processEvents(Render &render)
+  {
+    SDL_Event event{};
+
+    while (SDL_PollEvent(&event) != 0)
+    {
+      processEvent(event, render);
+
+      if (event.type == SDL_WINDOWEVENT)
+      {
+        window_.syncWindowEvent(event.window);
+      }
+    }
+  }
+
   void setMouseCaptured(const bool captured)
   {
     if (mouseCaptured_ == captured)
@@ -154,4 +179,5 @@ private:
   MainWindow &window_;
   SDL_GLContext context_ = nullptr;
   bool mouseCaptured_    = false;
+  bool running_          = false;
 };

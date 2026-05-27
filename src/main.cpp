@@ -21,16 +21,12 @@ int main(const int argvCount, char **argv)
       return 1;
     }
 
-    // Выбираем мажорную версию OpenGL-контекста.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    // Выбираем минорную версию OpenGL-контекста.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    // Запрашиваем core profile без устаревших функций OpenGL.
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    // Включаем двойную буферизацию для плавного вывода кадра.
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); // Запрашиваем core profile без устаревших функций OpenGL.
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    MainWindow window(args.cacheFolder(), "OpenGL 3.3 Core Triangle");
+    MainWindow window(args.cacheFolder(), "Atom Simulation");
 
     {
       Application application(window);
