@@ -30,6 +30,7 @@ target_sources(probe_open_gl
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
+    src/application.cppm
     src/arguments.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm
