@@ -306,6 +306,10 @@ scene:
   shape-instance-groups:
     - selected_group
   camera: "main"
+  sun:
+    force: "2.5"
+    direction: "0 3 4"
+    color: "0.7 0.8 0.9"
 cameras:
   main:
     geom:
@@ -394,6 +398,41 @@ shape-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
   EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
+  EXPECT_FLOAT_EQ(data.sun.force, 2.5F);
+  EXPECT_FLOAT_EQ(data.sun.direction[0], 0.0F);
+  EXPECT_FLOAT_EQ(data.sun.direction[1], 0.6F);
+  EXPECT_FLOAT_EQ(data.sun.direction[2], 0.8F);
+  EXPECT_FLOAT_EQ(data.sun.color[0], 0.7F);
+  EXPECT_FLOAT_EQ(data.sun.color[1], 0.8F);
+  EXPECT_FLOAT_EQ(data.sun.color[2], 0.9F);
+}
+
+TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
+{
+  const std::filesystem::path path = writeYaml("zero_sun_direction", R"yaml(
+scene:
+  camera: "main"
+  sun:
+    force: "1"
+    direction: "0 0 0"
+    color: "1 1 1"
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: YAML vector 'scene.sun.direction' must not be zero");
 }
 
 TEST(LoadScene, StoresOnlyShapesUsedBySelectedInstanceGroups)

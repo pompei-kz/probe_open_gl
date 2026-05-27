@@ -52,12 +52,20 @@ export namespace scene
     float forwardScrollStep       = 0.0F;
   };
 
+  struct Sun
+  {
+    float force         = 1.0F;
+    glm::vec3 direction = {0.0F, 0.0F, -1.0F};
+    glm::vec3 color     = {1.0F, 1.0F, 1.0F};
+  };
+
   class Scene
   {
   public:
     std::vector<Shape> shapes;
     std::vector<ShapeInstance> instances;
     Camera camera;
+    Sun sun;
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
     int colorFloatCount    = 0;
@@ -127,6 +135,15 @@ namespace
       throw std::runtime_error("MkrD0Lx4pS :: YAML scalar '" + std::string(name) + "' must contain 1 float in " + path.string());
     }
     return values[0];
+  }
+
+  glm::vec3 normalizeVector(const glm::vec3 &value, const std::filesystem::path &path, const std::string_view name)
+  {
+    if (glm::length(value) <= 0.0F)
+    {
+      throw std::runtime_error("R3r6lgbSG2 :: YAML vector '" + std::string(name) + "' must not be zero in " + path.string());
+    }
+    return glm::normalize(value);
   }
 
   std::string trim(const std::string_view value)
@@ -601,6 +618,23 @@ namespace
     result.camera.forwardMouseSensitivity = parseFloatScalar(params["forwardMouseSensitivity"], path, "camera.params.forwardMouseSensitivity");
     result.camera.forwardScrollStep       = parseFloatScalar(params["forwardScrollStep"], path, "camera.params.forwardScrollStep");
   }
+
+  void parseSceneSun(const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
+  {
+    const YAML::Node sun = scene["sun"];
+    if (!sun)
+    {
+      return;
+    }
+    if (!sun.IsMap())
+    {
+      throw std::runtime_error("W2KgPJpzT7 :: YAML container 'scene.sun' must be map in " + path.string());
+    }
+
+    result.sun.force     = parseFloatScalar(sun["force"], path, "scene.sun.force");
+    result.sun.direction = normalizeVector(parseVector3(sun["direction"], path, "scene.sun.direction"), path, "scene.sun.direction");
+    result.sun.color     = parseVector3(sun["color"], path, "scene.sun.color");
+  }
 } // namespace
 
 void scene::Scene::load(const std::filesystem::path &path, const std::string_view shapeName)
@@ -609,6 +643,7 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   shapes.clear();
   instances.clear();
   camera = Camera{};
+  sun    = Sun{};
   setDefaultLayout(*this);
   if (shapeName.empty())
   {
@@ -633,8 +668,10 @@ void scene::Scene::load(const std::filesystem::path &path)
   shapes.clear();
   instances.clear();
   camera = Camera{};
+  sun    = Sun{};
   setDefaultLayout(*this);
   parseSceneCamera(document, sceneNode, path, *this);
+  parseSceneSun(sceneNode, path, *this);
 
   const YAML::Node sceneShapeInstanceGroups = sceneNode["shape-instance-groups"];
   if (sceneShapeInstanceGroups && !sceneShapeInstanceGroups.IsSequence())

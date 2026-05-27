@@ -232,9 +232,13 @@ int main(int argvCount, char **argv)
     const GLint viewMatrixLocation       = glGetUniformLocation(shaderProgram, "viewMatrix");
     // Находим uniform-переменную матрицы модели в шейдерной программе.
     const GLint modelMatrixLocation      = glGetUniformLocation(shaderProgram, "modelMatrix");
-    if (projectionMatrixLocation < 0 || viewMatrixLocation < 0 || modelMatrixLocation < 0)
+    const GLint sunForceLocation         = glGetUniformLocation(shaderProgram, "sunForce");
+    const GLint sunDirectionLocation     = glGetUniformLocation(shaderProgram, "sunDirection");
+    const GLint sunColorLocation         = glGetUniformLocation(shaderProgram, "sunColor");
+    if (projectionMatrixLocation < 0 || viewMatrixLocation < 0 || modelMatrixLocation < 0 || sunForceLocation < 0 || sunDirectionLocation < 0 ||
+        sunColorLocation < 0)
     {
-      throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate matrix uniforms");
+      throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate shader uniforms");
     }
 
     scene::Scene scene;
@@ -421,6 +425,9 @@ int main(int argvCount, char **argv)
       glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
       // Передаем матрицу модели в текущую шейдерную программу.
       glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
+      glUniform1f(sunForceLocation, scene.sun.force);
+      glUniform3fv(sunDirectionLocation, 1, glm::value_ptr(scene.sun.direction));
+      glUniform3fv(sunColorLocation, 1, glm::value_ptr(scene.sun.color));
       for (std::size_t shapeIndex = 0; shapeIndex < scene.shapes.size(); ++shapeIndex)
       {
         const scene::Shape &shape = scene.shapes[shapeIndex];

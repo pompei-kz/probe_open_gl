@@ -9,8 +9,11 @@ uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
 
 out vec3 vertexColor;
+out vec3 fragmentWorldPosition;
 
 void main() {
+  vec4 worldPosition = modelMatrix * vec4(position + instance.xyz, 1.0);
+  fragmentWorldPosition = worldPosition.xyz;
   vertexColor = color;
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position + instance.xyz, 1.0);
+  gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }
