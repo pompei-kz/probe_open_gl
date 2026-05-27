@@ -193,6 +193,15 @@ int main(int argvCount, char **argv) {
   GLuint vertexBuffer = 0;
   GLuint indexBuffer = 0;
   bool mouseCaptured = false;
+  const auto setMouseCaptured = [&mouseCaptured](const bool captured) {
+    if (mouseCaptured == captured) {
+      return;
+    }
+    if (SDL_SetRelativeMouseMode(captured ? SDL_TRUE : SDL_FALSE) != 0) {
+      throw std::runtime_error(std::string("Rk4dDWAkY5 :: SDL_SetRelativeMouseMode failed: ") + SDL_GetError());
+    }
+    mouseCaptured = captured;
+  };
 
   try {
     shaderProgram = createShaderProgram();
@@ -265,10 +274,9 @@ int main(int argvCount, char **argv) {
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
           running = false;
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE && event.key.repeat == 0) {
-          mouseCaptured = !mouseCaptured;
-          if (SDL_SetRelativeMouseMode(mouseCaptured ? SDL_TRUE : SDL_FALSE) != 0) {
-            throw std::runtime_error(std::string("Rk4dDWAkY5 :: SDL_SetRelativeMouseMode failed: ") + SDL_GetError());
-          }
+          setMouseCaptured(!mouseCaptured);
+        } else if (event.type == SDL_MOUSEBUTTONDOWN && mouseCaptured) {
+          setMouseCaptured(false);
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w) {
           moveForward = true;
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
