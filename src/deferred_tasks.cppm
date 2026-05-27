@@ -1,9 +1,9 @@
 module;
 
-#include <atomic>
 #include <chrono>
-#include <cstdint>
 #include <functional>
+#include <string>
+#include <string_view>
 #include <utility>
 
 export module deferred_tasks;
@@ -11,15 +11,12 @@ export module deferred_tasks;
 import sync_map;
 
 export class DeferredTasks {
-
-  std::atomic<int64_t> nextTaskId_{1};
-
   struct Task {
     std::function<void()> task;
     std::chrono::system_clock::time_point whenToRun;
   };
 
-  SyncMap<int64_t, Task> tasks_;
+  SyncMap<std::string, Task> tasks_;
 
 public:
   DeferredTasks() = default;
@@ -36,22 +33,24 @@ public:
     runAll();
   }
 
-  void add(std::chrono::milliseconds runAfterDuration, std::function<void()> task) {
-    const int64_t taskId = nextTaskId_++;
-    tasks_.put(taskId, Task{
-      std::move(task),
-      std::chrono::system_clock::now() + runAfterDuration,
-    });
+  void add(const std::chrono::milliseconds runAfterDuration, const std::string_view taskName,
+           std::function<void()> task) {
+    tasks_.remove(std::string(taskName));
+    tasks_.put(std::string(taskName), Task{
+                 std::move(task),
+                 std::chrono::system_clock::now() + runAfterDuration,
+               });
   }
 
   void clear() {
     tasks_.clear();
   }
 
-  void idle(std::chrono::system_clock::time_point now) {
-    const auto snapshot = tasks_.snapshot();
-    for (const auto &[taskId, task]: snapshot) {
-      if (task.whenToRun <= now && tasks_.remove(taskId)) {
+  void idle(const std::chrono::system_clock::time_point now) {
+    for (
+      const auto snapshot = tasks_.snapshot();
+      const auto &[taskName, task]: snapshot) {
+      if (task.whenToRun <= now && tasks_.remove(taskName)) {
         task.task();
       }
     }
@@ -68,9 +67,10 @@ public:
 private:
   void runAll() {
     while (!tasks_.empty()) {
-      const auto snapshot = tasks_.snapshot();
-      for (const auto &[taskId, task]: snapshot) {
-        if (tasks_.remove(taskId)) {
+      for (
+        const auto snapshot = tasks_.snapshot();
+        const auto &[taskName, task]: snapshot) {
+        if (tasks_.remove(taskName)) {
           task.task();
         }
       }

@@ -210,7 +210,7 @@ private:
 
   void saveWindowPosition(const WindowPosition position) {
     const std::filesystem::path path = positionPath_;
-    deferredTasks_.add(std::chrono::milliseconds{700}, [path, position] {
+    deferredTasks_.add(std::chrono::milliseconds{700}, "SaveMainWindowPosition", [path, position] {
       std::filesystem::create_directories(path.parent_path());
       std::ofstream output(path);
       output << "left=" << position.left << '\n' << "top=" << position.top << '\n';
@@ -219,7 +219,7 @@ private:
 
   void saveWindowSize(const WindowSize size) {
     const std::filesystem::path path = sizePath_;
-    deferredTasks_.add(std::chrono::milliseconds{700}, [path, size] {
+    deferredTasks_.add(std::chrono::milliseconds{700}, "SaveMainWindowSize", [path, size] {
       std::filesystem::create_directories(path.parent_path());
       std::ofstream output(path);
       output << size.width << 'x' << size.height << '\n';
