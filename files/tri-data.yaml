@@ -16,6 +16,7 @@ cameras:
       fov: "25"
     params:
       forwardVelocity: "3"
+      forwardMouseSensitivity: "0.10"
 
 meshes:
   main-tri-data:

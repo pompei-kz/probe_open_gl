@@ -52,6 +52,30 @@ namespace {
     return glm::lookAt(position, position + forward, up);
   }
 
+  void rotateForward(glm::vec3 &forward,
+                     const glm::vec3 &cameraUp,
+                     const int mouseDeltaX,
+                     const int mouseDeltaY,
+                     const float sensitivity) {
+    if (mouseDeltaX == 0 && mouseDeltaY == 0) {
+      return;
+    }
+
+    const glm::vec3 up = normalize(cameraUp, "camera.up");
+    const float yaw = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
+    const float pitch = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
+    forward = normalize(glm::vec3(glm::rotate(glm::mat4{1.0F}, yaw, up) * glm::vec4(forward, 0.0F)),
+                        "camera.forward");
+
+    const glm::vec3 right = normalize(glm::cross(forward, up), "camera.right");
+    const glm::vec3 pitchedForward =
+      normalize(glm::vec3(glm::rotate(glm::mat4{1.0F}, pitch, right) * glm::vec4(forward, 0.0F)),
+                "camera.forward");
+    if (glm::length(glm::cross(pitchedForward, up)) > 0.001F) {
+      forward = pitchedForward;
+    }
+  }
+
   GLuint compileShader(GLenum type, std::string_view source) {
     // Создаем объект шейдера указанного типа.
     const GLuint shader = glCreateShader(type);
@@ -168,6 +192,7 @@ int main(int argvCount, char **argv) {
   GLuint vertexArray = 0;
   GLuint vertexBuffer = 0;
   GLuint indexBuffer = 0;
+  bool mouseCaptured = false;
 
   try {
     shaderProgram = createShaderProgram();
@@ -183,7 +208,8 @@ int main(int argvCount, char **argv) {
 
     const tri_data::TriData triData = tri_data::loadTriData(executableDirectory / "tri-data.yaml");
     glm::vec3 cameraPosition = toVec3(triData.camera.position);
-    const glm::vec3 cameraForward = normalize(toVec3(triData.camera.forward), "camera.forward");
+    glm::vec3 cameraForward = normalize(toVec3(triData.camera.forward), "camera.forward");
+    const glm::vec3 cameraUp = toVec3(triData.camera.up);
 
     // Создаем объект Vertex Array Object для описания раскладки вершин.
     glGenVertexArrays(1, &vertexArray);
@@ -232,26 +258,28 @@ int main(int argvCount, char **argv) {
     Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running) {
       SDL_Event event{};
+
       while (SDL_PollEvent(&event) != 0) {
         if (event.type == SDL_QUIT) {
           running = false;
-        } else if (event.type == SDL_KEYDOWN &&
-                   event.key.keysym.sym == SDLK_ESCAPE) {
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
           running = false;
-        } else if (event.type == SDL_KEYDOWN &&
-                   event.key.keysym.sym == SDLK_w) {
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE && event.key.repeat == 0) {
+          mouseCaptured = !mouseCaptured;
+          if (SDL_SetRelativeMouseMode(mouseCaptured ? SDL_TRUE : SDL_FALSE) != 0) {
+            throw std::runtime_error(std::string("Rk4dDWAkY5 :: SDL_SetRelativeMouseMode failed: ") + SDL_GetError());
+          }
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w) {
           moveForward = true;
-        } else if (event.type == SDL_KEYDOWN &&
-                   event.key.keysym.sym == SDLK_s) {
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
           moveBackward = true;
-        } else if (event.type == SDL_KEYUP &&
-                   event.key.keysym.sym == SDLK_w) {
+        } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w) {
           moveForward = false;
-        } else if (event.type == SDL_KEYUP &&
-                   event.key.keysym.sym == SDLK_s) {
+        } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s) {
           moveBackward = false;
-        } else if (event.type == SDL_WINDOWEVENT &&
-                   event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+        } else if (event.type == SDL_MOUSEMOTION && mouseCaptured) {
+          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, triData.camera.forwardMouseSensitivity);
+        } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
           // Подгоняем область вывода OpenGL под новый размер окна.
           glViewport(0, 0, event.window.data1, event.window.data2);
         }
@@ -285,7 +313,7 @@ int main(int argvCount, char **argv) {
                                                     triData.camera.farPlane);
       const glm::mat4 view = viewMatrix(cameraPosition,
                                         cameraForward,
-                                        toVec3(triData.camera.up));
+                                        cameraUp);
       const glm::mat4 model{1.0F};
       // Передаем матрицу проекции в текущую шейдерную программу.
       glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
@@ -308,6 +336,9 @@ int main(int argvCount, char **argv) {
     std::cerr << exception.what() << '\n';
   }
 
+  if (mouseCaptured) {
+    SDL_SetRelativeMouseMode(SDL_FALSE);
+  }
   if (vertexBuffer != 0) {
     // Освобождаем вершинный буфер в OpenGL.
     glDeleteBuffers(1, &vertexBuffer);

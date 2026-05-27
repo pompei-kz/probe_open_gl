@@ -26,6 +26,7 @@ export namespace tri_data {
     float farPlane = 100.0F;
     float fovDegrees = 45.0F;
     float forwardVelocity = 0.0F;
+    float forwardMouseSensitivity = 0.0F;
   };
 
   struct TriData {
@@ -430,6 +431,9 @@ namespace {
     result.camera.forwardVelocity = parseFloatScalar(params["forwardVelocity"],
                                                      path,
                                                      "camera.params.forwardVelocity");
+    result.camera.forwardMouseSensitivity = parseFloatScalar(params["forwardMouseSensitivity"],
+                                                             path,
+                                                             "camera.params.forwardMouseSensitivity");
   }
 }
 
