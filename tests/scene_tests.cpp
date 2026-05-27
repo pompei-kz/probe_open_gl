@@ -137,6 +137,7 @@ cameras:
       fov: "45"
     params:
       forwardVelocity: "1"
+      sideVelocity: "4.5"
       forwardMouseSensitivity: "0.1"
       forwardScrollStep: "1"
 meshes:
@@ -181,6 +182,7 @@ cameras:
       fov: "60"
     params:
       forwardVelocity: "1.5"
+      sideVelocity: "4.5"
       forwardMouseSensitivity: "0.2"
       forwardScrollStep: "2.5"
 meshes:
@@ -249,6 +251,7 @@ figure-instance-groups:
   EXPECT_FLOAT_EQ(data.camera.farPlane, 250.0F);
   EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
   EXPECT_FLOAT_EQ(data.camera.forwardVelocity, 1.5F);
+  EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
   EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
   EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
 }

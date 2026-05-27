@@ -26,6 +26,7 @@ export namespace scene {
     float farPlane = 100.0F;
     float fovDegrees = 45.0F;
     float forwardVelocity = 0.0F;
+    float sideVelocity = 0.0F;
     float forwardMouseSensitivity = 0.0F;
     float forwardScrollStep = 0.0F;
   };
@@ -504,6 +505,9 @@ namespace {
     result.camera.forwardVelocity = parseFloatScalar(params["forwardVelocity"],
                                                      path,
                                                      "camera.params.forwardVelocity");
+    result.camera.sideVelocity = parseFloatScalar(params["sideVelocity"],
+                                                 path,
+                                                 "camera.params.sideVelocity");
     result.camera.forwardMouseSensitivity = parseFloatScalar(params["forwardMouseSensitivity"],
                                                              path,
                                                              "camera.params.forwardMouseSensitivity");

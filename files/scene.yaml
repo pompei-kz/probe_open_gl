@@ -15,6 +15,7 @@ cameras:
       fov: "25"
     params:
       forwardVelocity: "3"
+      sideVelocity: "3"
       forwardMouseSensitivity: "0.10"
       forwardScrollStep: "1"
 

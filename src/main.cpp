@@ -69,8 +69,8 @@ namespace {
 
     const glm::vec3 right = normalize(glm::cross(forward, up), "camera.right");
     const glm::vec3 pitchedForward =
-      normalize(glm::vec3(glm::rotate(glm::mat4{1.0F}, pitch, right) * glm::vec4(forward, 0.0F)),
-                "camera.forward");
+        normalize(glm::vec3(glm::rotate(glm::mat4{1.0F}, pitch, right) * glm::vec4(forward, 0.0F)),
+                  "camera.forward");
     if (glm::length(glm::cross(pitchedForward, up)) > 0.001F) {
       forward = pitchedForward;
     }
@@ -216,7 +216,7 @@ int main(int argvCount, char **argv) {
     }
 
     scene::Scene sceneData;
-    sceneData.load(executableDirectory / "tri-data.yaml");
+    sceneData.load(executableDirectory / "scene.yaml");
     glm::vec3 cameraPosition = toVec3(sceneData.camera.position);
     glm::vec3 cameraForward = normalize(toVec3(sceneData.camera.forward), "camera.forward");
     const glm::vec3 cameraUp = toVec3(sceneData.camera.up);
@@ -265,6 +265,8 @@ int main(int argvCount, char **argv) {
     bool running = true;
     bool moveForward = false;
     bool moveBackward = false;
+    bool moveLeft = false;
+    bool moveRight = false;
     Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running) {
       SDL_Event event{};
@@ -282,12 +284,21 @@ int main(int argvCount, char **argv) {
           moveForward = true;
         } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s) {
           moveBackward = true;
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a) {
+          moveLeft = true;
+        } else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d) {
+          moveRight = true;
         } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w) {
           moveForward = false;
         } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s) {
           moveBackward = false;
+        } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a) {
+          moveLeft = false;
+        } else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d) {
+          moveRight = false;
         } else if (event.type == SDL_MOUSEMOTION && mouseCaptured) {
-          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel, sceneData.camera.forwardMouseSensitivity);
+          rotateForward(cameraForward, cameraUp, event.motion.xrel, event.motion.yrel,
+                        sceneData.camera.forwardMouseSensitivity);
         } else if (event.type == SDL_MOUSEWHEEL) {
           cameraPosition += cameraForward * sceneData.camera.forwardScrollStep * static_cast<float>(event.wheel.y);
         } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
@@ -307,8 +318,13 @@ int main(int argvCount, char **argv) {
       previousCounter = currentCounter;
       const int movementDirection = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
       cameraPosition += cameraForward * sceneData.camera.forwardVelocity
-                        * static_cast<float>(movementDirection)
-                        * deltaSeconds;
+          * static_cast<float>(movementDirection)
+          * deltaSeconds;
+      const glm::vec3 cameraLeft = normalize(glm::cross(cameraForward, cameraUp), "camera.left");
+      const int sideMovementDirection = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
+      cameraPosition += cameraLeft * sceneData.camera.sideVelocity
+          * static_cast<float>(sideMovementDirection)
+          * deltaSeconds;
 
       // Задаем цвет очистки кадрового буфера.
       glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
