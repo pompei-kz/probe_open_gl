@@ -22,7 +22,7 @@ export module scene;
 
 export namespace scene
 {
-  struct Instance
+  struct ShapeInstanceGroup
   {
     std::array<float, 3> offset{0.0F, 0.0F, 0.0F};
     std::uint32_t shapeIndex = 0;
@@ -54,7 +54,7 @@ export namespace scene
   {
   public:
     std::vector<Shape> shapes;
-    std::vector<Instance> instances;
+    std::vector<ShapeInstanceGroup> instances;
     Camera camera;
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
@@ -536,7 +536,7 @@ namespace
                     scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const std::uint32_t shapeIndex = ensureFigureShape(path, figure, figureName, result, shapeIndexByKey);
-    result.instances.push_back(scene::Instance{.offset = zeroOffset, .shapeIndex = shapeIndex});
+    result.instances.push_back(scene::ShapeInstanceGroup{.offset = zeroOffset, .shapeIndex = shapeIndex});
   }
 
   void appendFigureInstanceGroup(const std::filesystem::path &path, const YAML::Node &instanceGroup, const std::string_view groupName,
@@ -550,13 +550,13 @@ namespace
 
     for (const std::array<float, 3> &offset : parseOffsets(instanceGroup, path, groupName))
     {
-      result.instances.push_back(scene::Instance{.offset = offset, .shapeIndex = shapeIndex});
+      result.instances.push_back(scene::ShapeInstanceGroup{.offset = offset, .shapeIndex = shapeIndex});
     }
   }
 
   void updateShapeInstanceRanges(scene::Scene &data)
   {
-    std::ranges::sort(data.instances, {}, &scene::Instance::shapeIndex);
+    std::ranges::sort(data.instances, {}, &scene::ShapeInstanceGroup::shapeIndex);
     for (scene::Shape &shape : data.shapes)
     {
       shape.firstInstance = 0;

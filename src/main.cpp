@@ -396,7 +396,7 @@ int main(int argvCount, char **argv)
       glUseProgram(shaderProgram);
       for (std::size_t instanceIndex = 0; instanceIndex < sceneData.instances.size(); ++instanceIndex)
       {
-        const scene::Instance &instance = sceneData.instances[instanceIndex];
+        const scene::ShapeInstanceGroup &instance = sceneData.instances[instanceIndex];
         const std::size_t writeIndex    = instanceIndex * 4U;
         instanceData[writeIndex]        = instance.offset[0];
         instanceData[writeIndex + 1U]   = instance.offset[1];
