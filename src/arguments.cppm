@@ -2,6 +2,8 @@ module;
 
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <string>
 
 export module arguments;
@@ -9,16 +11,16 @@ export module arguments;
 export class Arguments
 {
   std::string appName_;
-  std::filesystem::path executableDirectory_;
-  std::filesystem::path configDirectory_;
-  std::filesystem::path cacheDirectory_;
+  std::filesystem::path exeFolder_;
+  std::filesystem::path configFolder_;
+  std::filesystem::path cacheFolder_;
 
 public:
   Arguments(int argumentCount, char **arguments)
   {
     if (argumentCount <= 0 || arguments == nullptr || arguments[0] == nullptr)
     {
-      executableDirectory_ = std::filesystem::current_path();
+      exeFolder_ = std::filesystem::current_path();
       appName_             = "probe_open_gl";
     }
     else
@@ -30,30 +32,43 @@ public:
         appName_ = "probe_open_gl";
       }
 
-      executableDirectory_ = programPath.parent_path();
-      if (executableDirectory_.empty())
+      exeFolder_ = programPath.parent_path();
+      if (exeFolder_.empty())
       {
-        executableDirectory_ = std::filesystem::current_path();
+        exeFolder_ = std::filesystem::current_path();
       }
     }
 
     if (const char *home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
     {
-      configDirectory_ = std::filesystem::path(home) / appName_;
-      cacheDirectory_  = std::filesystem::path(home) / ".cache" / appName_;
+      configFolder_ = std::filesystem::path(home) / appName_;
+      cacheFolder_  = std::filesystem::path(home) / ".cache" / appName_;
     }
     else
     {
-      configDirectory_ = std::filesystem::current_path() / appName_;
-      cacheDirectory_  = std::filesystem::current_path() / ".cache" / appName_;
+      configFolder_ = std::filesystem::current_path() / appName_;
+      cacheFolder_  = std::filesystem::current_path() / ".cache" / appName_;
     }
   }
 
   [[nodiscard]] const std::string &appName() const { return appName_; }
 
-  [[nodiscard]] const std::filesystem::path &executableDirectory() const { return executableDirectory_; }
+  [[nodiscard]] const std::filesystem::path &exeFolder() const { return exeFolder_; }
 
-  [[nodiscard]] const std::filesystem::path &configDirectory() const { return configDirectory_; }
+  [[nodiscard]] const std::filesystem::path &configFolder() const { return configFolder_; }
 
-  [[nodiscard]] const std::filesystem::path &cacheDirectory() const { return cacheDirectory_; }
+  [[nodiscard]] const std::filesystem::path &cacheFolder() const { return cacheFolder_; }
+
+  void printIntro() const
+  {
+    const std::filesystem::path intoPath = exeFolder() / "intro.txt";
+    if (std::ifstream introFile(intoPath); introFile)
+    {
+      std::cout << introFile.rdbuf() << std::endl;
+    }
+    else
+    {
+      std::cerr << "VpO9pfn9wt :: Failed to open " << intoPath << std::endl;
+    }
+  }
 };

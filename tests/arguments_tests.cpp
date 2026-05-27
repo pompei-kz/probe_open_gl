@@ -33,9 +33,9 @@ TEST(Arguments, ExtractsExecutableDirectoryAndAppNameFromProgramPath) {
   const Arguments arguments(1, argv);
 
   EXPECT_EQ(arguments.appName(), "probe_open_gl_test_runner");
-  EXPECT_EQ(arguments.executableDirectory(), std::filesystem::path("/tmp"));
-  EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl_test_runner"));
-  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl_test_runner"));
+  EXPECT_EQ(arguments.exeFolder(), std::filesystem::path("/tmp"));
+  EXPECT_EQ(arguments.configFolder(), expectedConfigDirectory("probe_open_gl_test_runner"));
+  EXPECT_EQ(arguments.cacheFolder(), expectedCacheDirectory("probe_open_gl_test_runner"));
 }
 
 TEST(Arguments, UsesCurrentDirectoryWhenProgramHasNoParentPath) {
@@ -45,18 +45,18 @@ TEST(Arguments, UsesCurrentDirectoryWhenProgramHasNoParentPath) {
   const Arguments arguments(1, argv);
 
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
-  EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
-  EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
-  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.exeFolder(), std::filesystem::current_path());
+  EXPECT_EQ(arguments.configFolder(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheFolder(), expectedCacheDirectory("probe_open_gl"));
 }
 
 TEST(Arguments, FallsBackWhenArgumentVectorIsMissing) {
   const Arguments arguments(0, nullptr);
 
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
-  EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
-  EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
-  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.exeFolder(), std::filesystem::current_path());
+  EXPECT_EQ(arguments.configFolder(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheFolder(), expectedCacheDirectory("probe_open_gl"));
 }
 
 TEST(Arguments, FallsBackWhenProgramNameIsEmpty) {
@@ -66,7 +66,7 @@ TEST(Arguments, FallsBackWhenProgramNameIsEmpty) {
   const Arguments arguments(1, argv);
 
   EXPECT_EQ(arguments.appName(), "probe_open_gl");
-  EXPECT_EQ(arguments.executableDirectory(), std::filesystem::current_path());
-  EXPECT_EQ(arguments.configDirectory(), expectedConfigDirectory("probe_open_gl"));
-  EXPECT_EQ(arguments.cacheDirectory(), expectedCacheDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.exeFolder(), std::filesystem::current_path());
+  EXPECT_EQ(arguments.configFolder(), expectedConfigDirectory("probe_open_gl"));
+  EXPECT_EQ(arguments.cacheFolder(), expectedCacheDirectory("probe_open_gl"));
 }
