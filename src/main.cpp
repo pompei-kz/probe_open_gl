@@ -301,11 +301,11 @@ int main(int argvCount, char **argv)
     // Включаем проверку глубины для 3D-сцены.
     glEnable(GL_DEPTH_TEST);
 
-    bool running      = true;
-    bool moveForward  = false;
-    bool moveBackward = false;
-    bool moveLeft     = false;
-    bool moveRight    = false;
+    bool running   = true;
+    bool moveUp    = false;
+    bool moveDown  = false;
+    bool moveLeft  = false;
+    bool moveRight = false;
     std::vector<float> instanceData(scene.instances.size() * 4U);
     Uint64 previousCounter = SDL_GetPerformanceCounter();
     while (running)
@@ -318,7 +318,7 @@ int main(int argvCount, char **argv)
         {
           running = false;
         }
-        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
+        else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q && (event.key.keysym.mod & KMOD_CTRL) != 0)
         {
           running = false;
         }
@@ -332,11 +332,11 @@ int main(int argvCount, char **argv)
         }
         else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
         {
-          moveForward = true;
+          moveUp = true;
         }
         else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s)
         {
-          moveBackward = true;
+          moveDown = true;
         }
         else if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a)
         {
@@ -348,11 +348,11 @@ int main(int argvCount, char **argv)
         }
         else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
         {
-          moveForward = false;
+          moveUp = false;
         }
         else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s)
         {
-          moveBackward = false;
+          moveDown = false;
         }
         else if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a)
         {
@@ -383,14 +383,14 @@ int main(int argvCount, char **argv)
 
       window.idle();
 
-      const Uint64 currentCounter = SDL_GetPerformanceCounter();
-      const float deltaSeconds    = static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
-      previousCounter             = currentCounter;
-      const int movementDirection = (moveForward ? 1 : 0) - (moveBackward ? 1 : 0);
-      cameraPosition += cameraForward * scene.camera.forwardVelocity * static_cast<float>(movementDirection) * deltaSeconds;
+      const Uint64 currentCounter     = SDL_GetPerformanceCounter();
+      const float deltaSeconds        = static_cast<float>(currentCounter - previousCounter) / static_cast<float>(SDL_GetPerformanceFrequency());
+      previousCounter                 = currentCounter;
       const glm::vec3 cameraLeft      = normalize(glm::cross(cameraForward, cameraUp), "camera.left");
       const int sideMovementDirection = (moveRight ? 1 : 0) - (moveLeft ? 1 : 0);
       cameraPosition += cameraLeft * scene.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
+      const int verticalMovementDirection = (moveUp ? 1 : 0) - (moveDown ? 1 : 0);
+      cameraPosition += cameraUp * scene.camera.sideVelocity * static_cast<float>(verticalMovementDirection) * deltaSeconds;
 
       // Задаем цвет очистки кадрового буфера.
       glClearColor(0.08F, 0.10F, 0.14F, 1.0F);
