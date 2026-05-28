@@ -31,8 +31,10 @@ public:
     glViewport(0, 0, window_.width(), window_.height());
 
     // Читаем строку версии текущего OpenGL-контекста.
+    // Запрашиваем у OpenGL строку версии текущего контекста.
     std::cout << "MXL4NrIm8M :: OpenGL: " << glGetString(GL_VERSION) << std::endl;
     // Читаем строку версии GLSL у текущего OpenGL-контекста.
+    // Запрашиваем у OpenGL строку версии языка шейдеров.
     std::cout << "DZ2EDsUp4f :: GLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
   }
 
