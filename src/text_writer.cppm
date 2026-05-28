@@ -16,6 +16,7 @@ module;
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 export module text_writer;
 
@@ -23,6 +24,8 @@ import utils;
 
 namespace
 {
+  constexpr char32_t FallbackCodePoint = U'?';
+
   struct Glyph
   {
     GLuint     textureID = 0;
@@ -102,6 +105,55 @@ namespace
 
     return program;
   }
+
+  char32_t nextCodePoint(const std::string_view text, std::size_t &index)
+  {
+    const auto first = static_cast<unsigned char>(text[index++]);
+    if (first < 0x80U)
+    {
+      return static_cast<char32_t>(first);
+    }
+
+    unsigned int byteCount = 0;
+    char32_t     result    = 0;
+    if ((first & 0xE0U) == 0xC0U)
+    {
+      byteCount = 2;
+      result    = static_cast<char32_t>(first & 0x1FU);
+    }
+    else if ((first & 0xF0U) == 0xE0U)
+    {
+      byteCount = 3;
+      result    = static_cast<char32_t>(first & 0x0FU);
+    }
+    else if ((first & 0xF8U) == 0xF0U)
+    {
+      byteCount = 4;
+      result    = static_cast<char32_t>(first & 0x07U);
+    }
+    else
+    {
+      return FallbackCodePoint;
+    }
+
+    if (text.size() - index < byteCount - 1)
+    {
+      index = text.size();
+      return FallbackCodePoint;
+    }
+
+    for (unsigned int i = 1; i < byteCount; ++i)
+    {
+      const auto value = static_cast<unsigned char>(text[index++]);
+      if ((value & 0xC0U) != 0x80U)
+      {
+        return FallbackCodePoint;
+      }
+      result = static_cast<char32_t>((result << 6U) | static_cast<char32_t>(value & 0x3FU));
+    }
+
+    return result;
+  }
 } // namespace
 
 export class TextWriter
@@ -174,24 +226,25 @@ public:
     // Отключаем тест глубины, чтобы текст рисовался поверх 3D-сцены.
     glDisable(GL_DEPTH_TEST);
 
-    for (const char value : text)
+    std::size_t textIndex = 0;
+    while (textIndex < text.size())
     {
-      const auto character = static_cast<unsigned char>(value);
-      if (character >= glyphs_.size())
+      const char32_t codePoint = nextCodePoint(text, textIndex);
+      auto           glyphIt   = glyphs_.find(codePoint);
+      if (glyphIt == glyphs_.end())
       {
-        continue;
+        glyphIt = glyphs_.find(FallbackCodePoint);
+        if (glyphIt == glyphs_.end())
+        {
+          continue;
+        }
       }
 
-      const Glyph &glyph = glyphs_[character];
-      if (glyph.textureID == 0)
-      {
-        continue;
-      }
-
-      const float x_pos = x + static_cast<float>(glyph.bearing.x) * scale;
-      const float y_pos = baselineY - static_cast<float>(glyph.bearing.y) * scale;
-      const float w     = static_cast<float>(glyph.size.x) * scale;
-      const float h     = static_cast<float>(glyph.size.y) * scale;
+      const Glyph &glyph = glyphIt->second;
+      const float  x_pos = x + static_cast<float>(glyph.bearing.x) * scale;
+      const float  y_pos = baselineY - static_cast<float>(glyph.bearing.y) * scale;
+      const float  w     = static_cast<float>(glyph.size.x) * scale;
+      const float  h     = static_cast<float>(glyph.size.y) * scale;
 
       // ReSharper disable once CppTemplateArgumentsCanBeDeduced
       const std::array<float, TextVertexBufferFloatCount> vertices{
@@ -238,7 +291,7 @@ private:
       glDeleteVertexArrays(1, &vertexArrayID_);
       vertexArrayID_ = 0;
     }
-    for (Glyph &glyph : glyphs_)
+    for (auto &[codePoint, glyph] : glyphs_)
     {
       if (glyph.textureID != 0)
       {
@@ -286,45 +339,19 @@ private:
 
     // Выравниваем строки пикселей по одному байту для одноканальных битмапов глифов.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    for (unsigned char character = FirstGlyph; character <= LastGlyph; ++character)
+    for (char32_t codePoint = FirstAsciiGlyph; codePoint <= LastAsciiGlyph; ++codePoint)
     {
-      if (FT_Load_Char(face, character, FT_LOAD_RENDER) != 0)
-      {
-        continue;
-      }
-
-      GLuint textureID = 0;
-      // Создаем текстуру для битмапа глифа.
-      glGenTextures(1, &textureID);
-      // Делаем текстуру текущего глифа активной для настройки и загрузки.
-      glBindTexture(GL_TEXTURE_2D, textureID);
-      // Загружаем одноканальный битмап глифа в текстуру.
-      glTexImage2D(GL_TEXTURE_2D,
-                   0,
-                   GL_RED,
-                   static_cast<GLsizei>(face->glyph->bitmap.width),
-                   static_cast<GLsizei>(face->glyph->bitmap.rows),
-                   0,
-                   GL_RED,
-                   GL_UNSIGNED_BYTE,
-                   face->glyph->bitmap.buffer);
-
-      // Запрещаем повторение текстуры глифа по горизонтали.
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      // Запрещаем повторение текстуры глифа по вертикали.
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      // Включаем линейную фильтрацию при уменьшении текста.
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      // Включаем линейную фильтрацию при увеличении текста.
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      glyphs_[character] = Glyph{
-          textureID,
-          glm::ivec2{static_cast<int>(face->glyph->bitmap.width), static_cast<int>(face->glyph->bitmap.rows)},
-          glm::ivec2{face->glyph->bitmap_left, face->glyph->bitmap_top},
-          static_cast<GLuint>(face->glyph->advance.x),
-      };
+      loadGlyph(face, codePoint);
     }
+
+    for (char32_t codePoint = FirstCyrillicGlyph; codePoint <= LastCyrillicGlyph; ++codePoint)
+    {
+      loadGlyph(face, codePoint);
+    }
+    loadGlyph(face, CyrillicYoUpperGlyph);
+    loadGlyph(face, CyrillicYoLowerGlyph);
+    loadGlyph(face, NumeroGlyph);
+
     // Отвязываем текстуру глифа после загрузки шрифта.
     glBindTexture(GL_TEXTURE_2D, 0);
     // Возвращаем стандартное четырехбайтовое выравнивание строк пикселей.
@@ -332,6 +359,53 @@ private:
 
     FT_Done_Face(face);
     FT_Done_FreeType(library);
+  }
+
+  void loadGlyph(FT_Face face, const char32_t codePoint)
+  {
+    // ReSharper disable once CppRedundantCastExpression
+    if (FT_Load_Char(face, static_cast<FT_ULong>(codePoint), FT_LOAD_RENDER) != 0)
+    {
+      return;
+    }
+
+    GLuint textureID = 0;
+
+    // Создаем текстуру для битмапа глифа.
+    glGenTextures(1, &textureID);
+
+    // Делаем текстуру текущего глифа активной для настройки и загрузки.
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Загружаем одноканальный битмап глифа в текстуру.
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RED,
+                 static_cast<GLsizei>(face->glyph->bitmap.width),
+                 static_cast<GLsizei>(face->glyph->bitmap.rows),
+                 0,
+                 GL_RED,
+                 GL_UNSIGNED_BYTE,
+                 face->glyph->bitmap.buffer);
+
+    // Запрещаем повторение текстуры глифа по горизонтали.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+    // Запрещаем повторение текстуры глифа по вертикали.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Включаем линейную фильтрацию при уменьшении текста.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    // Включаем линейную фильтрацию при увеличении текста.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glyphs_[codePoint] = Glyph{
+        textureID,
+        glm::ivec2{static_cast<int>(face->glyph->bitmap.width), static_cast<int>(face->glyph->bitmap.rows)},
+        glm::ivec2{face->glyph->bitmap_left, face->glyph->bitmap_top},
+        static_cast<GLuint>(face->glyph->advance.x),
+    };
   }
 
   void createBuffers()
@@ -370,17 +444,32 @@ private:
     if (fpsElapsedSeconds_ >= 0.25F)
     {
       const float fps    = static_cast<float>(fpsFrameCount_) / fpsElapsedSeconds_;
-      fpsText_           = std::format("FPS: {}", static_cast<int>(std::lround(fps)));
+      fpsText_           = std::format("FPS:  {}", std::lround(fps * 10.0F) / 10.0F);
       fpsElapsedSeconds_ = 0.0F;
       fpsFrameCount_     = 0;
     }
   }
 
   // Первый загружаемый ASCII-символ: пробел. Всё ниже не нужно для строки FPS и обычного текста.
-  static constexpr unsigned char FirstGlyph = 32;
+  static constexpr char32_t FirstAsciiGlyph = 32;
 
   // Последний загружаемый ASCII-символ: тильда. Диапазон 32..126 покрывает печатные ASCII-глифы.
-  static constexpr unsigned char LastGlyph = 126;
+  static constexpr char32_t LastAsciiGlyph = 126;
+
+  // Первый загружаемый символ основного русского диапазона Unicode: заглавная буква А.
+  static constexpr char32_t FirstCyrillicGlyph = U'А';
+
+  // Последний загружаемый символ основного русского диапазона Unicode: строчная буква я.
+  static constexpr char32_t LastCyrillicGlyph = U'я';
+
+  // Заглавная буква Ё, которая находится вне непрерывного диапазона А..я.
+  static constexpr char32_t CyrillicYoUpperGlyph = U'Ё';
+
+  // Строчная буква ё, которая находится вне непрерывного диапазона А..я.
+  static constexpr char32_t CyrillicYoLowerGlyph = U'ё';
+
+  // Символ номера №, часто используемый в русском интерфейсном тексте.
+  static constexpr char32_t NumeroGlyph = U'№';
 
   // Высота глифа в пикселях, которую FreeType использует при растеризации встроенного шрифта.
   static constexpr unsigned int FontPixelSize = 20;
@@ -406,8 +495,8 @@ private:
   // Позиция uniform-переменной sampler2D, читающей текстуру текущего глифа.
   GLint textureLocation_ = -1;
 
-  // Таблица ASCII-глифов: текстура, размер битмапа, смещение относительно базовой линии и шаг пера.
-  std::array<Glyph, 128> glyphs_{};
+  // Таблица Unicode-глифов: текстура, размер битмапа, смещение относительно базовой линии и шаг пера.
+  std::unordered_map<char32_t, Glyph> glyphs_{};
 
   // Готовая строка FPS, обновляемая не каждый кадр, чтобы текст не дергался слишком часто.
   std::string fpsText_ = "FPS: 0";
