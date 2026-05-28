@@ -35,6 +35,11 @@ add_executable(probe_open_gl src/main.cpp)
 
 target_sources(probe_open_gl
     PRIVATE
+    src/text_writer.cpp
+)
+
+target_sources(probe_open_gl
+    PRIVATE
     FILE_SET CXX_MODULES
     FILES
     src/application.cppm
