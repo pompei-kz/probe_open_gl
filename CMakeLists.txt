@@ -37,6 +37,7 @@ target_sources(probe_open_gl
     src/render.cppm
     src/scene.cppm
     src/sync_map.cppm
+    src/utils.cppm
 )
 
 set(GENERATED_RESOURCE_HEADER

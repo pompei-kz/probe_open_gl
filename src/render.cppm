@@ -17,23 +17,21 @@ module;
 export module render;
 
 import scene;
+import utils;
 
-export enum class MoveVert
-{
+export enum class MoveVert {
   NONE,
   UP,
   DOWN,
 };
 
-export enum class MoveHoriz
-{
+export enum class MoveHoriz {
   NONE,
   LEFT,
   RIGHT,
 };
 
-export enum class RotateForward
-{
+export enum class RotateForward {
   NONE,
   LEFT,
   RIGHT,
@@ -321,22 +319,25 @@ public:
 
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
-    const glm::vec3 cameraLeft            = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
-    const int       sideMovementDirection = (moveHoriz_ == MoveHoriz::RIGHT ? 1 : 0) - (moveHoriz_ == MoveHoriz::LEFT ? 1 : 0);
-    cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * static_cast<float>(sideMovementDirection) * deltaSeconds;
-    const int verticalMovementDirection = (moveVert_ == MoveVert::UP ? 1 : 0) - (moveVert_ == MoveVert::DOWN ? 1 : 0);
-    cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * static_cast<float>(verticalMovementDirection) * deltaSeconds;
-    const int forwardRotateDirection = (rotateForward_ == RotateForward::RIGHT ? 1 : 0) - (rotateForward_ == RotateForward::LEFT ? 1 : 0);
+    const glm::vec3 cameraLeft             = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
+    const float     sideMoveDirection      = select1m1(moveHoriz_, MoveHoriz::RIGHT, MoveHoriz::LEFT);
+    const float     vertMoveDirection      = select1m1(moveVert_, MoveVert::UP, MoveVert::DOWN);
+    const float     forwardRotateDirection = select1m1(rotateForward_, RotateForward::RIGHT, RotateForward::LEFT);
+
+    cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * sideMoveDirection * deltaSeconds;
+    cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * vertMoveDirection * deltaSeconds;
+
     if (forwardRotateDirection != 0)
     {
-      const glm::mat4 rollMatrix =
-          glm::rotate(glm::mat4{1.0F}, glm::radians(scene_.camera.forwardRotateDegPSec * static_cast<float>(forwardRotateDirection) * deltaSeconds),
-                      normalize(cameraForward_, "camera.forward"));
-      cameraUp_ = normalize(rollMatrix * glm::vec4(cameraUp_, 0.0F), "camera.up");
+      const float     angle      = glm::radians(scene_.camera.forwardRotateDegPSec * static_cast<float>(forwardRotateDirection) * deltaSeconds);
+      const glm::mat4 rollMatrix = glm::rotate(glm::mat4{1.0F}, angle, normalize(cameraForward_, "camera.forward"));
+      cameraUp_                  = normalize(rollMatrix * glm::vec4(cameraUp_, 0.0F), "camera.up");
     }
 
+    const glm::vec3 background_color = scene_.params.backgroundColor;
+
     // Задаем цвет очистки кадрового буфера.
-    glClearColor(scene_.params.backgroundColor[0], scene_.params.backgroundColor[1], scene_.params.backgroundColor[2], 1.0F);
+    glClearColor(background_color[0], background_color[1], background_color[2], 1.0F);
     // Очищаем цветовой буфер и буфер глубины.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
