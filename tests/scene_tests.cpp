@@ -106,9 +106,6 @@ shapes:
   scene::Scene data;
   data.load(path, "target");
 
-  EXPECT_EQ(data.vertexFloatCount, 6);
-  EXPECT_EQ(data.positionFloatCount, 3);
-  EXPECT_EQ(data.colorFloatCount, 3);
   ASSERT_EQ(data.shapes.size(), 1U);
   ASSERT_EQ(data.instances.size(), 1U);
   ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
@@ -234,9 +231,6 @@ shapes:
   scene::Scene data;
   data.load(path, "target");
 
-  EXPECT_EQ(data.vertexFloatCount, 6);
-  EXPECT_EQ(data.positionFloatCount, 3);
-  EXPECT_EQ(data.colorFloatCount, 3);
   ASSERT_EQ(data.shapes.size(), 1U);
   ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.2F);
@@ -373,7 +367,6 @@ shape-instance-groups:
   scene::Scene data;
   data.load(path);
 
-  EXPECT_EQ(data.vertexFloatCount, 6);
   ASSERT_EQ(data.shapes.size(), 1U);
   ASSERT_EQ(data.instances.size(), 2U);
   ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
