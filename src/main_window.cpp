@@ -96,7 +96,7 @@ struct MainWindow::Impl
     }
   }
 
-  void idle() { deferredTasks_.idle(std::chrono::system_clock::now()); }
+  void idle() const { deferredTasks_.idle(std::chrono::system_clock::now()); }
 
 private:
   struct WindowPosition
@@ -225,7 +225,7 @@ private:
     return reportedPosition;
   }
 
-  void saveWindowPosition(const WindowPosition position)
+  void saveWindowPosition(const WindowPosition position) const
   {
     const std::filesystem::path path = positionPath_;
     deferredTasks_.add(std::chrono::milliseconds{700},
@@ -238,7 +238,7 @@ private:
                        });
   }
 
-  void saveWindowSize(const WindowSize size)
+  void saveWindowSize(const WindowSize size) const
   {
     const std::filesystem::path path = sizePath_;
     deferredTasks_.add(std::chrono::milliseconds{700},
@@ -278,17 +278,17 @@ int MainWindow::height() const
   return impl_->height();
 }
 
-void MainWindow::syncWindowEvent(const SDL_WindowEvent &event)
+void MainWindow::syncWindowEvent(const SDL_WindowEvent &event) const
 {
   impl_->syncWindowEvent(event);
 }
 
-void MainWindow::close()
+void MainWindow::close() const
 {
   impl_->close();
 }
 
-void MainWindow::idle()
+void MainWindow::idle() const
 {
   impl_->idle();
 }

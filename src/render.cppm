@@ -41,17 +41,17 @@ public:
 
   ~Render();
 
-  void setMoveVert(MoveVert moveVert);
+  void setMoveVert(MoveVert moveVert) const;
 
-  void setMoveHoriz(MoveHoriz moveHoriz);
+  void setMoveHoriz(MoveHoriz moveHoriz) const;
 
-  void setRotateForward(RotateForward rotateForward);
+  void setRotateForward(RotateForward rotateForward) const;
 
-  void rotateCamera(int mouseDeltaX, int mouseDeltaY);
+  void rotateCamera(int mouseDeltaX, int mouseDeltaY) const;
 
-  void scrollCamera(int wheelY);
+  void scrollCamera(int wheelY) const;
 
-  void drawFrame(int viewportWidth, int viewportHeight, float deltaSeconds);
+  void drawFrame(int viewportWidth, int viewportHeight, float deltaSeconds) const;
 
 private:
   struct Impl;

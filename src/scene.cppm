@@ -1,6 +1,5 @@
 module;
 
-#include <cstdint>
 #include <epoxy/gl.h>
 #include <filesystem>
 #include <glm/glm.hpp>

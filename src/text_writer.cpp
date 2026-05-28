@@ -83,7 +83,7 @@ namespace
     glLinkProgram(program);
     // Удаляем объект вершинного шейдера после линковки.
     glDeleteShader(vertexShader);
-    // Удаляем объект фрагментного шейдера после линковки.
+    // Удаляем объект фрагментарного шейдера после линковки.
     glDeleteShader(fragmentShader);
 
     GLint success = GL_FALSE;
@@ -204,7 +204,7 @@ struct TextWriter::Impl
     // Активируем шейдерную программу для отрисовки текста.
     glUseProgram(shaderProgram_);
     const glm::mat4 projection = glm::ortho(0.0F, static_cast<float>(width), static_cast<float>(height), 0.0F);
-    // Передаем ортографическую матрицу проекции в текстовый шейдер.
+    // Передаем орто графическую матрицу проекции в текстовый шейдер.
     glUniformMatrix4fv(projectionMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
     // Передаем цвет текста в текстовый шейдер.
     glUniform3fv(colorLocation_, 1, glm::value_ptr(color));
@@ -351,7 +351,7 @@ private:
 
     // Отвязываем текстуру глифа после загрузки шрифта.
     glBindTexture(GL_TEXTURE_2D, 0);
-    // Возвращаем стандартное четырехбайтовое выравнивание строк пикселей.
+    // Возвращаем стандартное четырех байтовое выравнивание строк пикселей.
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
     FT_Done_Face(face);
@@ -483,7 +483,7 @@ private:
   // Динамический VBO, в который перед каждым глифом загружается шесть вершин его прямоугольника.
   GLuint vertexBufferID_ = 0;
 
-  // Позиция uniform-переменной ортографической матрицы проекции в текстовой программе.
+  // Позиция uniform-переменной орто графической матрицы проекции в текстовой программе.
   GLint projectionMatrixLocation_ = -1;
 
   // Позиция uniform-переменной цвета текста в текстовой программе.

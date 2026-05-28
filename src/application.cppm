@@ -18,7 +18,7 @@ public:
 
   ~Application();
 
-  void run(Render &render);
+  void run(Render &render) const;
 
 private:
   struct Impl;

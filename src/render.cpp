@@ -129,7 +129,7 @@ namespace
 
     // Удаляем объект вершинного шейдера после линковки.
     glDeleteShader(vertexShader);
-    // Удаляем объект фрагментного шейдера после линковки.
+    // Удаляем объект фрагментарного шейдера после линковки.
     glDeleteShader(fragmentShader);
 
     GLint success = GL_FALSE;
@@ -438,32 +438,32 @@ Render::Render(const std::filesystem::path &scenePath)
 
 Render::~Render() = default;
 
-void Render::setMoveVert(const MoveVert moveVert)
+void Render::setMoveVert(const MoveVert moveVert) const
 {
   impl_->setMoveVert(moveVert);
 }
 
-void Render::setMoveHoriz(const MoveHoriz moveHoriz)
+void Render::setMoveHoriz(const MoveHoriz moveHoriz) const
 {
   impl_->setMoveHoriz(moveHoriz);
 }
 
-void Render::setRotateForward(const RotateForward rotateForward)
+void Render::setRotateForward(const RotateForward rotateForward) const
 {
   impl_->setRotateForward(rotateForward);
 }
 
-void Render::rotateCamera(const int mouseDeltaX, const int mouseDeltaY)
+void Render::rotateCamera(const int mouseDeltaX, const int mouseDeltaY) const
 {
   impl_->rotateCamera(mouseDeltaX, mouseDeltaY);
 }
 
-void Render::scrollCamera(const int wheelY)
+void Render::scrollCamera(const int wheelY) const
 {
   impl_->scrollCamera(wheelY);
 }
 
-void Render::drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
+void Render::drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds) const
 {
   impl_->drawFrame(viewportWidth, viewportHeight, deltaSeconds);
 }

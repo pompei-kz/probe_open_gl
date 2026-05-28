@@ -212,7 +212,7 @@ Application::Application(MainWindow &window)
 
 Application::~Application() = default;
 
-void Application::run(Render &render)
+void Application::run(Render &render) const
 {
   impl_->run(render);
 }

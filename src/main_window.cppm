@@ -28,11 +28,11 @@ public:
 
   [[nodiscard]] int height() const;
 
-  void syncWindowEvent(const SDL_WindowEvent &event);
+  void syncWindowEvent(const SDL_WindowEvent &event) const;
 
-  void close();
+  void close() const;
 
-  void idle();
+  void idle() const;
 
 private:
   struct Impl;

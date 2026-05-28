@@ -54,7 +54,7 @@ namespace
   {
     if (!node || !node.IsScalar())
     {
-      throw std::runtime_error("U3GddI64FP :: Missing YAML scalar '" + std::string(name) + "' in " + path.string());
+      throw std::runtime_error("gkiGXwc6kc :: Missing YAML scalar '" + std::string(name) + "' in " + path.string());
     }
 
     const std::vector<float> values = parseFloatLine(node.as<std::string>());
@@ -273,7 +273,7 @@ namespace
     const std::vector<std::string> fields = splitWords(type);
     if (fields.empty())
     {
-      throw std::runtime_error("gMEOd5Wvmn :: Missing indexes type in " + path.string());
+      throw std::runtime_error("gMEOd5Wv3n :: Missing indexes type in " + path.string());
     }
     for (const std::string &field : fields)
     {
@@ -653,18 +653,21 @@ void scene::Scene::load(const std::filesystem::path &path)
     throw std::runtime_error("EJEw5s6sPl :: YAML container 'scene.shape-instance-groups' must be sequence in " + path.string());
   }
 
-  const YAML::Node                               shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
-  std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
+  const YAML::Node shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
+
   if (sceneShapeInstanceGroups)
   {
+    std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
     for (const YAML::Node groupName : sceneShapeInstanceGroups)
     {
       if (!groupName.IsScalar())
       {
-        throw std::runtime_error("eLfoLjxgQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
+        throw std::runtime_error("eLfoLj0gQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
       }
+
       const std::string name          = groupName.as<std::string>();
       const YAML::Node  instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
+
       appendShapeInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
     }
   }

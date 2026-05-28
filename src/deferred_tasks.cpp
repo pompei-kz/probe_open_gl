@@ -46,7 +46,7 @@ DeferredTasks::~DeferredTasks()
   impl_->runAll();
 }
 
-void DeferredTasks::add(const std::chrono::milliseconds runAfterDuration, const std::string_view taskName, std::function<void()> task)
+void DeferredTasks::add(const std::chrono::milliseconds runAfterDuration, const std::string_view taskName, std::function<void()> task) const
 {
   impl_->tasks.remove(std::string(taskName));
   impl_->tasks.put(std::string(taskName),
@@ -56,12 +56,12 @@ void DeferredTasks::add(const std::chrono::milliseconds runAfterDuration, const 
                    });
 }
 
-void DeferredTasks::clear()
+void DeferredTasks::clear() const
 {
   impl_->tasks.clear();
 }
 
-void DeferredTasks::idle(const std::chrono::system_clock::time_point now)
+void DeferredTasks::idle(const std::chrono::system_clock::time_point now) const
 {
   for (const auto snapshot = impl_->tasks.snapshot(); const auto &[taskName, task] : snapshot)
   {

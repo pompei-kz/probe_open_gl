@@ -22,11 +22,11 @@ public:
 
   ~DeferredTasks();
 
-  void add(std::chrono::milliseconds runAfterDuration, std::string_view taskName, std::function<void()> task);
+  void add(std::chrono::milliseconds runAfterDuration, std::string_view taskName, std::function<void()> task) const;
 
-  void clear();
+  void clear() const;
 
-  void idle(std::chrono::system_clock::time_point now);
+  void idle(std::chrono::system_clock::time_point now) const;
 
   [[nodiscard]] bool empty() const;
 
