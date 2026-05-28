@@ -13,15 +13,40 @@ list(SORT RESOURCE_FILES)
 
 set(GENERATED_CONTENT "")
 string(APPEND GENERATED_CONTENT "#pragma once\n\n")
-string(APPEND GENERATED_CONTENT "#include <array>\n")
+string(APPEND GENERATED_CONTENT "#include <cstddef>\n")
+string(APPEND GENERATED_CONTENT "#include <span>\n")
 string(APPEND GENERATED_CONTENT "#include <string_view>\n\n")
-string(APPEND GENERATED_CONTENT "namespace resources {\n\n")
+string(APPEND GENERATED_CONTENT "extern \"C\" {\n")
 
-set(TEXT_RESOURCE_EXTENSIONS
-        ".frag"
-        ".vert"
-        ".txt"
-)
+set(BINARY_RESOURCE_DECLARATIONS "")
+set(BINARY_RESOURCE_SYMBOL_NAMES "")
+foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
+    file(RELATIVE_PATH RESOURCE_FILE_NAME "${RESOURCE_DIRECTORY}" "${RESOURCE_FILE}")
+    get_filename_component(RESOURCE_FILE_EXTENSION "${RESOURCE_FILE}" EXT)
+    string(TOLOWER "${RESOURCE_FILE_EXTENSION}" RESOURCE_FILE_EXTENSION)
+
+    list(FIND TEXT_RESOURCE_EXTENSIONS "${RESOURCE_FILE_EXTENSION}" TEXT_RESOURCE_EXTENSION_INDEX)
+    if (NOT TEXT_RESOURCE_EXTENSION_INDEX EQUAL -1)
+        continue()
+    endif ()
+
+    set(RESOURCE_SYMBOL_NAME "${RESOURCE_FILE_NAME}")
+    string(REGEX REPLACE "[^A-Za-z0-9]" "_" RESOURCE_SYMBOL_NAME "${RESOURCE_SYMBOL_NAME}")
+    list(FIND BINARY_RESOURCE_SYMBOL_NAMES "${RESOURCE_SYMBOL_NAME}" RESOURCE_SYMBOL_NAME_INDEX)
+    if (NOT RESOURCE_SYMBOL_NAME_INDEX EQUAL -1)
+        message(FATAL_ERROR "Duplicate binary resource symbol after sanitizing: ${RESOURCE_SYMBOL_NAME}")
+    endif ()
+    list(APPEND BINARY_RESOURCE_SYMBOL_NAMES "${RESOURCE_SYMBOL_NAME}")
+
+    string(APPEND BINARY_RESOURCE_DECLARATIONS
+            "extern const unsigned char _binary_${RESOURCE_SYMBOL_NAME}_start[];\n")
+    string(APPEND BINARY_RESOURCE_DECLARATIONS
+            "extern const unsigned char _binary_${RESOURCE_SYMBOL_NAME}_end[];\n")
+endforeach ()
+
+string(APPEND GENERATED_CONTENT "${BINARY_RESOURCE_DECLARATIONS}")
+string(APPEND GENERATED_CONTENT "}\n\n")
+string(APPEND GENERATED_CONTENT "namespace resources {\n\n")
 
 set(RESOURCE_NAMES "")
 foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
@@ -51,23 +76,15 @@ foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
         string(APPEND GENERATED_CONTENT "${RESOURCE_SOURCE}")
         string(APPEND GENERATED_CONTENT ")RESOURCE\";\n\n")
     else ()
-        file(READ "${RESOURCE_FILE}" RESOURCE_SOURCE_HEX HEX)
-        string(LENGTH "${RESOURCE_SOURCE_HEX}" RESOURCE_SOURCE_HEX_LENGTH)
-        math(EXPR RESOURCE_SIZE "${RESOURCE_SOURCE_HEX_LENGTH} / 2")
+        set(RESOURCE_SYMBOL_NAME "${RESOURCE_FILE_NAME}")
+        string(REGEX REPLACE "[^A-Za-z0-9]" "_" RESOURCE_SYMBOL_NAME "${RESOURCE_SYMBOL_NAME}")
 
         string(APPEND GENERATED_CONTENT
-                "inline constexpr std::array<unsigned char, ${RESOURCE_SIZE}> ${RESOURCE_NAME} = {")
-
-        if (RESOURCE_SIZE GREATER 0)
-            string(REGEX MATCHALL ".." RESOURCE_BYTES "${RESOURCE_SOURCE_HEX}")
-            set(RESOURCE_SEPARATOR "")
-            foreach (RESOURCE_BYTE IN LISTS RESOURCE_BYTES)
-                string(APPEND GENERATED_CONTENT "${RESOURCE_SEPARATOR}0x${RESOURCE_BYTE}")
-                set(RESOURCE_SEPARATOR ", ")
-            endforeach ()
-        endif ()
-
-        string(APPEND GENERATED_CONTENT "};\n\n")
+                "inline std::span<const unsigned char> ${RESOURCE_NAME}() noexcept\n")
+        string(APPEND GENERATED_CONTENT "{\n")
+        string(APPEND GENERATED_CONTENT
+                "  return {_binary_${RESOURCE_SYMBOL_NAME}_start, static_cast<std::size_t>(_binary_${RESOURCE_SYMBOL_NAME}_end - _binary_${RESOURCE_SYMBOL_NAME}_start)};\n")
+        string(APPEND GENERATED_CONTENT "}\n\n")
     endif ()
 endforeach ()
 

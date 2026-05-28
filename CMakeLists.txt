@@ -13,6 +13,13 @@ set(FILES_DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/files
 )
 
+set(TEXT_RESOURCE_EXTENSIONS
+    ".frag"
+    ".vert"
+    ".txt"
+    ".yaml"
+)
+
 file(GLOB_RECURSE RESOURCE_SOURCES
     LIST_DIRECTORIES false
     CONFIGURE_DEPENDS
@@ -44,11 +51,56 @@ set(GENERATED_RESOURCE_HEADER
     ${CMAKE_CURRENT_BINARY_DIR}/generated/resources.hpp
 )
 
+find_program(OBJCOPY_EXECUTABLE objcopy REQUIRED)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+    set(OBJCOPY_OUTPUT_TARGET elf64-x86-64)
+    set(OBJCOPY_BINARY_ARCHITECTURE i386:x86-64)
+else ()
+    message(FATAL_ERROR "Binary resource embedding with objcopy is configured only for Linux x86_64")
+endif ()
+
+set(BINARY_RESOURCE_OBJECTS "")
+foreach (RESOURCE_SOURCE IN LISTS RESOURCE_SOURCES)
+    get_filename_component(RESOURCE_SOURCE_EXTENSION "${RESOURCE_SOURCE}" EXT)
+    string(TOLOWER "${RESOURCE_SOURCE_EXTENSION}" RESOURCE_SOURCE_EXTENSION)
+    list(FIND TEXT_RESOURCE_EXTENSIONS "${RESOURCE_SOURCE_EXTENSION}" TEXT_RESOURCE_EXTENSION_INDEX)
+
+    if (TEXT_RESOURCE_EXTENSION_INDEX EQUAL -1)
+        file(RELATIVE_PATH RESOURCE_RELATIVE_PATH "${RESOURCE_DIRECTORY}" "${RESOURCE_SOURCE}")
+        set(RESOURCE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.o")
+        set(RESOURCE_NOTE "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.note.GNU-stack")
+        get_filename_component(RESOURCE_OBJECT_DIRECTORY "${RESOURCE_OBJECT}" DIRECTORY)
+
+        add_custom_command(
+            OUTPUT ${RESOURCE_OBJECT}
+            BYPRODUCTS ${RESOURCE_NOTE}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_OBJECT_DIRECTORY}
+            COMMAND ${CMAKE_COMMAND} -E touch ${RESOURCE_NOTE}
+            COMMAND ${OBJCOPY_EXECUTABLE}
+            --input-target=binary
+            --output-target=${OBJCOPY_OUTPUT_TARGET}
+            --binary-architecture=${OBJCOPY_BINARY_ARCHITECTURE}
+            --rename-section .data=.rodata,alloc,load,readonly,data,contents
+            --add-section .note.GNU-stack=${RESOURCE_NOTE}
+            --set-section-flags .note.GNU-stack=contents,readonly
+            ${RESOURCE_RELATIVE_PATH}
+            ${RESOURCE_OBJECT}
+            WORKING_DIRECTORY ${RESOURCE_DIRECTORY}
+            DEPENDS ${RESOURCE_SOURCE}
+            COMMENT "Embedding binary resource ${RESOURCE_RELATIVE_PATH}"
+            VERBATIM
+        )
+
+        list(APPEND BINARY_RESOURCE_OBJECTS "${RESOURCE_OBJECT}")
+    endif ()
+endforeach ()
+
 add_custom_command(
     OUTPUT ${GENERATED_RESOURCE_HEADER}
     COMMAND ${CMAKE_COMMAND}
     "-DOUTPUT=${GENERATED_RESOURCE_HEADER}"
     "-DRESOURCE_DIRECTORY=${RESOURCE_DIRECTORY}"
+    "-DTEXT_RESOURCE_EXTENSIONS=${TEXT_RESOURCE_EXTENSIONS}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedResources.cmake
     DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedResources.cmake
@@ -57,12 +109,12 @@ add_custom_command(
     VERBATIM
 )
 
-add_custom_target(embedded_resources DEPENDS ${GENERATED_RESOURCE_HEADER})
+add_custom_target(embedded_resources DEPENDS ${GENERATED_RESOURCE_HEADER} ${BINARY_RESOURCE_OBJECTS})
 add_dependencies(probe_open_gl embedded_resources)
 
 target_sources(probe_open_gl
     PRIVATE
-    ${RESOURCE_SOURCES}
+    ${BINARY_RESOURCE_OBJECTS}
 )
 
 target_include_directories(probe_open_gl
