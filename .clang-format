@@ -24,3 +24,8 @@ AlignConsecutiveAssignments:
   AcrossComments: true
 
 AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: true
+BinPackArguments: false
+BinPackParameters: false
+
+AllowAllArgumentsOnNextLine: false

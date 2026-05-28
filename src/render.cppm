@@ -41,9 +41,9 @@ namespace
 {
   struct ShapeGlBufferIds
   {
-    GLuint vertexArray  = 0;
-    GLuint vertexBuffer = 0;
-    GLuint indexBuffer  = 0;
+    GLuint vertexArrayID  = 0;
+    GLuint vertexBufferID = 0;
+    GLuint indexBufferID  = 0;
   };
 
   glm::vec3 normalize(const glm::vec3 &value, const std::string_view name)
@@ -186,11 +186,13 @@ public:
     sunDirectionLocation_     = glGetUniformLocation(shaderProgram_, "sunDirection");
     // Находим uniform-переменную цвета солнечного света.
     sunColorLocation_         = glGetUniformLocation(shaderProgram_, "sunColor");
-    if (projectionMatrixLocation_ < 0 || viewMatrixLocation_ < 0 || modelMatrixLocation_ < 0 || sunForceLocation_ < 0 || sunDirectionLocation_ < 0 ||
-        sunColorLocation_ < 0)
-    {
-      throw std::runtime_error("zJ9NCwdGPQ :: Failed to locate shader uniforms");
-    }
+
+    checkPositive(projectionMatrixLocation_, "zJ9NCwdGPQ :: Failed to locate shader uniform: projectionMatrix");
+    checkPositive(viewMatrixLocation_, "V1E8JgGFEo :: Failed to locate shader uniform: viewMatrix");
+    checkPositive(modelMatrixLocation_, "TWodBEarQO :: Failed to locate shader uniform: modelMatrix");
+    checkPositive(sunForceLocation_, "bwbBRPuG4e :: Failed to locate shader uniform: sunForce");
+    checkPositive(sunDirectionLocation_, "snQlp7ciWr :: Failed to locate shader uniform: sunDirection");
+    checkPositive(sunColorLocation_, "OiRdj622GQ :: Failed to locate shader uniform: sunColor");
 
     scene_.load(scenePath);
     cameraPosition_ = scene_.camera.position;
@@ -202,48 +204,80 @@ public:
     // Делаем буфер инстансов текущим.
     glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
     // Выделяем память GPU под данные инстансов.
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(scene_.instances.size() * 4U * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, scene_.instancesSizeBytes(), nullptr, GL_DYNAMIC_DRAW);
 
-    shapeBuffers_.resize(scene_.shapes.size());
-    const GLsizei stride                   = static_cast<GLsizei>(scene_.vertexFloatCount * sizeof(float));
-    const GLsizei shapeInstanceGroupStride = 4U * sizeof(float);
+    shapeBufferIds_.resize(scene_.shapes.size());
+
     for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
     {
-      const scene::Shape &shape   = scene_.shapes[shapeIndex];
-      ShapeGlBufferIds   &buffers = shapeBuffers_[shapeIndex];
+      const scene::Shape &shape          = scene_.shapes[shapeIndex];
+      ShapeGlBufferIds   &shapeBufferIds = shapeBufferIds_[shapeIndex];
 
-      // Создаем VAO для раскладки атрибутов формы.
-      glGenVertexArrays(1, &buffers.vertexArray);
-      // Создаем вершинный буфер формы.
-      glGenBuffers(1, &buffers.vertexBuffer);
-      // Создаем индексный буфер формы.
-      glGenBuffers(1, &buffers.indexBuffer);
+      // Создаем VAO для раскладки атрибутов фигуры.
+      glGenVertexArrays(1, &shapeBufferIds.vertexArrayID);
+      // Создаем вершинный буфер фигуры.
+      glGenBuffers(1, &shapeBufferIds.vertexBufferID);
+      // Создаем индексный буфер фигуры.
+      glGenBuffers(1, &shapeBufferIds.indexBufferID);
 
-      // Делаем VAO формы текущим.
-      glBindVertexArray(buffers.vertexArray);
-      // Делаем вершинный буфер формы текущим.
-      glBindBuffer(GL_ARRAY_BUFFER, buffers.vertexBuffer);
-      // Загружаем вершины формы в GPU.
-      glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.vertices.size() * sizeof(float)), shape.vertices.data(), GL_STATIC_DRAW);
-      // Делаем индексный буфер формы текущим.
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
-      // Загружаем индексы формы в GPU.
-      glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(shape.indexes.size() * sizeof(GLuint)), shape.indexes.data(), GL_STATIC_DRAW);
+      // Делаем VAO фигуры текущим.
+      glBindVertexArray(shapeBufferIds.vertexArrayID);
+
+      // Делаем вершинный буфер фигуры текущим.
+      glBindBuffer(GL_ARRAY_BUFFER, shapeBufferIds.vertexBufferID);
+
+      // Загружаем вершины фигуры в GPU.
+      glBufferData(GL_ARRAY_BUFFER, shape.verticesSizeBytes(), shape.vertices.data(), GL_STATIC_DRAW);
+
+      // Делаем индексный буфер фигуры текущим.
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shapeBufferIds.indexBufferID);
+
+      // Загружаем индексы фигуры в GPU.
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, shape.indexesSizeBytes(), shape.indexes.data(), GL_STATIC_DRAW);
+
+      //
+      // Attribute index: 0
+      //
 
       // Описываем атрибут позиции вершины.
-      glVertexAttribPointer(0, scene_.positionFloatCount, GL_FLOAT, GL_FALSE, stride, nullptr);
+      glVertexAttribPointer(0,
+                            scene::Shape::VertexPosFloatCount,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::Shape::VertexStride,
+                            reinterpret_cast<void *>(scene::Shape::VertexPosOffset));
+
       // Включаем атрибут позиции вершины.
       glEnableVertexAttribArray(0);
+
+      //
+      // Attribute index: 1
+      //
+
       // Описываем атрибут цвета вершины.
-      glVertexAttribPointer(1, scene_.colorFloatCount, GL_FLOAT, GL_FALSE, stride,
-                            reinterpret_cast<void *>(scene_.positionFloatCount * sizeof(float)));
+      glVertexAttribPointer(1,
+                            scene::Shape::VertexColorFloatCount,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::Shape::VertexStride,
+                            reinterpret_cast<void *>(scene::Shape::VertexColorOffset));
+
       // Включаем атрибут цвета вершины.
       glEnableVertexAttribArray(1);
+
+      //
+      // Attribute index: 2
+      //
+
       // Делаем буфер инстансов текущим.
       glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
       // Описываем атрибут данных инстанса.
-      glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, shapeInstanceGroupStride,
-                            reinterpret_cast<void *>(shape.firstInstance * static_cast<std::size_t>(shapeInstanceGroupStride)));
+      glVertexAttribPointer(2, // index of attribute
+                            4, // Number of components
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::ShapeInstance::Stride,
+                            reinterpret_cast<void *>(shape.firstInstanceOffset()));
       // Включаем атрибут данных инстанса.
       glEnableVertexAttribArray(2);
       // Указываем, что атрибут меняется один раз на инстанс.
@@ -274,25 +308,25 @@ private:
       glDeleteBuffers(1, &shapeInstanceGroup_);
       shapeInstanceGroup_ = 0;
     }
-    for (ShapeGlBufferIds &buffers : shapeBuffers_)
+    for (ShapeGlBufferIds &buffers : shapeBufferIds_)
     {
-      if (buffers.vertexBuffer != 0)
+      if (buffers.vertexBufferID != 0)
       {
-        // Освобождаем вершинный буфер формы.
-        glDeleteBuffers(1, &buffers.vertexBuffer);
-        buffers.vertexBuffer = 0;
+        // Освобождаем вершинный буфер фигуры.
+        glDeleteBuffers(1, &buffers.vertexBufferID);
+        buffers.vertexBufferID = 0;
       }
-      if (buffers.indexBuffer != 0)
+      if (buffers.indexBufferID != 0)
       {
-        // Освобождаем индексный буфер формы.
-        glDeleteBuffers(1, &buffers.indexBuffer);
-        buffers.indexBuffer = 0;
+        // Освобождаем индексный буфер фигуры.
+        glDeleteBuffers(1, &buffers.indexBufferID);
+        buffers.indexBufferID = 0;
       }
-      if (buffers.vertexArray != 0)
+      if (buffers.vertexArrayID != 0)
       {
-        // Освобождаем VAO формы.
-        glDeleteVertexArrays(1, &buffers.vertexArray);
-        buffers.vertexArray = 0;
+        // Освобождаем VAO фигуры.
+        glDeleteVertexArrays(1, &buffers.vertexArrayID);
+        buffers.vertexArrayID = 0;
       }
     }
     if (shaderProgram_ != 0)
@@ -343,19 +377,21 @@ public:
 
     // Активируем шейдерную программу для текущего кадра.
     glUseProgram(shaderProgram_);
+
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
       const scene::ShapeInstance &instance   = scene_.instances[instanceIndex];
       const std::size_t           writeIndex = instanceIndex * 4U;
-      instanceData_[writeIndex]              = instance.offset[0];
+      instanceData_[writeIndex + 0U]         = instance.offset[0];
       instanceData_[writeIndex + 1U]         = instance.offset[1];
       instanceData_[writeIndex + 2U]         = instance.offset[2];
       instanceData_[writeIndex + 3U]         = static_cast<float>(instance.shapeIndex);
     }
+
     // Делаем буфер инстансов текущим перед обновлением.
     glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
     // Загружаем актуальные данные инстансов в GPU.
-    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)), instanceData_.data());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, instanceSizeBytes(), instanceData_.data());
 
     const int       width      = std::max(viewportWidth, 1);
     const int       height     = std::max(viewportHeight, 1);
@@ -363,6 +399,7 @@ public:
     const glm::mat4 projection = projectionMatrix(scene_.camera.fovDegrees, aspect, scene_.camera.nearPlane, scene_.camera.farPlane);
     const glm::mat4 view       = viewMatrix(cameraPosition_, cameraForward_, cameraUp_);
     const glm::mat4 model{1.0F};
+
     // Передаем матрицу проекции в шейдер.
     glUniformMatrix4fv(projectionMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
     // Передаем матрицу вида в шейдер.
@@ -383,10 +420,13 @@ public:
       {
         continue;
       }
-      // Выбираем VAO формы перед отрисовкой.
-      glBindVertexArray(shapeBuffers_[shapeIndex].vertexArray);
-      // Рисуем все инстансы формы по индексам.
-      glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(shape.indexes.size()), GL_UNSIGNED_INT, nullptr,
+      // Выбираем VAO фигуры перед отрисовкой.
+      glBindVertexArray(shapeBufferIds_[shapeIndex].vertexArrayID);
+      // Рисуем все инстансы фигуры по индексам.
+      glDrawElementsInstanced(GL_TRIANGLES,
+                              static_cast<GLsizei>(shape.indexes.size()),
+                              GL_UNSIGNED_INT,
+                              nullptr,
                               static_cast<GLsizei>(shape.instanceCount));
     }
   }
@@ -401,7 +441,7 @@ private:
   GLint                         sunForceLocation_         = -1;
   GLint                         sunDirectionLocation_     = -1;
   GLint                         sunColorLocation_         = -1;
-  std::vector<ShapeGlBufferIds> shapeBuffers_;
+  std::vector<ShapeGlBufferIds> shapeBufferIds_;
   std::vector<float>            instanceData_;
   glm::vec3                     cameraPosition_{};
   glm::vec3                     cameraForward_{};
@@ -409,4 +449,6 @@ private:
   MoveVert                      moveVert_      = MoveVert::NONE;
   MoveHoriz                     moveHoriz_     = MoveHoriz::NONE;
   RotateForward                 rotateForward_ = RotateForward::NONE;
+
+  GLsizeiptr instanceSizeBytes() const { return static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)); }
 };

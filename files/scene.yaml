@@ -52,6 +52,7 @@ shape-instance-groups:
       data: |
         # i   X   Y   Z
           0   0   0   0
+          1   0   3   0
   ball2:
     shape:
       ref: "#sphera_16x16_blue"
@@ -61,3 +62,5 @@ shape-instance-groups:
         # comments
         # i   X   Y   Z
           0   3   0   0
+          1  -3   0   0
+          2   0   2   3

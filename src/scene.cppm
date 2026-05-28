@@ -26,16 +26,34 @@ export namespace scene
   {
     glm::vec3     offset{0.0F, 0.0F, 0.0F};
     std::uint32_t shapeIndex = 0;
+
+    static constexpr size_t ComponentCount = 4U;
+    static constexpr size_t Stride         = ComponentCount * sizeof(float);
   };
 
   struct Shape
   {
-    std::vector<float>  vertices;
+    std::vector<float>       vertices;
+    static constexpr size_t  VertexPosFloatCount   = 3;
+    static constexpr size_t  VertexColorFloatCount = 3;
+    static constexpr size_t  VertexFloatCount      = VertexPosFloatCount + VertexColorFloatCount;
+    static constexpr GLsizei VertexStride          = VertexFloatCount * sizeof(float);
+    static constexpr size_t  VertexPosOffset       = 0 * sizeof(float);
+    static constexpr size_t  VertexColorOffset     = VertexPosFloatCount * sizeof(float);
+
     std::vector<GLuint> indexes;
+
     // Индекс первого инстанса этой формы в общем массиве инстансов сцены.
     std::size_t firstInstance = 0;
+
     // Количество подряд идущих инстансов этой формы в общем массиве инстансов сцены.
     std::size_t instanceCount = 0;
+
+    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(ShapeInstance::Stride); }
+
+    GLsizeiptr indexesSizeBytes() const { return static_cast<GLsizeiptr>(indexes.size() * sizeof(GLuint)); }
+
+    GLsizeiptr verticesSizeBytes() const { return static_cast<GLsizeiptr>(vertices.size() * sizeof(float)); }
   };
 
   struct Camera
@@ -73,13 +91,12 @@ export namespace scene
     Camera                     camera;
     Sun                        sun;
     SceneParams                params;
-    int                        vertexFloatCount   = 0;
-    int                        positionFloatCount = 0;
-    int                        colorFloatCount    = 0;
 
     void load(const std::filesystem::path &path, std::string_view shapeName);
 
     void load(const std::filesystem::path &path);
+
+    GLsizeiptr instancesSizeBytes() const { return static_cast<GLsizeiptr>(instances.size() * ShapeInstance::ComponentCount * sizeof(float)); }
   };
 
 } // namespace scene
@@ -320,10 +337,9 @@ namespace
       throw std::runtime_error("oGl0vjKJbD :: Invalid points type in " + path.string() + ": " + type);
     }
 
-    PointLayout layout;
-
     if (fields == std::vector<std::string>{"i", "X", "Y", "Z"})
     {
+      PointLayout layout;
       layout.vertexFloatCount   = 3;
       layout.positionFloatCount = 3;
       layout.colorFloatCount    = 0;
@@ -455,7 +471,7 @@ namespace
     return result;
   }
 
-  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath, const scene::Scene &sceneData)
+  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath)
   {
     const DataSection points     = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes    = extractDataSection(mesh, "indexes", meshPath);
@@ -468,6 +484,7 @@ namespace
     }
     scene::Shape                    result;
     std::unordered_map<int, GLuint> pointIndexById;
+
     for (const std::string &line : points.lines)
     {
       const std::vector<float> values = parseFloatLine(line);
@@ -481,7 +498,7 @@ namespace
       }
 
       const int id = static_cast<int>(values[0]);
-      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / sceneData.vertexFloatCount));
+      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / scene::Shape::VertexFloatCount));
       for (int i = 0; i < layout.positionFloatCount; ++i)
       {
         result.vertices.push_back(values[1 + static_cast<std::size_t>(i)]);
@@ -503,6 +520,7 @@ namespace
 
       std::array<GLuint, 3> triangle{};
       bool                  validTriangle = true;
+
       for (std::size_t i = 0; i < values.size(); ++i)
       {
         const int  pointId    = static_cast<int>(values[i]);
@@ -529,7 +547,10 @@ namespace
     return path.lexically_normal().string() + "#" + std::string(shapeName);
   }
 
-  std::uint32_t ensureShape(const std::filesystem::path &path, const YAML::Node &shapeNode, const std::string_view shapeName, scene::Scene &result,
+  std::uint32_t ensureShape(const std::filesystem::path                    &path,
+                            const YAML::Node                               &shapeNode,
+                            const std::string_view                          shapeName,
+                            scene::Scene                                   &result,
                             std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const std::string key = shapeKey(path, shapeName);
@@ -543,7 +564,7 @@ namespace
     const YAML::Node meshDocument = loadYamlFile(meshRef.path);
     const YAML::Node meshes       = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Shape     parsedShape  = parseMesh(mesh, material, meshRef.path, result);
+    scene::Shape     parsedShape  = parseMesh(mesh, material, meshRef.path);
     if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
     {
       throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
@@ -554,15 +575,21 @@ namespace
     return shapeIndex;
   }
 
-  void appendShape(const std::filesystem::path &path, const YAML::Node &shape, const std::string_view shapeName, scene::Scene &result,
+  void appendShape(const std::filesystem::path                    &path,
+                   const YAML::Node                               &shape,
+                   const std::string_view                          shapeName,
+                   scene::Scene                                   &result,
                    std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const std::uint32_t shapeIndex = ensureShape(path, shape, shapeName, result, shapeIndexByKey);
     result.instances.push_back(scene::ShapeInstance{.offset = zeroOffset, .shapeIndex = shapeIndex});
   }
 
-  void appendShapeInstanceGroup(const std::filesystem::path &path, const YAML::Node &instanceGroup, const std::string_view groupName,
-                                scene::Scene &result, std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
+  void appendShapeInstanceGroup(const std::filesystem::path                    &path,
+                                const YAML::Node                               &instanceGroup,
+                                const std::string_view                          groupName,
+                                scene::Scene                                   &result,
+                                std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
   {
     const MeshRef       shapeRef      = parseShapeRef(instanceGroup, path, groupName);
     const YAML::Node    shapeDocument = loadYamlFile(shapeRef.path);
@@ -579,6 +606,7 @@ namespace
   void updateShapeInstanceRanges(scene::Scene &data)
   {
     std::ranges::sort(data.instances, {}, &scene::ShapeInstance::shapeIndex);
+
     for (scene::Shape &shape : data.shapes)
     {
       shape.firstInstance = 0;
@@ -586,20 +614,16 @@ namespace
     }
     for (std::size_t i = 0; i < data.instances.size(); ++i)
     {
-      scene::Shape &shape = data.shapes[data.instances[i].shapeIndex];
+      const scene::ShapeInstance shapeInstance = data.instances[i];
+      scene::Shape              &shape         = data.shapes[shapeInstance.shapeIndex];
+
       if (shape.instanceCount == 0)
       {
         shape.firstInstance = i;
       }
+
       ++shape.instanceCount;
     }
-  }
-
-  void setDefaultLayout(scene::Scene &data)
-  {
-    data.vertexFloatCount   = 6;
-    data.positionFloatCount = 3;
-    data.colorFloatCount    = 3;
   }
 
   void parseSceneCamera(const YAML::Node &document, const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
@@ -673,7 +697,7 @@ void scene::Scene::load(const std::filesystem::path &path, const std::string_vie
   camera = Camera{};
   sun    = Sun{};
   params = SceneParams{};
-  setDefaultLayout(*this);
+
   if (shapeName.empty())
   {
     throw std::runtime_error("d5J2Mmx9Ar :: Shape name must not be empty");
@@ -699,7 +723,7 @@ void scene::Scene::load(const std::filesystem::path &path)
   camera = Camera{};
   sun    = Sun{};
   params = SceneParams{};
-  setDefaultLayout(*this);
+
   parseSceneCamera(document, sceneNode, path, *this);
   parseSceneSun(sceneNode, path, *this);
   parseSceneParams(sceneNode, path, *this);
