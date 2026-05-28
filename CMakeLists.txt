@@ -35,6 +35,12 @@ add_executable(probe_open_gl src/main.cpp)
 
 target_sources(probe_open_gl
     PRIVATE
+    src/application.cpp
+    src/arguments.cpp
+    src/deferred_tasks.cpp
+    src/main_window.cpp
+    src/render.cpp
+    src/scene.cpp
     src/text_writer.cpp
 )
 
@@ -161,6 +167,11 @@ add_executable(scene_tests tests/scene_tests.cpp)
 
 target_sources(scene_tests
     PRIVATE
+    src/scene.cpp
+)
+
+target_sources(scene_tests
+    PRIVATE
     FILE_SET CXX_MODULES
     FILES
     src/scene.cppm
@@ -180,6 +191,11 @@ add_executable(arguments_tests tests/arguments_tests.cpp)
 
 target_sources(arguments_tests
     PRIVATE
+    src/arguments.cpp
+)
+
+target_sources(arguments_tests
+    PRIVATE
     FILE_SET CXX_MODULES
     FILES
     src/arguments.cppm
@@ -193,6 +209,11 @@ target_link_libraries(arguments_tests
 gtest_discover_tests(arguments_tests)
 
 add_executable(deferred_tasks_tests tests/deferred_tasks_tests.cpp)
+
+target_sources(deferred_tasks_tests
+    PRIVATE
+    src/deferred_tasks.cpp
+)
 
 target_sources(deferred_tasks_tests
     PRIVATE
