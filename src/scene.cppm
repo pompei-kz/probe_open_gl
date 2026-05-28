@@ -27,7 +27,7 @@ export namespace scene
     glm::vec3     offset{0.0F, 0.0F, 0.0F};
     std::uint32_t shapeIndex = 0;
 
-    static constexpr size_t ComponentCount = 4U;
+    static constexpr size_t ComponentCount = 3U;
     static constexpr size_t Stride         = ComponentCount * sizeof(float);
   };
 

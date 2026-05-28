@@ -273,7 +273,7 @@ public:
       glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
       // Описываем атрибут данных инстанса.
       glVertexAttribPointer(2, // index of attribute
-                            4, // Number of components
+                            scene::ShapeInstance::ComponentCount,
                             GL_FLOAT,
                             GL_FALSE,
                             scene::ShapeInstance::Stride,
@@ -286,7 +286,7 @@ public:
 
     // Включаем проверку глубины для 3D-отрисовки.
     glEnable(GL_DEPTH_TEST);
-    instanceData_.resize(scene_.instances.size() * 4U);
+    instanceData_.resize(scene_.instances.size() * scene::ShapeInstance::ComponentCount);
   }
 
   Render(const Render &) = delete;
@@ -381,11 +381,11 @@ public:
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
       const scene::ShapeInstance &instance   = scene_.instances[instanceIndex];
-      const std::size_t           writeIndex = instanceIndex * 4U;
+      const std::size_t           writeIndex = instanceIndex * scene::ShapeInstance::ComponentCount;
+
       instanceData_[writeIndex + 0U]         = instance.offset[0];
       instanceData_[writeIndex + 1U]         = instance.offset[1];
       instanceData_[writeIndex + 2U]         = instance.offset[2];
-      instanceData_[writeIndex + 3U]         = static_cast<float>(instance.shapeIndex);
     }
 
     // Делаем буфер инстансов текущим перед обновлением.
