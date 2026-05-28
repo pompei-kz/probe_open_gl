@@ -139,6 +139,7 @@ find_package(GTest REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
 pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
+pkg_check_modules(FREETYPE REQUIRED IMPORTED_TARGET freetype2)
 
 target_link_libraries(probe_open_gl
     PRIVATE
@@ -147,6 +148,7 @@ target_link_libraries(probe_open_gl
     yaml-cpp::yaml-cpp
     PkgConfig::SDL2
     PkgConfig::EPOXY
+    PkgConfig::FREETYPE
 )
 
 add_executable(scene_tests tests/scene_tests.cpp)
