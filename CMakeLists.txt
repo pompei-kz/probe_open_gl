@@ -44,6 +44,7 @@ target_sources(probe_open_gl
     src/render.cppm
     src/scene.cppm
     src/sync_map.cppm
+    src/text_writer.cppm
     src/utils.cppm
 )
 

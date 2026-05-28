@@ -1,19 +1,14 @@
 module;
 
 #include <epoxy/gl.h>
-#include <ft2build.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include FT_FREETYPE_H
 
 #include "resources.hpp"
 
 #include <algorithm>
-#include <array>
-#include <cmath>
 #include <filesystem>
-#include <format>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -22,21 +17,25 @@ module;
 export module render;
 
 import scene;
+import text_writer;
 import utils;
 
-export enum class MoveVert {
+export enum class MoveVert
+{
   NONE,
   UP,
   DOWN,
 };
 
-export enum class MoveHoriz {
+export enum class MoveHoriz
+{
   NONE,
   LEFT,
   RIGHT,
 };
 
-export enum class RotateForward {
+export enum class RotateForward
+{
   NONE,
   LEFT,
   RIGHT,
@@ -49,14 +48,6 @@ namespace
     GLuint vertexArrayID  = 0;
     GLuint vertexBufferID = 0;
     GLuint indexBufferID  = 0;
-  };
-
-  struct Glyph
-  {
-    GLuint     textureID = 0;
-    glm::ivec2 size{};
-    glm::ivec2 bearing{};
-    GLuint     advance = 0;
   };
 
   glm::vec3 normalize(const glm::vec3 &value, const std::string_view name)
@@ -179,60 +170,6 @@ namespace
 
     return program;
   }
-
-  GLuint createTextShaderProgram()
-  {
-    constexpr std::string_view vertexShaderSource = R"SHADER(#version 330 core
-
-layout (location = 0) in vec4 vertex;
-
-uniform mat4 projectionMatrix;
-
-out vec2 textureCoordinates;
-
-void main() {
-  gl_Position = projectionMatrix * vec4(vertex.xy, 0.0, 1.0);
-  textureCoordinates = vertex.zw;
-}
-)SHADER";
-
-    constexpr std::string_view fragmentShaderSource = R"SHADER(#version 330 core
-
-in vec2 textureCoordinates;
-out vec4 fragmentColor;
-
-uniform sampler2D textTexture;
-uniform vec3 textColor;
-
-void main() {
-  float alpha = texture(textTexture, textureCoordinates).r;
-  fragmentColor = vec4(textColor, alpha);
-}
-)SHADER";
-
-    const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
-    const GLuint program        = glCreateProgram();
-    glAttachShader(program, vertexShader);
-    glAttachShader(program, fragmentShader);
-    glLinkProgram(program);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    GLint success = GL_FALSE;
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (success != GL_TRUE)
-    {
-      GLint logLength = 0;
-      glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-      std::string log(static_cast<std::size_t>(logLength), '\0');
-      glGetProgramInfoLog(program, logLength, nullptr, log.data());
-      glDeleteProgram(program);
-      throw std::runtime_error("wh8JVw0PZs :: Text shader link failed: " + log);
-    }
-
-    return program;
-  }
 } // namespace
 
 export class Render
@@ -241,7 +178,6 @@ public:
   explicit Render(const std::filesystem::path &scenePath)
   {
     shaderProgram_            = createShaderProgram();
-    textShaderProgram_        = createTextShaderProgram();
     // Находим uniform-переменную матрицы проекции.
     projectionMatrixLocation_ = glGetUniformLocation(shaderProgram_, "projectionMatrix");
     // Находим uniform-переменную матрицы вида.
@@ -261,13 +197,6 @@ public:
     checkPositive(sunForceLocation_, "bwbBRPuG4e :: Failed to locate shader uniform: sunForce");
     checkPositive(sunDirectionLocation_, "snQlp7ciWr :: Failed to locate shader uniform: sunDirection");
     checkPositive(sunColorLocation_, "OiRdj622GQ :: Failed to locate shader uniform: sunColor");
-
-    textProjectionMatrixLocation_ = glGetUniformLocation(textShaderProgram_, "projectionMatrix");
-    textColorLocation_            = glGetUniformLocation(textShaderProgram_, "textColor");
-    textTextureLocation_          = glGetUniformLocation(textShaderProgram_, "textTexture");
-    checkPositive(textProjectionMatrixLocation_, "TtKr7eUlWG :: Failed to locate text shader uniform: projectionMatrix");
-    checkPositive(textColorLocation_, "amS6l2n0dJ :: Failed to locate text shader uniform: textColor");
-    checkPositive(textTextureLocation_, "As0Bh7Jt52 :: Failed to locate text shader uniform: textTexture");
 
     scene_.load(scenePath);
     cameraPosition_ = scene_.camera.position;
@@ -362,9 +291,6 @@ public:
     // Включаем проверку глубины для 3D-отрисовки.
     glEnable(GL_DEPTH_TEST);
     instanceData_.resize(scene_.instances.size() * scene::ShapeInstance::ComponentCount);
-
-    loadFont();
-    createTextBuffers();
   }
 
   Render(const Render &) = delete;
@@ -413,29 +339,6 @@ private:
       glDeleteProgram(shaderProgram_);
       shaderProgram_ = 0;
     }
-    if (textVertexBufferID_ != 0)
-    {
-      glDeleteBuffers(1, &textVertexBufferID_);
-      textVertexBufferID_ = 0;
-    }
-    if (textVertexArrayID_ != 0)
-    {
-      glDeleteVertexArrays(1, &textVertexArrayID_);
-      textVertexArrayID_ = 0;
-    }
-    for (Glyph &glyph : glyphs_)
-    {
-      if (glyph.textureID != 0)
-      {
-        glDeleteTextures(1, &glyph.textureID);
-        glyph.textureID = 0;
-      }
-    }
-    if (textShaderProgram_ != 0)
-    {
-      glDeleteProgram(textShaderProgram_);
-      textShaderProgram_ = 0;
-    }
   }
 
 public:
@@ -454,8 +357,6 @@ public:
 
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
-    updateFpsText(deltaSeconds);
-
     const glm::vec3 cameraLeft             = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
     const float     sideMoveDirection      = select1m1(moveHoriz_, MoveHoriz::RIGHT, MoveHoriz::LEFT);
     const float     vertMoveDirection      = select1m1(moveVert_, MoveVert::UP, MoveVert::DOWN);
@@ -533,203 +434,22 @@ public:
                               static_cast<GLsizei>(shape.instanceCount));
     }
 
-    drawText(viewportWidth, viewportHeight, fpsText_, 8.0F, 8.0F, 1.0F, glm::vec3{0.96F, 0.97F, 1.0F});
+    textWriter_.drawFps(viewportWidth, viewportHeight, deltaSeconds);
   }
 
 private:
-  void loadFont()
-  {
-    FT_Library library = nullptr;
-    if (FT_Init_FreeType(&library) != 0)
-    {
-      throw std::runtime_error("AWv2sDuFfl :: Failed to initialize FreeType");
-    }
-
-    const auto font = resources::fonts_Roboto_Regular_ttf();
-
-    FT_Face face = nullptr;
-    if (FT_New_Memory_Face(library, font.data(), static_cast<FT_Long>(font.size()), 0, &face) != 0)
-    {
-      FT_Done_FreeType(library);
-      throw std::runtime_error("bsWec3cGVN :: Failed to load embedded Roboto-Regular.ttf");
-    }
-
-    if (FT_Set_Pixel_Sizes(face, 0, FontPixelSize) != 0)
-    {
-      FT_Done_Face(face);
-      FT_Done_FreeType(library);
-      throw std::runtime_error("DGYQhYw31S :: Failed to set font pixel size");
-    }
-
-    if (face->size != nullptr)
-    {
-      textAscenderPixels_ = static_cast<float>(face->size->metrics.ascender >> 6);
-    }
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    for (unsigned char character = FirstGlyph; character <= LastGlyph; ++character)
-    {
-      if (FT_Load_Char(face, character, FT_LOAD_RENDER) != 0)
-      {
-        continue;
-      }
-
-      GLuint textureID = 0;
-      glGenTextures(1, &textureID);
-      glBindTexture(GL_TEXTURE_2D, textureID);
-      glTexImage2D(GL_TEXTURE_2D,
-                   0,
-                   GL_RED,
-                   static_cast<GLsizei>(face->glyph->bitmap.width),
-                   static_cast<GLsizei>(face->glyph->bitmap.rows),
-                   0,
-                   GL_RED,
-                   GL_UNSIGNED_BYTE,
-                   face->glyph->bitmap.buffer);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      glyphs_[character] = Glyph{
-          textureID,
-          glm::ivec2{static_cast<int>(face->glyph->bitmap.width), static_cast<int>(face->glyph->bitmap.rows)},
-          glm::ivec2{face->glyph->bitmap_left, face->glyph->bitmap_top},
-          static_cast<GLuint>(face->glyph->advance.x),
-      };
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-    FT_Done_Face(face);
-    FT_Done_FreeType(library);
-  }
-
-  void createTextBuffers()
-  {
-    glGenVertexArrays(1, &textVertexArrayID_);
-    glGenBuffers(1, &textVertexBufferID_);
-
-    glBindVertexArray(textVertexArrayID_);
-    glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID_);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(TextVertexBufferFloatCount * sizeof(float)), nullptr, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-  }
-
-  void updateFpsText(const float deltaSeconds)
-  {
-    if (deltaSeconds <= 0.0F)
-    {
-      return;
-    }
-
-    fpsElapsedSeconds_ += deltaSeconds;
-    ++fpsFrameCount_;
-
-    if (fpsElapsedSeconds_ >= 0.25F)
-    {
-      const float fps    = static_cast<float>(fpsFrameCount_) / fpsElapsedSeconds_;
-      fpsText_           = std::format("FPS: {}", static_cast<int>(std::lround(fps)));
-      fpsElapsedSeconds_ = 0.0F;
-      fpsFrameCount_     = 0;
-    }
-  }
-
-  void drawText(const int              viewportWidth,
-                const int              viewportHeight,
-                const std::string_view text,
-                const float            left,
-                const float            top,
-                const float            scale,
-                const glm::vec3       &color) const
-  {
-    const int   width     = std::max(viewportWidth, 1);
-    const int   height    = std::max(viewportHeight, 1);
-    float       x         = left;
-    const float baselineY = top + textAscenderPixels_ * scale;
-
-    glUseProgram(textShaderProgram_);
-    const glm::mat4 projection = glm::ortho(0.0F, static_cast<float>(width), static_cast<float>(height), 0.0F);
-    glUniformMatrix4fv(textProjectionMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform3fv(textColorLocation_, 1, glm::value_ptr(color));
-    glUniform1i(textTextureLocation_, 0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(textVertexArrayID_);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
-
-    for (const char value : text)
-    {
-      const auto character = static_cast<unsigned char>(value);
-      if (character >= glyphs_.size())
-      {
-        continue;
-      }
-
-      const Glyph &glyph = glyphs_[character];
-      if (glyph.textureID == 0)
-      {
-        continue;
-      }
-
-      const float x_pos = x + static_cast<float>(glyph.bearing.x) * scale;
-      const float y_pos = baselineY - static_cast<float>(glyph.bearing.y) * scale;
-      const float w     = static_cast<float>(glyph.size.x) * scale;
-      const float h     = static_cast<float>(glyph.size.y) * scale;
-
-      // ReSharper disable once CppTemplateArgumentsCanBeDeduced
-      const std::array<float, TextVertexBufferFloatCount> vertices{
-          x_pos, y_pos + h, 0.0F, 1.0F, x_pos,     y_pos, 0.0F, 0.0F, x_pos + w, y_pos,     1.0F, 0.0F,
-          x_pos, y_pos + h, 0.0F, 1.0F, x_pos + w, y_pos, 1.0F, 0.0F, x_pos + w, y_pos + h, 1.0F, 1.0F,
-      };
-
-      glBindTexture(GL_TEXTURE_2D, glyph.textureID);
-      glBindBuffer(GL_ARRAY_BUFFER, textVertexBufferID_);
-      glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(vertices.size() * sizeof(float)), vertices.data());
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-
-      x += static_cast<float>(glyph.advance >> 6) * scale;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-  }
-
-  static constexpr unsigned char FirstGlyph                 = 32;
-  static constexpr unsigned char LastGlyph                  = 126;
-  static constexpr unsigned int  FontPixelSize              = 20;
-  static constexpr std::size_t   TextVertexBufferFloatCount = 6 * 4;
-
   scene::Scene                  scene_;
-  GLuint                        shaderProgram_                = 0;
-  GLuint                        textShaderProgram_            = 0;
-  GLuint                        shapeInstanceGroup_           = 0;
-  GLuint                        textVertexArrayID_            = 0;
-  GLuint                        textVertexBufferID_           = 0;
-  GLint                         projectionMatrixLocation_     = -1;
-  GLint                         viewMatrixLocation_           = -1;
-  GLint                         modelMatrixLocation_          = -1;
-  GLint                         sunForceLocation_             = -1;
-  GLint                         sunDirectionLocation_         = -1;
-  GLint                         sunColorLocation_             = -1;
-  GLint                         textProjectionMatrixLocation_ = -1;
-  GLint                         textColorLocation_            = -1;
-  GLint                         textTextureLocation_          = -1;
-  std::array<Glyph, 128>        glyphs_{};
+  GLuint                        shaderProgram_            = 0;
+  GLuint                        shapeInstanceGroup_       = 0;
+  GLint                         projectionMatrixLocation_ = -1;
+  GLint                         viewMatrixLocation_       = -1;
+  GLint                         modelMatrixLocation_      = -1;
+  GLint                         sunForceLocation_         = -1;
+  GLint                         sunDirectionLocation_     = -1;
+  GLint                         sunColorLocation_         = -1;
   std::vector<ShapeGlBufferIds> shapeBufferIds_;
   std::vector<float>            instanceData_;
-  std::string                   fpsText_            = "FPS: 0";
-  float                         fpsElapsedSeconds_  = 0.0F;
-  int                           fpsFrameCount_      = 0;
-  float                         textAscenderPixels_ = static_cast<float>(FontPixelSize);
+  TextWriter                    textWriter_;
   glm::vec3                     cameraPosition_{};
   glm::vec3                     cameraForward_{};
   glm::vec3                     cameraUp_{};
