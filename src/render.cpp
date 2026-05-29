@@ -8,6 +8,7 @@ module;
 #include "resources.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <stdexcept>
@@ -29,6 +30,12 @@ namespace
     GLuint vertexArrayID  = 0;
     GLuint vertexBufferID = 0;
     GLuint indexBufferID  = 0;
+  };
+
+  struct ShapeInstanceGpuData
+  {
+    float  offset[3]     = {0.0F, 0.0F, 0.0F};
+    GLuint materialIndex = 0;
   };
 
   struct ShaderProgram
@@ -204,6 +211,11 @@ struct Render::Impl
     // Выделяем память GPU под данные инстансов.
     glBufferData(GL_ARRAY_BUFFER, scene_.instancesSizeBytes(), nullptr, GL_DYNAMIC_DRAW);
 
+    glGenBuffers(1, &materialParamsBuffer_);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialParamsBuffer_);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, scene_.materialsSizeBytes(), scene_.materials.data(), GL_STATIC_DRAW);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, materialParamsBuffer_);
+
     shapeBufferIds_.resize(scene_.shapes.size());
 
     for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
@@ -274,25 +286,24 @@ struct Render::Impl
                             3,
                             GL_FLOAT,
                             GL_FALSE,
-                            scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(scene::ShapeInstance::OffsetOffset));
+                            sizeof(ShapeInstanceGpuData),
+                            reinterpret_cast<void *>(offsetof(ShapeInstanceGpuData, offset)));
       glEnableVertexAttribArray(2);
       glVertexAttribDivisor(2, 1);
 
-      // Описываем атрибут цвета материала инстанса.
-      glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, scene::ShapeInstance::Stride, reinterpret_cast<void *>(scene::ShapeInstance::ColorOffset));
+      // Описываем атрибут индекса материала инстанса.
+      glVertexAttribIPointer(3,
+                             1,
+                             GL_UNSIGNED_INT,
+                             sizeof(ShapeInstanceGpuData),
+                             reinterpret_cast<void *>(offsetof(ShapeInstanceGpuData, materialIndex)));
       glEnableVertexAttribArray(3);
       glVertexAttribDivisor(3, 1);
-
-      // Описываем атрибут масштаба материала инстанса.
-      glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, scene::ShapeInstance::Stride, reinterpret_cast<void *>(scene::ShapeInstance::ScaleOffset));
-      glEnableVertexAttribArray(4);
-      glVertexAttribDivisor(4, 1);
     }
 
     // Включаем проверку глубины для 3D-отрисовки.
     glEnable(GL_DEPTH_TEST);
-    instanceData_.resize(scene_.instances.size() * scene::ShapeInstance::ComponentCount);
+    instanceData_.resize(scene_.instances.size());
   }
 
   ~Impl() { release(); }
@@ -305,6 +316,11 @@ private:
       // Освобождаем буфер инстансов.
       glDeleteBuffers(1, &shapeInstanceGroup_);
       shapeInstanceGroup_ = 0;
+    }
+    if (materialParamsBuffer_ != 0)
+    {
+      glDeleteBuffers(1, &materialParamsBuffer_);
+      materialParamsBuffer_ = 0;
     }
     for (ShapeGlBufferIds &buffers : shapeBufferIds_)
     {
@@ -379,16 +395,12 @@ public:
 
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
-      const scene::ShapeInstance &instance   = scene_.instances[instanceIndex];
-      const std::size_t           writeIndex = instanceIndex * scene::ShapeInstance::ComponentCount;
+      const scene::ShapeInstance &instance = scene_.instances[instanceIndex];
 
-      instanceData_[writeIndex + 0U] = instance.offset[0];
-      instanceData_[writeIndex + 1U] = instance.offset[1];
-      instanceData_[writeIndex + 2U] = instance.offset[2];
-      instanceData_[writeIndex + 3U] = instance.color[0];
-      instanceData_[writeIndex + 4U] = instance.color[1];
-      instanceData_[writeIndex + 5U] = instance.color[2];
-      instanceData_[writeIndex + 6U] = instance.scale;
+      instanceData_[instanceIndex].offset[0]     = instance.offset[0];
+      instanceData_[instanceIndex].offset[1]     = instance.offset[1];
+      instanceData_[instanceIndex].offset[2]     = instance.offset[2];
+      instanceData_[instanceIndex].materialIndex = instance.materialIndex;
     }
 
     // Делаем буфер инстансов текущим перед обновлением.
@@ -417,6 +429,7 @@ public:
 
       // Активируем шейдерную программу группы перед отрисовкой этой группы.
       glUseProgram(shaderProgram->second.id);
+      glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, materialParamsBuffer_);
       // Передаем матрицу проекции в шейдер.
       glUniformMatrix4fv(shaderProgram->second.projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
       // Передаем матрицу вида в шейдер.
@@ -439,20 +452,13 @@ public:
                             3,
                             GL_FLOAT,
                             GL_FALSE,
-                            scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::OffsetOffset));
-      glVertexAttribPointer(3,
-                            3,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::ColorOffset));
-      glVertexAttribPointer(4,
-                            1,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::ScaleOffset));
+                            sizeof(ShapeInstanceGpuData),
+                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + offsetof(ShapeInstanceGpuData, offset)));
+      glVertexAttribIPointer(3,
+                             1,
+                             GL_UNSIGNED_INT,
+                             sizeof(ShapeInstanceGpuData),
+                             reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + offsetof(ShapeInstanceGpuData, materialIndex)));
       // Рисуем все инстансы фигуры по индексам.
       glDrawElementsInstanced(GL_TRIANGLES,
                               static_cast<GLsizei>(shape.indexes.size()),
@@ -466,10 +472,11 @@ public:
 
 private:
   scene::Scene                                   scene_;
-  GLuint                                         shapeInstanceGroup_ = 0;
+  GLuint                                         shapeInstanceGroup_   = 0;
+  GLuint                                         materialParamsBuffer_ = 0;
   std::vector<ShapeGlBufferIds>                  shapeBufferIds_;
   std::unordered_map<std::string, ShaderProgram> shaderPrograms_;
-  std::vector<float>                             instanceData_;
+  std::vector<ShapeInstanceGpuData>              instanceData_;
   TextWriter                                     textWriter_;
   glm::vec3                                      cameraPosition_{};
   glm::vec3                                      cameraForward_{};
@@ -478,7 +485,7 @@ private:
   MoveHoriz                                      moveHoriz_     = MoveHoriz::NONE;
   RotateForward                                  rotateForward_ = RotateForward::NONE;
 
-  GLsizeiptr instanceSizeBytes() const { return static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)); }
+  GLsizeiptr instanceSizeBytes() const { return static_cast<GLsizeiptr>(instanceData_.size() * sizeof(ShapeInstanceGpuData)); }
 };
 
 Render::Render(const std::filesystem::path &scenePath)

@@ -15,15 +15,18 @@ export namespace scene
   struct ShapeInstance
   {
     glm::vec3     offset{0.0F, 0.0F, 0.0F};
-    glm::vec3     color{1.0F, 1.0F, 1.0F};
-    float         scale      = 1.0F;
-    std::uint32_t shapeIndex = 0;
+    std::uint32_t materialIndex = 0;
+    std::uint32_t shapeIndex    = 0;
 
-    static constexpr size_t ComponentCount = 7U;
-    static constexpr size_t OffsetOffset   = 0U;
-    static constexpr size_t ColorOffset    = 3U * sizeof(float);
-    static constexpr size_t ScaleOffset    = 6U * sizeof(float);
-    static constexpr size_t Stride         = ComponentCount * sizeof(float);
+    static constexpr size_t OffsetOffset        = 0U;
+    static constexpr size_t MaterialIndexOffset = 3U * sizeof(float);
+    static constexpr size_t Stride              = 4U * sizeof(float);
+  };
+
+  struct MaterialParams
+  {
+    glm::vec3 color{1.0F, 1.0F, 1.0F};
+    float     scale = 1.0F;
   };
 
   struct Shape
@@ -95,18 +98,19 @@ export namespace scene
   class Scene
   {
   public:
-    std::vector<Shape>         shapes;
-    std::vector<ShapeInstance> instances;
-    std::vector<ShapeGroup>    shapeGroups;
-    Camera                     camera;
-    Sun                        sun;
-    SceneParams                params;
-
-    void load(const std::filesystem::path &path, std::string_view shapeName);
+    std::vector<Shape>          shapes;
+    std::vector<ShapeInstance>  instances;
+    std::vector<ShapeGroup>     shapeGroups;
+    std::vector<MaterialParams> materials;
+    Camera                      camera;
+    Sun                         sun;
+    SceneParams                 params;
 
     void load(const std::filesystem::path &path);
 
-    GLsizeiptr instancesSizeBytes() const { return static_cast<GLsizeiptr>(instances.size() * ShapeInstance::ComponentCount * sizeof(float)); }
+    GLsizeiptr instancesSizeBytes() const { return static_cast<GLsizeiptr>(instances.size() * ShapeInstance::Stride); }
+
+    GLsizeiptr materialsSizeBytes() const { return static_cast<GLsizeiptr>(materials.size() * sizeof(MaterialParams)); }
   };
 
 } // namespace scene

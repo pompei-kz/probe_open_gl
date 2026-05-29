@@ -7,6 +7,7 @@ import scene;
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -49,100 +50,44 @@ namespace
     }
   }
 
-  void expectRuntimeErrorContains(const std::filesystem::path &path, const std::string &shapeName, const std::string &text)
+  std::string cameraYaml()
   {
-    try
-    {
-      scene::Scene data;
-      data.load(path, shapeName);
-      FAIL() << "Expected std::runtime_error";
-    }
-    catch (const std::runtime_error &exception)
-    {
-      EXPECT_NE(std::string(exception.what()).find(text), std::string::npos);
-    }
+    return R"yaml(
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+)yaml";
   }
-} // namespace
 
-TEST(LoadScene, LoadsRequestedShapeFromShapesRoot)
-{
-  const std::filesystem::path path = writeYaml("loads_requested_shape", R"yaml(
+  std::string triangleMeshYaml()
+  {
+    return R"yaml(
 meshes:
-  ignored:
+  triangle:
     points:
       type: "i X Y Z"
       data: |
-        1 0 0 0
-        2 1 0 0
-        3 0 1 0
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
     indexes:
       type: "i i i"
       data: |
         1 2 3
-  target:
-    points:
-      type: "i X Y Z"
-      data: |
-        10 -1.0 0.0 0.0
-        20  1.0 0.0 0.0
-        30  0.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        10 20 30
-shapes:
-  ignored_shape:
-    mesh:
-      ref: "#ignored"
-    material:
-      type: "solid"
-  target:
-    mesh:
-      ref: "#target"
-    material:
-      type: "solid"
-)yaml");
-
-  scene::Scene data;
-  data.load(path, "target");
-
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.instances.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], -1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[12], 0.0F);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
-  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
-  EXPECT_EQ(data.shapes[0].instanceCount, 1U);
-}
-
-TEST(LoadScene, TreatsMissingShapesContainerAsEmpty)
-{
-  const std::filesystem::path path = writeYaml("missing_shapes_container", R"yaml(
-meshes: {}
-)yaml");
-
-  expectRuntimeErrorContains(path, "target", " :: Missing YAML map 'target'");
-}
-
-TEST(LoadScene, TreatsMissingMeshesContainerAsEmpty)
-{
-  const std::filesystem::path path = writeYaml("missing_meshes_container", R"yaml(
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-)yaml");
-
-  expectRuntimeErrorContains(path, "target", " :: Missing YAML map 'triangle'");
-}
+)yaml";
+  }
+} // namespace
 
 TEST(LoadScene, TreatsMissingCamerasContainerAsEmpty)
 {
@@ -154,150 +99,33 @@ scene:
   expectRuntimeErrorContains(path, " :: Missing YAML map 'main'");
 }
 
-TEST(LoadScene, TreatsMissingShapeInstanceGroupsContainerAsEmpty)
+TEST(LoadScene, TreatsMissingSceneShapeGroupsAsEmpty)
 {
-  const std::filesystem::path path = writeYaml("missing_shape_instance_groups_container", R"yaml(
+  const std::filesystem::path path = writeYaml("missing_scene_shape_groups", R"yaml(
 scene:
   camera: "main"
-  shape-instance-groups:
-    - selected_group
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "1"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
-)yaml");
-
-  expectRuntimeErrorContains(path, " :: Missing YAML map 'selected_group'");
-}
-
-TEST(LoadScene, TreatsMissingSceneShapeInstanceGroupsAsEmpty)
-{
-  const std::filesystem::path path = writeYaml("missing_scene_shape_instance_groups", R"yaml(
-scene:
-  camera: "main"
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "1"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
-)yaml");
+)yaml" + cameraYaml());
 
   expectRuntimeErrorContains(path, " :: No drawable triangle data");
 }
 
-TEST(LoadScene, UsesSolidMaterialColorWhenMeshHasNoColors)
+TEST(LoadScene, TreatsMissingShapeGroupsContainerAsEmpty)
 {
-  const std::filesystem::path path = writeYaml("uses_material_color", R"yaml(
-meshes:
-  triangle:
-    points:
-      type: "i X Y Z"
-      data: |
-        1 0.0 0.0 0.0
-        2 1.0 0.0 0.0
-        3 1.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.2 0.4 0.6"
-)yaml");
-
-  scene::Scene data;
-  data.load(path, "target");
-
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.2F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.4F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[15], 0.2F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[16], 0.4F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[17], 0.6F);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-}
-
-TEST(LoadScene, DoesNotDrawSceneShapesDirectly)
-{
-  const std::filesystem::path path = writeYaml("does_not_draw_scene_shapes", R"yaml(
+  const std::filesystem::path path = writeYaml("missing_shape_groups_container", R"yaml(
 scene:
-  shapes:
-    - shape_01
   camera: "main"
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "4.5"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
-meshes:
-  first:
-    points:
-      type: "i X Y Z"
-      data: |
-        1 0.0 0.0 0.0
-        2 1.0 0.0 0.0
-        3 0.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-shapes:
-  shape_01:
-    mesh:
-      ref: "#first"
-    material:
-      type: "solid"
-)yaml");
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml());
 
-  EXPECT_THROW(
-      {
-        scene::Scene data;
-        data.load(path);
-      },
-      std::runtime_error);
+  expectRuntimeErrorContains(path, " :: Missing YAML map 'selected_group'");
 }
 
-TEST(LoadScene, LoadsSelectedShapeInstanceGroupsWithOffsets)
+TEST(LoadScene, LoadsShapeGroupsWithShaderMeshRefMaterialsAndOffsets)
 {
-  const std::filesystem::path path = writeYaml("loads_shape_instance_groups", R"yaml(
+  const std::filesystem::path path = writeYaml("loads_shape_groups", R"yaml(
 scene:
-  shapes:
-    - ignored_direct_shape
-  shape-instance-groups:
+  shape-groups:
     - selected_group
   camera: "main"
   sun:
@@ -321,113 +149,6 @@ cameras:
       forwardMouseSensitivity: "0.2"
       forwardScrollStep: "2.5"
       forwardRotateDegPSec: "12.5"
-meshes:
-  triangle:
-    points:
-      type: "i X Y Z"
-      data: |
-        1 0.0 0.0 0.0
-        2 1.0 0.0 0.0
-        3 0.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-shapes:
-  ignored_direct_shape:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "1.0 1.0 1.0"
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.2 0.4 0.6"
-shape-instance-groups:
-  selected_group:
-    shape:
-      ref: "#target"
-    offsets:
-      type: "i X Y Z"
-      data: |
-        0 10 20 30
-        1 -1 -2 -3
-  ignored_group:
-    shape:
-      ref: "#target"
-    offsets:
-      type: "i X Y Z"
-      data: |
-        0 100 200 300
-)yaml");
-
-  scene::Scene data;
-  data.load(path);
-
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.instances.size(), 2U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], 0.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[12], 0.0F);
-  EXPECT_FLOAT_EQ(data.instances[0].offset[0], 10.0F);
-  EXPECT_FLOAT_EQ(data.instances[0].offset[1], 20.0F);
-  EXPECT_FLOAT_EQ(data.instances[0].offset[2], 30.0F);
-  EXPECT_FLOAT_EQ(data.instances[1].offset[0], -1.0F);
-  EXPECT_FLOAT_EQ(data.instances[1].offset[1], -2.0F);
-  EXPECT_FLOAT_EQ(data.instances[1].offset[2], -3.0F);
-  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
-  EXPECT_EQ(data.instances[1].shapeIndex, 0U);
-  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
-  EXPECT_EQ(data.shapes[0].instanceCount, 2U);
-  EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
-  EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
-  EXPECT_FLOAT_EQ(data.camera.up[2], 0.2F);
-  EXPECT_FLOAT_EQ(data.camera.nearPlane, 0.2F);
-  EXPECT_FLOAT_EQ(data.camera.farPlane, 250.0F);
-  EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
-  EXPECT_FLOAT_EQ(data.camera.forwardVelocity, 1.5F);
-  EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
-  EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
-  EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
-  EXPECT_FLOAT_EQ(data.camera.forwardRotateDegPSec, 12.5F);
-  EXPECT_FLOAT_EQ(data.sun.force, 2.5F);
-  EXPECT_FLOAT_EQ(data.sun.direction[0], 0.0F);
-  EXPECT_FLOAT_EQ(data.sun.direction[1], 0.6F);
-  EXPECT_FLOAT_EQ(data.sun.direction[2], 0.8F);
-  EXPECT_FLOAT_EQ(data.sun.color[0], 0.7F);
-  EXPECT_FLOAT_EQ(data.sun.color[1], 0.8F);
-  EXPECT_FLOAT_EQ(data.sun.color[2], 0.9F);
-  EXPECT_FLOAT_EQ(data.params.backgroundColor[0], 0.11F);
-  EXPECT_FLOAT_EQ(data.params.backgroundColor[1], 0.22F);
-  EXPECT_FLOAT_EQ(data.params.backgroundColor[2], 0.33F);
-}
-
-TEST(LoadScene, LoadsShapeGroupsWithShaderAndMeshRef)
-{
-  const std::filesystem::path path = writeYaml("loads_shape_groups", R"yaml(
-scene:
-  shape-groups:
-    - selected_group
-  camera: "main"
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "1"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
 meshes:
   triangle:
     points:
@@ -468,71 +189,182 @@ shape-groups:
   EXPECT_EQ(data.shapeGroups[0].shapeIndex, 0U);
   EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
   EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], 0.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 1.0F);
   EXPECT_FLOAT_EQ(data.instances[0].offset[0], 10.0F);
-  EXPECT_FLOAT_EQ(data.instances[0].color[0], 0.2F);
-  EXPECT_FLOAT_EQ(data.instances[0].color[1], 0.4F);
-  EXPECT_FLOAT_EQ(data.instances[0].color[2], 0.6F);
-  EXPECT_FLOAT_EQ(data.instances[0].scale, 2.5F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[1], 20.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[2], 30.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[1], -2.0F);
   EXPECT_FLOAT_EQ(data.instances[1].offset[2], -3.0F);
-  EXPECT_FLOAT_EQ(data.instances[1].color[0], 0.7F);
-  EXPECT_FLOAT_EQ(data.instances[1].color[1], 0.8F);
-  EXPECT_FLOAT_EQ(data.instances[1].color[2], 0.9F);
-  EXPECT_FLOAT_EQ(data.instances[1].scale, 3.5F);
+  EXPECT_EQ(data.instances[0].shapeIndex, 0U);
+  EXPECT_EQ(data.instances[1].shapeIndex, 0U);
+  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapes[0].instanceCount, 2U);
+
+  ASSERT_EQ(data.materials.size(), 2U);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[0].materialIndex].color[0], 0.2F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[0].materialIndex].color[1], 0.4F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[0].materialIndex].color[2], 0.6F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[0].materialIndex].scale, 2.5F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[1].materialIndex].color[0], 0.7F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[1].materialIndex].color[1], 0.8F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[1].materialIndex].color[2], 0.9F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[1].materialIndex].scale, 3.5F);
+
+  EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
+  EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
+  EXPECT_FLOAT_EQ(data.camera.up[2], 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.nearPlane, 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.farPlane, 250.0F);
+  EXPECT_FLOAT_EQ(data.camera.fovDegrees, 60.0F);
+  EXPECT_FLOAT_EQ(data.camera.forwardVelocity, 1.5F);
+  EXPECT_FLOAT_EQ(data.camera.sideVelocity, 4.5F);
+  EXPECT_FLOAT_EQ(data.camera.forwardMouseSensitivity, 0.2F);
+  EXPECT_FLOAT_EQ(data.camera.forwardScrollStep, 2.5F);
+  EXPECT_FLOAT_EQ(data.camera.forwardRotateDegPSec, 12.5F);
+  EXPECT_FLOAT_EQ(data.sun.force, 2.5F);
+  EXPECT_FLOAT_EQ(data.sun.direction[0], 0.0F);
+  EXPECT_FLOAT_EQ(data.sun.direction[1], 0.6F);
+  EXPECT_FLOAT_EQ(data.sun.direction[2], 0.8F);
+  EXPECT_FLOAT_EQ(data.sun.color[0], 0.7F);
+  EXPECT_FLOAT_EQ(data.sun.color[1], 0.8F);
+  EXPECT_FLOAT_EQ(data.sun.color[2], 0.9F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[0], 0.11F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[1], 0.22F);
+  EXPECT_FLOAT_EQ(data.params.backgroundColor[2], 0.33F);
 }
 
-TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
+TEST(LoadScene, LoadsMeshRefFromExternalYamlFile)
 {
-  const std::filesystem::path path = writeYaml("zero_sun_direction", R"yaml(
+  writeTextFile("probe_open_gl_external_meshes.yaml", triangleMeshYaml());
+  const std::filesystem::path path = writeYaml("external_mesh_ref", R"yaml(
 scene:
   camera: "main"
-  sun:
-    force: "1"
-    direction: "0 0 0"
-    color: "1 1 1"
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "1"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "probe_open_gl_external_meshes.yaml#triangle"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
 )yaml");
 
-  expectRuntimeErrorContains(path, " :: YAML vector 'scene.sun.direction' must not be zero");
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 1U);
+  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  EXPECT_FLOAT_EQ(data.instances[0].offset[0], 1.0F);
+  EXPECT_FLOAT_EQ(data.materials[data.instances[0].materialIndex].scale, 1.0F);
 }
 
-TEST(LoadScene, StoresOnlyShapesUsedBySelectedInstanceGroups)
+TEST(LoadScene, ReadsPointIndexAndOffsetDataRefs)
 {
-  const std::filesystem::path path = writeYaml("stores_only_used_shapes", R"yaml(
+  writeTextFile("probe_open_gl_points.txt", R"txt(
+1 0.0 0.0 0.0
+2 1.0 0.0 0.0
+3 0.0 1.0 0.0
+)txt");
+  writeTextFile("probe_open_gl_indexes.txt", R"txt(
+1 2 3
+)txt");
+  writeTextFile("probe_open_gl_offsets.txt", R"txt(
+0 4 5 6
+)txt");
+  const std::filesystem::path path = writeYaml("data_refs", R"yaml(
 scene:
-  shape-instance-groups:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data-ref: "probe_open_gl_points.txt"
+    indexes:
+      type: "i i i"
+      data-ref: "probe_open_gl_indexes.txt"
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
+      type: "i X Y Z"
+      data-ref: "probe_open_gl_offsets.txt"
+)yaml");
+
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 1U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[0], 4.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[1], 5.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[2], 6.0F);
+}
+
+TEST(LoadScene, IgnoresCommentsAndBlankLines)
+{
+  const std::filesystem::path path = writeYaml("comments_and_blank_lines", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data: |
+        # comment
+        1 0.0 0.0 0.0
+
+        2 1.0 0.0 0.0 # inline comment
+        3 0.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3 # inline comment
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        # comment
+        0 7 8 9 0
+)yaml");
+
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 1U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[6], 1.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[2], 9.0F);
+}
+
+TEST(LoadScene, StoresOnlySelectedShapeGroups)
+{
+  const std::filesystem::path path = writeYaml("selected_shape_groups_only", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
     - first_group
     - second_group
-  camera: "main"
-cameras:
-  main:
-    geom:
-      position: "0 0 10"
-      forward: "0 0 -1"
-      up: "0 1 0"
-      near: "0.1"
-      far: "100"
-      fov: "45"
-    params:
-      forwardVelocity: "1"
-      sideVelocity: "1"
-      forwardMouseSensitivity: "0.1"
-      forwardScrollStep: "1"
+)yaml" + cameraYaml() + R"yaml(
 meshes:
   first_mesh:
     points:
@@ -567,41 +399,29 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-shapes:
-  first:
-    mesh:
-      ref: "#first_mesh"
-    material:
-      type: "solid"
-      color: "1 0 0"
-  second:
-    mesh:
-      ref: "#second_mesh"
-    material:
-      type: "solid"
-      color: "0 1 0"
-  unused:
-    mesh:
-      ref: "#unused_mesh"
-    material:
-      type: "solid"
-      color: "0 0 1"
-shape-instance-groups:
+shape-groups:
   first_group:
-    shape:
-      ref: "#first"
+    shader: "triangle"
+    mesh-ref: "#first_mesh"
     offsets:
       type: "i X Y Z"
       data: |
         0 10 0 0
         1 11 0 0
   second_group:
-    shape:
-      ref: "#second"
+    shader: "triangle"
+    mesh-ref: "#second_mesh"
     offsets:
       type: "i X Y Z"
       data: |
         0 20 0 0
+  unused_group:
+    shader: "triangle"
+    mesh-ref: "#unused_mesh"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 90 0 0
 )yaml");
 
   scene::Scene data;
@@ -609,217 +429,124 @@ shape-instance-groups:
 
   ASSERT_EQ(data.shapes.size(), 2U);
   ASSERT_EQ(data.instances.size(), 3U);
+  ASSERT_EQ(data.shapeGroups.size(), 2U);
   EXPECT_FLOAT_EQ(data.shapes[0].vertices[0], 0.0F);
   EXPECT_FLOAT_EQ(data.shapes[1].vertices[0], 2.0F);
-  EXPECT_EQ(data.shapes[0].firstInstance, 0U);
-  EXPECT_EQ(data.shapes[0].instanceCount, 2U);
-  EXPECT_EQ(data.shapes[1].firstInstance, 2U);
-  EXPECT_EQ(data.shapes[1].instanceCount, 1U);
+  EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
+  EXPECT_EQ(data.shapeGroups[1].firstInstance, 2U);
+  EXPECT_EQ(data.shapeGroups[1].instanceCount, 1U);
   EXPECT_EQ(data.instances[0].shapeIndex, 0U);
-  EXPECT_EQ(data.instances[1].shapeIndex, 0U);
   EXPECT_EQ(data.instances[2].shapeIndex, 1U);
 }
 
-TEST(LoadScene, ResolvesMeshReferencesFromRelativeFiles)
+TEST(LoadScene, DoesNotReadLegacyRootShapesOrShapeInstanceGroups)
 {
-  const std::filesystem::path meshPath = writeYaml("external_meshes", R"yaml(
-meshes:
-  external:
-    points:
-      type: "i X Y Z"
-      data: |
-        1 0.0 0.0 0.0
-        2 1.0 0.0 0.0
-        3 0.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        1 2 3
-)yaml");
-
-  const std::filesystem::path path = writeYaml("relative_mesh_ref", R"yaml(
-shapes:
-  target:
-    mesh:
-      ref: "probe_open_gl_external_meshes.yaml#external"
-    material:
-      type: "solid"
-      color: "0.1 0.2 0.3"
-)yaml");
-
-  scene::Scene data;
-  data.load(path, "target");
-
-  (void)meshPath;
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
-}
-
-TEST(LoadScene, ReadsPointAndIndexDataRefs)
-{
-  const std::filesystem::path pointsPath  = writeTextFile("probe_open_gl_points_data_ref.txt", R"txt(
-1 0.0 0.0 0.0
-2 1.0 0.0 0.0
-3 0.0 1.0 0.0
-)txt");
-  const std::filesystem::path indexesPath = writeTextFile("probe_open_gl_indexes_data_ref.txt", R"txt(
-1 2 3
-)txt");
-  const std::filesystem::path path        = writeYaml("data_refs", R"yaml(
-meshes:
-  triangle:
-    points:
-      type: "i X Y Z"
-      data-ref: "probe_open_gl_points_data_ref.txt"
-    indexes:
-      type: "i i i"
-      data-ref: "probe_open_gl_indexes_data_ref.txt"
+  const std::filesystem::path path = writeYaml("legacy_root_shapes_ignored", R"yaml(
+scene:
+  camera: "main"
+  shape-instance-groups:
+    - selected_group
+)yaml" + cameraYaml() + triangleMeshYaml() + R"yaml(
 shapes:
   target:
     mesh:
       ref: "#triangle"
     material:
       type: "solid"
-      color: "0.1 0.2 0.3"
-)yaml");
-
-  scene::Scene data;
-  data.load(path, "target");
-
-  (void)pointsPath;
-  (void)indexesPath;
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.1F);
-}
-
-TEST(LoadScene, IgnoresEmptyLinesAndCommentsInInlineData)
-{
-  const std::filesystem::path path = writeYaml("inline_empty_lines_and_comments", R"yaml(
-meshes:
-  triangle:
-    points:
+shape-instance-groups:
+  selected_group:
+    shape:
+      ref: "#target"
+    offsets:
       type: "i X Y Z"
       data: |
-        # point id and coordinates
-        1 0.0 0.0 0.0
-
-        2 1.0 0.0 0.0 # trailing comment
-
-        # another comment
-        3 0.0 1.0 0.0
-    indexes:
-      type: "i i i"
-      data: |
-        # one triangle
-
-        1 2 3 # by point ids
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.7 0.8 0.9"
+        0 1 2 3
 )yaml");
 
-  scene::Scene data;
-  data.load(path, "target");
-
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.7F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.8F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.9F);
+  expectRuntimeErrorContains(path, " :: No drawable triangle data");
 }
 
-TEST(LoadScene, IgnoresEmptyLinesAndCommentsInDataRefs)
+TEST(LoadScene, ThrowsWhenShapeGroupHasNoShader)
 {
-  const std::filesystem::path pointsPath  = writeTextFile("probe_open_gl_points_comments_ref.txt", R"txt(
-# point id and coordinates
-1 0.0 0.0 0.0
-
-2 1.0 0.0 0.0 # trailing comment
-
-# another comment
-3 0.0 1.0 0.0
-)txt");
-  const std::filesystem::path indexesPath = writeTextFile("probe_open_gl_indexes_comments_ref.txt", R"txt(
-# one triangle
-
-1 2 3 # by point ids
-)txt");
-  const std::filesystem::path path        = writeYaml("data_refs_empty_lines_and_comments", R"yaml(
-meshes:
-  triangle:
-    points:
+  const std::filesystem::path path = writeYaml("missing_shader", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + triangleMeshYaml() + R"yaml(
+shape-groups:
+  selected_group:
+    mesh-ref: "#triangle"
+    offsets:
       type: "i X Y Z"
-      data-ref: "probe_open_gl_points_comments_ref.txt"
-    indexes:
-      type: "i i i"
-      data-ref: "probe_open_gl_indexes_comments_ref.txt"
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.4 0.5 0.6"
+      data: |
+        0 1 2 3
 )yaml");
 
-  scene::Scene data;
-  data.load(path, "target");
-
-  (void)pointsPath;
-  (void)indexesPath;
-  ASSERT_EQ(data.shapes.size(), 1U);
-  ASSERT_EQ(data.shapes[0].vertices.size(), 18U);
-  EXPECT_EQ(data.shapes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.4F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.5F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
+  expectRuntimeErrorContains(path, " :: Missing shader for shape group 'selected_group'");
 }
 
-TEST(LoadScene, ThrowsWhenSectionHasDataAndDataRef)
+TEST(LoadScene, ThrowsWhenShapeGroupHasNoMeshRef)
+{
+  const std::filesystem::path path = writeYaml("missing_mesh_ref", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + triangleMeshYaml() + R"yaml(
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: Missing mesh-ref for shape group 'selected_group'");
+}
+
+TEST(LoadScene, ThrowsWhenDataAndDataRefAreBothSet)
 {
   const std::filesystem::path path = writeYaml("data_and_data_ref", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
     points:
       type: "i X Y Z"
       data: |
-        1 0.0 0.0 0.0
-        2 1.0 0.0 0.0
-        3 0.0 1.0 0.0
-      data-ref: "unused.txt"
+        1 0 0 0
+      data-ref: "probe_open_gl_points.txt"
     indexes:
       type: "i i i"
       data: |
         1 2 3
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.1 0.2 0.3"
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
 )yaml");
 
-  EXPECT_THROW(
-      {
-        scene::Scene data;
-        data.load(path, "target");
-      },
-      std::runtime_error);
+  expectRuntimeErrorContains(path, " :: YAML section 'points' must not define both data and data-ref");
 }
 
-TEST(LoadScene, ThrowsWhenSectionHasNeitherDataNorDataRef)
+TEST(LoadScene, ThrowsWhenDataAndDataRefAreMissing)
 {
-  const std::filesystem::path path = writeYaml("no_data_or_data_ref", R"yaml(
+  const std::filesystem::path path = writeYaml("missing_data_and_data_ref", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
     points:
@@ -828,77 +555,106 @@ meshes:
       type: "i i i"
       data: |
         1 2 3
-shapes:
-  target:
-    mesh:
-      ref: "#triangle"
-    material:
-      type: "solid"
-      color: "0.1 0.2 0.3"
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
 )yaml");
 
-  EXPECT_THROW(
-      {
-        scene::Scene data;
-        data.load(path, "target");
-      },
-      std::runtime_error);
+  expectRuntimeErrorContains(path, " :: YAML section 'points' must define data or data-ref");
 }
 
 TEST(LoadScene, ThrowsWhenMeshIsMissing)
 {
   const std::filesystem::path path = writeYaml("missing_mesh", R"yaml(
-meshes:
-  existing:
-    points:
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
+meshes: {}
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
       type: "i X Y Z"
       data: |
-        1 0 0 0
-    indexes:
-      type: "i i i"
-      data: |
-        1 1 1
-shapes:
-  existing:
-    mesh:
-      ref: "#existing"
-    material:
-      type: "solid"
+        0 1 2 3
 )yaml");
 
-  EXPECT_THROW(
-      {
-        scene::Scene data;
-        data.load(path, "missing");
-      },
-      std::runtime_error);
+  expectRuntimeErrorContains(path, " :: Missing YAML map 'triangle'");
 }
 
-TEST(LoadScene, ThrowsWhenPointRowDoesNotMatchType)
+TEST(LoadScene, ThrowsWhenPointRowHasWrongSize)
 {
   const std::filesystem::path path = writeYaml("invalid_point_row", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + R"yaml(
 meshes:
-  bad:
+  triangle:
     points:
       type: "i X Y Z"
       data: |
-        1 0 0 0 1
+        1 0.0 0.0
     indexes:
       type: "i i i"
       data: |
-        1 1 1
-shapes:
-  bad:
-    mesh:
-      ref: "#bad"
-    material:
-      type: "solid"
+        1 2 3
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
 )yaml");
 
-  EXPECT_THROW(
-      {
-        scene::Scene data;
-        data.load(path, "bad");
-      },
-      std::runtime_error);
+  expectRuntimeErrorContains(path, " :: Invalid point row");
+}
+
+TEST(LoadScene, ThrowsWhenOffsetMaterialIndexIsMissing)
+{
+  const std::filesystem::path path = writeYaml("missing_material_index", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + triangleMeshYaml() + R"yaml(
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    materials:
+      - index: 1
+        color: "0.2 0.4 0.6"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        0 1 2 3 0
+)yaml");
+
+  expectRuntimeErrorContains(path, " :: Missing material index 0 for shape group 'selected_group'");
+}
+
+TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
+{
+  const std::filesystem::path path = writeYaml("zero_sun_direction", R"yaml(
+scene:
+  camera: "main"
+  sun:
+    force: "1"
+    direction: "0 0 0"
+    color: "1 1 1"
+)yaml" + cameraYaml());
+
+  expectRuntimeErrorContains(path, " :: YAML vector 'scene.sun.direction' must not be zero");
 }

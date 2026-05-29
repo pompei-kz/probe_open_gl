@@ -58,6 +58,15 @@ namespace
 
   std::vector<float> parseFloatLine(std::string line);
 
+  std::uint32_t appendMaterial(scene::Scene &result, const Material &material)
+  {
+    result.materials.push_back(scene::MaterialParams{
+        .color = {material.solidColor[0], material.solidColor[1], material.solidColor[2]},
+        .scale = material.scale,
+    });
+    return static_cast<std::uint32_t>(result.materials.size() - 1U);
+  }
+
   glm::vec3 parseVector3(const YAML::Node &node, const std::filesystem::path &path, const std::string_view name)
   {
     if (!node || !node.IsScalar())
@@ -293,12 +302,12 @@ namespace
     return static_cast<int>(fields.size());
   }
 
-  std::array<float, 3> parseSolidColor(const YAML::Node &material, const std::filesystem::path &path, const std::string_view shapeName)
+  std::array<float, 3> parseSolidColor(const YAML::Node &material, const std::filesystem::path &path, const std::string_view groupName)
   {
     const YAML::Node color = material["color"];
     if (!color || !color.IsScalar())
     {
-      throw std::runtime_error("qP8hh93VfV :: Solid material for shape '" + std::string(shapeName) + "' must define scalar color in " +
+      throw std::runtime_error("qP8hh93VfV :: Solid material for shape group '" + std::string(groupName) + "' must define scalar color in " +
                                path.string());
     }
 
@@ -308,28 +317,6 @@ namespace
       throw std::runtime_error("ZtG0L06ctZ :: Solid material color must contain 3 floats in " + path.string());
     }
     return {values[0], values[1], values[2]};
-  }
-
-  Material parseMaterial(const YAML::Node &shape, const std::filesystem::path &path, const std::string_view shapeName)
-  {
-    const YAML::Node material = requiredMapChild(shape, "material", path);
-    const YAML::Node type     = material["type"];
-    if (!type || !type.IsScalar())
-    {
-      throw std::runtime_error("xLVuVqM5tJ :: Missing material.type for shape '" + std::string(shapeName) + "' in " + path.string());
-    }
-
-    if (const std::string materialType = type.as<std::string>(); materialType != "solid")
-    {
-      throw std::runtime_error("UAJtwMZ764 :: Unsupported material type '" + materialType + "' in " + path.string());
-    }
-
-    Material result;
-    if (material["color"])
-    {
-      result.solidColor = parseSolidColor(material, path, shapeName);
-    }
-    return result;
   }
 
   MeshRef parseRefValue(const std::string &value, const std::filesystem::path &path)
@@ -345,30 +332,6 @@ namespace
     const std::string relativePath = value.substr(0, hashPosition);
     result.path                    = relativePath.empty() ? path : (path.parent_path() / relativePath).lexically_normal();
     return result;
-  }
-
-  MeshRef parseMeshRef(const YAML::Node &shape, const std::filesystem::path &shapePath, const std::string_view shapeName)
-  {
-    const YAML::Node mesh = requiredMapChild(shape, "mesh", shapePath);
-    const YAML::Node ref  = mesh["ref"];
-    if (!ref || !ref.IsScalar())
-    {
-      throw std::runtime_error("AoiWfWDZDz :: Missing mesh.ref for shape '" + std::string(shapeName) + "' in " + shapePath.string());
-    }
-
-    return parseRefValue(ref.as<std::string>(), shapePath);
-  }
-
-  MeshRef parseShapeRef(const YAML::Node &instanceGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
-  {
-    const YAML::Node shape = requiredMapChild(instanceGroup, "shape", groupPath);
-    const YAML::Node ref   = shape["ref"];
-    if (!ref || !ref.IsScalar())
-    {
-      throw std::runtime_error("wt3wM8XF8Y :: Missing shape.ref for shape instance group '" + std::string(groupName) + "' in " + groupPath.string());
-    }
-
-    return parseRefValue(ref.as<std::string>(), groupPath);
   }
 
   MeshRef parseGroupMeshRef(const YAML::Node &shapeGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
@@ -550,79 +513,16 @@ namespace
     return result;
   }
 
-  std::string shapeKey(const std::filesystem::path &path, const std::string_view shapeName)
-  {
-    return path.lexically_normal().string() + "#" + std::string(shapeName);
-  }
-
-  std::uint32_t ensureShape(const std::filesystem::path                    &path,
-                            const YAML::Node                               &shapeNode,
-                            const std::string_view                          shapeName,
-                            scene::Scene                                   &result,
-                            std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
-  {
-    const std::string key = shapeKey(path, shapeName);
-    if (const auto shapeIndex = shapeIndexByKey.find(key); shapeIndex != shapeIndexByKey.end())
-    {
-      return shapeIndex->second;
-    }
-
-    const MeshRef    meshRef      = parseMeshRef(shapeNode, path, shapeName);
-    const Material   material     = parseMaterial(shapeNode, path, shapeName);
-    const YAML::Node meshDocument = loadYamlFile(meshRef.path);
-    const YAML::Node meshes       = optionalMapChild(meshDocument, "meshes", meshRef.path);
-    const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Shape     parsedShape  = parseMesh(mesh, material, meshRef.path);
-    if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
-    {
-      throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
-    }
-    result.shapes.push_back(std::move(parsedShape));
-    const auto shapeIndex = static_cast<std::uint32_t>(result.shapes.size() - 1U);
-    shapeIndexByKey.emplace(key, shapeIndex);
-    return shapeIndex;
-  }
-
-  void appendShape(const std::filesystem::path                    &path,
-                   const YAML::Node                               &shape,
-                   const std::string_view                          shapeName,
-                   scene::Scene                                   &result,
-                   std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
-  {
-    const std::uint32_t shapeIndex = ensureShape(path, shape, shapeName, result, shapeIndexByKey);
-    result.instances.push_back(scene::ShapeInstance{.offset = zeroOffset, .shapeIndex = shapeIndex});
-    result.shapeGroups.push_back(scene::ShapeGroup{.shaderName = "triangle", .shapeIndex = shapeIndex, .firstInstance = 0, .instanceCount = 1});
-  }
-
-  void appendShapeInstanceGroup(const std::filesystem::path                    &path,
-                                const YAML::Node                               &instanceGroup,
-                                const std::string_view                          groupName,
-                                scene::Scene                                   &result,
-                                std::unordered_map<std::string, std::uint32_t> &shapeIndexByKey)
-  {
-    const MeshRef       shapeRef      = parseShapeRef(instanceGroup, path, groupName);
-    const YAML::Node    shapeDocument = loadYamlFile(shapeRef.path);
-    const YAML::Node    shapeNodes    = optionalMapChild(shapeDocument, "shapes", shapeRef.path);
-    const YAML::Node    shape         = requiredMapChild(shapeNodes, shapeRef.id, shapeRef.path);
-    const std::uint32_t shapeIndex    = ensureShape(shapeRef.path, shape, shapeRef.id, result, shapeIndexByKey);
-    const std::size_t   firstInstance = result.instances.size();
-
-    for (const OffsetRow &offset : parseOffsets(instanceGroup, path, groupName))
-    {
-      result.instances.push_back(scene::ShapeInstance{.offset = offset.offset, .shapeIndex = shapeIndex});
-    }
-    result.shapeGroups.push_back(scene::ShapeGroup{
-        .shaderName    = instanceGroup["shader"] && instanceGroup["shader"].IsScalar() ? trim(instanceGroup["shader"].as<std::string>()) : "triangle",
-        .shapeIndex    = shapeIndex,
-        .firstInstance = firstInstance,
-        .instanceCount = result.instances.size() - firstInstance});
-  }
-
   void appendShapeGroup(const std::filesystem::path &path, const YAML::Node &shapeGroup, const std::string_view groupName, scene::Scene &result)
   {
-    const std::string shaderName    = parseShaderName(shapeGroup, path, groupName);
-    const MeshRef     meshRef       = parseGroupMeshRef(shapeGroup, path, groupName);
-    const auto        materials     = parseShapeGroupMaterials(shapeGroup, path, groupName);
+    const std::string                      shaderName = parseShaderName(shapeGroup, path, groupName);
+    const MeshRef                          meshRef    = parseGroupMeshRef(shapeGroup, path, groupName);
+    const auto                             materials  = parseShapeGroupMaterials(shapeGroup, path, groupName);
+    std::unordered_map<int, std::uint32_t> materialIndexByLocalIndex;
+    for (const auto &[localIndex, material] : materials)
+    {
+      materialIndexByLocalIndex.emplace(localIndex, appendMaterial(result, material));
+    }
     const YAML::Node  meshDocument  = loadYamlFile(meshRef.path);
     const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
@@ -638,17 +538,13 @@ namespace
 
     for (const OffsetRow &offset : parseOffsets(shapeGroup, path, groupName))
     {
-      const auto material = materials.find(offset.materialIndex);
-      if (material == materials.end())
+      const auto materialIndex = materialIndexByLocalIndex.find(offset.materialIndex);
+      if (materialIndex == materialIndexByLocalIndex.end())
       {
         throw std::runtime_error("r8eA2R1nmB :: Missing material index " + std::to_string(offset.materialIndex) + " for shape group '" +
                                  std::string(groupName) + "' in " + path.string());
       }
-      result.instances.push_back(
-          scene::ShapeInstance{.offset     = offset.offset,
-                               .color      = {material->second.solidColor[0], material->second.solidColor[1], material->second.solidColor[2]},
-                               .scale      = material->second.scale,
-                               .shapeIndex = shapeIndex});
+      result.instances.push_back(scene::ShapeInstance{.offset = offset.offset, .materialIndex = materialIndex->second, .shapeIndex = shapeIndex});
     }
     result.shapeGroups.push_back(scene::ShapeGroup{.shaderName    = shaderName,
                                                    .shapeIndex    = shapeIndex,
@@ -740,32 +636,6 @@ namespace
   }
 } // namespace
 
-void scene::Scene::load(const std::filesystem::path &path, const std::string_view shapeName)
-{
-  const YAML::Node document = loadYamlFile(path);
-  shapes.clear();
-  instances.clear();
-  shapeGroups.clear();
-  camera = Camera{};
-  sun    = Sun{};
-  params = SceneParams{};
-
-  if (shapeName.empty())
-  {
-    throw std::runtime_error("d5J2Mmx9Ar :: Shape name must not be empty");
-  }
-  const YAML::Node                               shapeNodes = optionalMapChild(document, "shapes", path);
-  const YAML::Node                               shape      = requiredMapChild(shapeNodes, shapeName, path);
-  std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
-  appendShape(path, shape, shapeName, *this, shapeIndexByKey);
-  updateShapeInstanceRanges(*this);
-
-  if (shapes.empty() || instances.empty())
-  {
-    throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
-  }
-}
-
 void scene::Scene::load(const std::filesystem::path &path)
 {
   const YAML::Node document  = loadYamlFile(path);
@@ -773,6 +643,7 @@ void scene::Scene::load(const std::filesystem::path &path)
   shapes.clear();
   instances.clear();
   shapeGroups.clear();
+  materials.clear();
   camera = Camera{};
   sun    = Sun{};
   params = SceneParams{};
@@ -781,19 +652,13 @@ void scene::Scene::load(const std::filesystem::path &path)
   parseSceneSun(sceneNode, path, *this);
   parseSceneParams(sceneNode, path, *this);
 
-  const YAML::Node sceneShapeGroups         = sceneNode["shape-groups"];
-  const YAML::Node sceneShapeInstanceGroups = sceneNode["shape-instance-groups"];
+  const YAML::Node sceneShapeGroups = sceneNode["shape-groups"];
   if (sceneShapeGroups && !sceneShapeGroups.IsSequence())
   {
     throw std::runtime_error("xPH2tQyCKp :: YAML container 'scene.shape-groups' must be sequence in " + path.string());
   }
-  if (sceneShapeInstanceGroups && !sceneShapeInstanceGroups.IsSequence())
-  {
-    throw std::runtime_error("EJEw5s6sPl :: YAML container 'scene.shape-instance-groups' must be sequence in " + path.string());
-  }
 
-  const YAML::Node shapeGroups         = optionalMapChild(document, "shape-groups", path);
-  const YAML::Node shapeInstanceGroups = optionalMapChild(document, "shape-instance-groups", path);
+  const YAML::Node shapeGroups = optionalMapChild(document, "shape-groups", path);
 
   if (sceneShapeGroups)
   {
@@ -808,22 +673,6 @@ void scene::Scene::load(const std::filesystem::path &path)
       const YAML::Node  shapeGroup = requiredMapChild(shapeGroups, name, path);
 
       appendShapeGroup(path, shapeGroup, name, *this);
-    }
-  }
-  else if (sceneShapeInstanceGroups)
-  {
-    std::unordered_map<std::string, std::uint32_t> shapeIndexByKey;
-    for (const YAML::Node groupName : sceneShapeInstanceGroups)
-    {
-      if (!groupName.IsScalar())
-      {
-        throw std::runtime_error("eLfoLj0gQh :: YAML 'scene.shape-instance-groups' values must be scalar in " + path.string());
-      }
-
-      const std::string name          = groupName.as<std::string>();
-      const YAML::Node  instanceGroup = requiredMapChild(shapeInstanceGroups, name, path);
-
-      appendShapeInstanceGroup(path, instanceGroup, name, *this, shapeIndexByKey);
     }
   }
   updateShapeInstanceRanges(*this);
