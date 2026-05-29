@@ -34,3 +34,21 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "sphera_32x32.indexes.txt"
+
+  cube:
+    points:
+      type: "i X Y Z"
+      data-ref: "cude.points.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "cube.indexes.txt"
+
+  cylinder:
+    points:
+      type: "i X Y Z"
+      data-ref: "cylinder.points.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "cylinder.indexes.txt"

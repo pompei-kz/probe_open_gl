@@ -31,7 +31,7 @@ shapes:
 
   sphera_green:
     mesh:
-      ref: "meshes.yaml#sphera_16x16"
+      ref: "meshes.yaml#cylinder"
     material:
       type: "solid"
       color: "0.15  0.85  0.10"
