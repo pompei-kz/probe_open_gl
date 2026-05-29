@@ -15,9 +15,14 @@ export namespace scene
   struct ShapeInstance
   {
     glm::vec3     offset{0.0F, 0.0F, 0.0F};
+    glm::vec3     color{1.0F, 1.0F, 1.0F};
+    float         scale      = 1.0F;
     std::uint32_t shapeIndex = 0;
 
-    static constexpr size_t ComponentCount = 3U;
+    static constexpr size_t ComponentCount = 7U;
+    static constexpr size_t OffsetOffset   = 0U;
+    static constexpr size_t ColorOffset    = 3U * sizeof(float);
+    static constexpr size_t ScaleOffset    = 6U * sizeof(float);
     static constexpr size_t Stride         = ComponentCount * sizeof(float);
   };
 

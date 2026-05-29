@@ -37,7 +37,15 @@ namespace
 
   struct Material
   {
+    int                  index = 0;
     std::array<float, 3> solidColor{1.0F, 1.0F, 1.0F};
+    float                scale = 1.0F;
+  };
+
+  struct OffsetRow
+  {
+    glm::vec3 offset{0.0F, 0.0F, 0.0F};
+    int       materialIndex = 0;
   };
 
   struct MeshRef
@@ -390,26 +398,59 @@ namespace
     return shaderName;
   }
 
-  Material parseShapeGroupMaterial(const YAML::Node &shapeGroup, const std::filesystem::path &path, const std::string_view groupName)
+  std::unordered_map<int, Material>
+  parseShapeGroupMaterials(const YAML::Node &shapeGroup, const std::filesystem::path &path, const std::string_view groupName)
   {
-    Material         result;
-    const YAML::Node materials = shapeGroup["materials"];
+    std::unordered_map<int, Material> result;
+    const YAML::Node                  materials = shapeGroup["materials"];
     if (!materials)
     {
+      result.emplace(0, Material{});
       return result;
     }
-    if (!materials.IsSequence() || materials.size() == 0U || !materials[0].IsMap())
+    if (!materials.IsSequence() || materials.size() == 0U)
     {
       throw std::runtime_error("v6uVtDjYNi :: Shape group '" + std::string(groupName) + "' materials must be non-empty sequence in " + path.string());
     }
-    if (materials[0]["color"])
+
+    for (const YAML::Node materialNode : materials)
     {
-      result.solidColor = parseSolidColor(materials[0], path, groupName);
+      if (!materialNode.IsMap())
+      {
+        throw std::runtime_error("wYzXRq2T4E :: Shape group '" + std::string(groupName) + "' material must be map in " + path.string());
+      }
+
+      const YAML::Node index = materialNode["index"];
+      if (!index || !index.IsScalar())
+      {
+        throw std::runtime_error("wAOCGDwBmv :: Shape group '" + std::string(groupName) + "' material must define scalar index in " + path.string());
+      }
+
+      Material material;
+      material.index = index.as<int>();
+      if (materialNode["color"])
+      {
+        material.solidColor = parseSolidColor(materialNode, path, groupName);
+      }
+      if (materialNode["scale"])
+      {
+        material.scale = parseFloatScalar(materialNode["scale"], path, "shape-groups." + std::string(groupName) + ".materials.scale");
+      }
+      if (material.scale <= 0.0F)
+      {
+        throw std::runtime_error("N8VNXRBUAx :: Shape group '" + std::string(groupName) + "' material scale must be positive in " + path.string());
+      }
+      if (!result.emplace(material.index, material).second)
+      {
+        throw std::runtime_error("LbLYzv3vdh :: Duplicate material index " + std::to_string(material.index) + " for shape group '" +
+                                 std::string(groupName) + "' in " + path.string());
+      }
     }
+
     return result;
   }
 
-  std::vector<glm::vec3> parseOffsets(const YAML::Node &instanceGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
+  std::vector<OffsetRow> parseOffsets(const YAML::Node &instanceGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
   {
     const DataSection              offsets = extractDataSection(instanceGroup, "offsets", groupPath);
     const std::vector<std::string> fields  = splitWords(offsets.type);
@@ -419,7 +460,8 @@ namespace
                                groupPath.string());
     }
 
-    std::vector<glm::vec3> result;
+    const bool             hasMaterialIndex = fields == std::vector<std::string>{"i", "X", "Y", "Z", "Mi"};
+    std::vector<OffsetRow> result;
     for (const std::string &line : offsets.lines)
     {
       const std::vector<float> values = parseFloatLine(line);
@@ -432,7 +474,7 @@ namespace
         throw std::runtime_error("Pvh3WQ8zGl :: Invalid offset row for shape group '" + std::string(groupName) + "' in " + groupPath.string() + ": " +
                                  trim(line));
       }
-      result.push_back({values[1], values[2], values[3]});
+      result.push_back(OffsetRow{.offset = {values[1], values[2], values[3]}, .materialIndex = hasMaterialIndex ? static_cast<int>(values[4]) : 0});
     }
     return result;
   }
@@ -565,9 +607,9 @@ namespace
     const std::uint32_t shapeIndex    = ensureShape(shapeRef.path, shape, shapeRef.id, result, shapeIndexByKey);
     const std::size_t   firstInstance = result.instances.size();
 
-    for (const glm::vec3 &offset : parseOffsets(instanceGroup, path, groupName))
+    for (const OffsetRow &offset : parseOffsets(instanceGroup, path, groupName))
     {
-      result.instances.push_back(scene::ShapeInstance{.offset = offset, .shapeIndex = shapeIndex});
+      result.instances.push_back(scene::ShapeInstance{.offset = offset.offset, .shapeIndex = shapeIndex});
     }
     result.shapeGroups.push_back(scene::ShapeGroup{
         .shaderName    = instanceGroup["shader"] && instanceGroup["shader"].IsScalar() ? trim(instanceGroup["shader"].as<std::string>()) : "triangle",
@@ -580,11 +622,11 @@ namespace
   {
     const std::string shaderName    = parseShaderName(shapeGroup, path, groupName);
     const MeshRef     meshRef       = parseGroupMeshRef(shapeGroup, path, groupName);
-    const Material    material      = parseShapeGroupMaterial(shapeGroup, path, groupName);
+    const auto        materials     = parseShapeGroupMaterials(shapeGroup, path, groupName);
     const YAML::Node  meshDocument  = loadYamlFile(meshRef.path);
     const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Shape      parsedShape   = parseMesh(mesh, material, meshRef.path);
+    scene::Shape      parsedShape   = parseMesh(mesh, Material{}, meshRef.path);
     const std::size_t firstInstance = result.instances.size();
 
     if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
@@ -594,9 +636,19 @@ namespace
     result.shapes.push_back(std::move(parsedShape));
     const auto shapeIndex = static_cast<std::uint32_t>(result.shapes.size() - 1U);
 
-    for (const glm::vec3 &offset : parseOffsets(shapeGroup, path, groupName))
+    for (const OffsetRow &offset : parseOffsets(shapeGroup, path, groupName))
     {
-      result.instances.push_back(scene::ShapeInstance{.offset = offset, .shapeIndex = shapeIndex});
+      const auto material = materials.find(offset.materialIndex);
+      if (material == materials.end())
+      {
+        throw std::runtime_error("r8eA2R1nmB :: Missing material index " + std::to_string(offset.materialIndex) + " for shape group '" +
+                                 std::string(groupName) + "' in " + path.string());
+      }
+      result.instances.push_back(
+          scene::ShapeInstance{.offset     = offset.offset,
+                               .color      = {material->second.solidColor[0], material->second.solidColor[1], material->second.solidColor[2]},
+                               .scale      = material->second.scale,
+                               .shapeIndex = shapeIndex});
     }
     result.shapeGroups.push_back(scene::ShapeGroup{.shaderName    = shaderName,
                                                    .shapeIndex    = shapeIndex,

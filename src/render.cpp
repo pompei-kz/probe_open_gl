@@ -299,17 +299,25 @@ struct Render::Impl
 
       // Делаем буфер инстансов текущим.
       glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
-      // Описываем атрибут данных инстанса.
+      // Описываем атрибут смещения инстанса.
       glVertexAttribPointer(2, // index of attribute
-                            scene::ShapeInstance::ComponentCount,
+                            3,
                             GL_FLOAT,
                             GL_FALSE,
                             scene::ShapeInstance::Stride,
-                            nullptr);
-      // Включаем атрибут данных инстанса.
+                            reinterpret_cast<void *>(scene::ShapeInstance::OffsetOffset));
       glEnableVertexAttribArray(2);
-      // Указываем, что атрибут меняется один раз на инстанс.
       glVertexAttribDivisor(2, 1);
+
+      // Описываем атрибут цвета материала инстанса.
+      glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, scene::ShapeInstance::Stride, reinterpret_cast<void *>(scene::ShapeInstance::ColorOffset));
+      glEnableVertexAttribArray(3);
+      glVertexAttribDivisor(3, 1);
+
+      // Описываем атрибут масштаба материала инстанса.
+      glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, scene::ShapeInstance::Stride, reinterpret_cast<void *>(scene::ShapeInstance::ScaleOffset));
+      glEnableVertexAttribArray(4);
+      glVertexAttribDivisor(4, 1);
     }
 
     // Включаем проверку глубины для 3D-отрисовки.
@@ -407,6 +415,10 @@ public:
       instanceData_[writeIndex + 0U] = instance.offset[0];
       instanceData_[writeIndex + 1U] = instance.offset[1];
       instanceData_[writeIndex + 2U] = instance.offset[2];
+      instanceData_[writeIndex + 3U] = instance.color[0];
+      instanceData_[writeIndex + 4U] = instance.color[1];
+      instanceData_[writeIndex + 5U] = instance.color[2];
+      instanceData_[writeIndex + 6U] = instance.scale;
     }
 
     // Делаем буфер инстансов текущим перед обновлением.
@@ -419,8 +431,6 @@ public:
     const float     aspect     = static_cast<float>(width) / static_cast<float>(height);
     const glm::mat4 projection = projectionMatrix(scene_.camera.fovDegrees, aspect, scene_.camera.nearPlane, scene_.camera.farPlane);
     const glm::mat4 view       = viewMatrix(cameraPosition_, cameraForward_, cameraUp_);
-    const glm::mat4 model{1.0F};
-
     for (const scene::ShapeGroup &shapeGroup : scene_.shapeGroups)
     {
       const scene::Shape &shape = scene_.shapes[shapeGroup.shapeIndex];
@@ -442,6 +452,7 @@ public:
       // Передаем матрицу вида в шейдер.
       glUniformMatrix4fv(shaderProgram->second.viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
       // Передаем матрицу модели в шейдер.
+      const glm::mat4 model{1.0F};
       glUniformMatrix4fv(shaderProgram->second.modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
       // Передаем силу солнечного света в шейдер.
       glUniform1f(shaderProgram->second.sunForceLocation, scene_.sun.force);
@@ -455,11 +466,23 @@ public:
       // Для каждой группы сдвигаем instanced-атрибут на первый инстанс группы.
       glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
       glVertexAttribPointer(2,
-                            scene::ShapeInstance::ComponentCount,
+                            3,
                             GL_FLOAT,
                             GL_FALSE,
                             scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset()));
+                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::OffsetOffset));
+      glVertexAttribPointer(3,
+                            3,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::ShapeInstance::Stride,
+                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::ColorOffset));
+      glVertexAttribPointer(4,
+                            1,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::ShapeInstance::Stride,
+                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset() + scene::ShapeInstance::ScaleOffset));
       // Рисуем все инстансы фигуры по индексам.
       glDrawElementsInstanced(GL_TRIANGLES,
                               static_cast<GLsizei>(shape.indexes.size()),

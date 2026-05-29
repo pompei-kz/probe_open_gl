@@ -447,11 +447,15 @@ shape-groups:
     materials:
       - index: 0
         color: "0.2 0.4 0.6"
+        scale: "2.5"
+      - index: 1
+        color: "0.7 0.8 0.9"
+        scale: "3.5"
     offsets:
       type: "i X Y Z Mi"
       data: |
         0 10 20 30 0
-        1 -1 -2 -3 0
+        1 -1 -2 -3 1
 )yaml");
 
   scene::Scene data;
@@ -464,11 +468,19 @@ shape-groups:
   EXPECT_EQ(data.shapeGroups[0].shapeIndex, 0U);
   EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
   EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.2F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.4F);
-  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 1.0F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 1.0F);
   EXPECT_FLOAT_EQ(data.instances[0].offset[0], 10.0F);
+  EXPECT_FLOAT_EQ(data.instances[0].color[0], 0.2F);
+  EXPECT_FLOAT_EQ(data.instances[0].color[1], 0.4F);
+  EXPECT_FLOAT_EQ(data.instances[0].color[2], 0.6F);
+  EXPECT_FLOAT_EQ(data.instances[0].scale, 2.5F);
   EXPECT_FLOAT_EQ(data.instances[1].offset[2], -3.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].color[0], 0.7F);
+  EXPECT_FLOAT_EQ(data.instances[1].color[1], 0.8F);
+  EXPECT_FLOAT_EQ(data.instances[1].color[2], 0.9F);
+  EXPECT_FLOAT_EQ(data.instances[1].scale, 3.5F);
 }
 
 TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
