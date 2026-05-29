@@ -10,6 +10,33 @@ module;
 
 export module utils;
 
+namespace
+{
+  std::string shaderLogWithResourcePath(const std::string &log, const std::string_view path)
+  {
+    std::string result;
+    result.reserve(log.size());
+
+    bool atLineStart = true;
+    for (std::size_t i = 0; i < log.size();)
+    {
+      if (atLineStart && log[i] == '0' && i + 1 < log.size() && log[i + 1] == '(')
+      {
+        result.append(path);
+        ++i;
+        atLineStart = false;
+        continue;
+      }
+
+      result.push_back(log[i]);
+      atLineStart = log[i] == '\n';
+      ++i;
+    }
+
+    return result;
+  }
+} // namespace
+
 export template <typename T> float select1m1(T value, const T one, const T minusOne)
 {
   if (value == one) return 1.0F;
@@ -46,7 +73,8 @@ export GLuint compileShader(const GLenum type, const resources::TxtResource &sou
     glGetShaderInfoLog(shader, logLength, nullptr, log.data());
     // Удаляем неудачно скомпилированный шейдер.
     glDeleteShader(shader);
-    throw std::runtime_error("RiT19tX2PN :: Shader compilation failed in " + std::string(source.path) + ":\n" + log);
+    throw std::runtime_error("RiT19tX2PN :: Shader compilation failed in " + std::string(source.path) + ":\n" +
+                             shaderLogWithResourcePath(std::move(log), source.path));
   }
 
   return shader;
