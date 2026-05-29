@@ -35,36 +35,6 @@ namespace
     GLuint     advance = 0;
   };
 
-  GLuint compileShader(const GLenum type, const std::string_view source)
-  {
-    // Создаем объект шейдера указанного типа.
-    const GLuint shader       = glCreateShader(type);
-    const char  *sourceData   = source.data();
-    const auto   sourceLength = static_cast<GLint>(source.size());
-    // Передаем исходный код шейдера в OpenGL.
-    glShaderSource(shader, 1, &sourceData, &sourceLength);
-    // Компилируем исходный код шейдера.
-    glCompileShader(shader);
-
-    GLint success = GL_FALSE;
-    // Проверяем статус компиляции шейдера.
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (success != GL_TRUE)
-    {
-      GLint logLength = 0;
-      // Узнаем размер диагностического лога компиляции.
-      glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-      std::string log(static_cast<std::size_t>(logLength), '\0');
-      // Забираем текст диагностического лога компиляции.
-      glGetShaderInfoLog(shader, logLength, nullptr, log.data());
-      // Удаляем неудачно скомпилированный шейдер.
-      glDeleteShader(shader);
-      throw std::runtime_error("qWcxNTYsV8 :: Shader compilation failed: " + log);
-    }
-
-    return shader;
-  }
-
   GLuint createTextShaderProgram()
   {
     constexpr std::string_view vertexShaderSource   = resources::write_text_vert;
