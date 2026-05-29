@@ -407,6 +407,70 @@ shape-instance-groups:
   EXPECT_FLOAT_EQ(data.params.backgroundColor[2], 0.33F);
 }
 
+TEST(LoadScene, LoadsShapeGroupsWithShaderAndMeshRef)
+{
+  const std::filesystem::path path = writeYaml("loads_shape_groups", R"yaml(
+scene:
+  shape-groups:
+    - selected_group
+  camera: "main"
+cameras:
+  main:
+    geom:
+      position: "0 0 10"
+      forward: "0 0 -1"
+      up: "0 1 0"
+      near: "0.1"
+      far: "100"
+      fov: "45"
+    params:
+      forwardVelocity: "1"
+      sideVelocity: "1"
+      forwardMouseSensitivity: "0.1"
+      forwardScrollStep: "1"
+meshes:
+  triangle:
+    points:
+      type: "i X Y Z"
+      data: |
+        1 0.0 0.0 0.0
+        2 1.0 0.0 0.0
+        3 0.0 1.0 0.0
+    indexes:
+      type: "i i i"
+      data: |
+        1 2 3
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    materials:
+      - index: 0
+        color: "0.2 0.4 0.6"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        0 10 20 30 0
+        1 -1 -2 -3 0
+)yaml");
+
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.instances.size(), 2U);
+  ASSERT_EQ(data.shapeGroups.size(), 1U);
+  EXPECT_EQ(data.shapeGroups[0].shaderName, "triangle");
+  EXPECT_EQ(data.shapeGroups[0].shapeIndex, 0U);
+  EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
+  EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[3], 0.2F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[4], 0.4F);
+  EXPECT_FLOAT_EQ(data.shapes[0].vertices[5], 0.6F);
+  EXPECT_FLOAT_EQ(data.instances[0].offset[0], 10.0F);
+  EXPECT_FLOAT_EQ(data.instances[1].offset[2], -3.0F);
+}
+
 TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
 {
   const std::filesystem::path path = writeYaml("zero_sun_direction", R"yaml(

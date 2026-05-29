@@ -1,8 +1,10 @@
 module;
 
+#include <cstdint>
 #include <epoxy/gl.h>
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -44,6 +46,20 @@ export namespace scene
     GLsizeiptr verticesSizeBytes() const { return static_cast<GLsizeiptr>(vertices.size() * sizeof(float)); }
   };
 
+  struct ShapeGroup
+  {
+    std::string   shaderName = "triangle";
+    std::uint32_t shapeIndex = 0;
+
+    // Индекс первого инстанса этой группы в общем массиве инстансов сцены.
+    std::size_t firstInstance = 0;
+
+    // Количество подряд идущих инстансов этой группы в общем массиве инстансов сцены.
+    std::size_t instanceCount = 0;
+
+    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(ShapeInstance::Stride); }
+  };
+
   struct Camera
   {
     glm::vec3 position{0.0F, 0.0F, 1.0F};
@@ -76,6 +92,7 @@ export namespace scene
   public:
     std::vector<Shape>         shapes;
     std::vector<ShapeInstance> instances;
+    std::vector<ShapeGroup>    shapeGroups;
     Camera                     camera;
     Sun                        sun;
     SceneParams                params;

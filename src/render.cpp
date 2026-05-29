@@ -13,6 +13,7 @@ module;
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 module render;
@@ -28,6 +29,17 @@ namespace
     GLuint vertexArrayID  = 0;
     GLuint vertexBufferID = 0;
     GLuint indexBufferID  = 0;
+  };
+
+  struct ShaderProgram
+  {
+    GLuint id                       = 0;
+    GLint  projectionMatrixLocation = -1;
+    GLint  viewMatrixLocation       = -1;
+    GLint  modelMatrixLocation      = -1;
+    GLint  sunForceLocation         = -1;
+    GLint  sunDirectionLocation     = -1;
+    GLint  sunColorLocation         = -1;
   };
 
   glm::vec3 normalize(const glm::vec3 &value, const std::string_view name)
@@ -113,10 +125,27 @@ namespace
     return shader;
   }
 
-  GLuint createShaderProgram()
+  std::string_view shaderSource(const std::string_view shaderName, const GLenum type)
   {
-    const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, resources::triangle_vert);
-    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, resources::triangle_frag);
+    if (shaderName == "triangle")
+    {
+      if (type == GL_VERTEX_SHADER)
+      {
+        return resources::triangle_vert;
+      }
+      if (type == GL_FRAGMENT_SHADER)
+      {
+        return resources::triangle_frag;
+      }
+    }
+
+    throw std::runtime_error("v8gvUqpTFA :: Unknown shader program name: " + std::string(shaderName));
+  }
+
+  GLuint createShaderProgram(const std::string_view shaderName)
+  {
+    const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, shaderSource(shaderName, GL_VERTEX_SHADER));
+    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shaderSource(shaderName, GL_FRAGMENT_SHADER));
 
     // Создаем шейдерную программу.
     const GLuint program = glCreateProgram();
@@ -150,34 +179,50 @@ namespace
 
     return program;
   }
+
+  ShaderProgram createShapeShaderProgram(const std::string_view shaderName)
+  {
+    ShaderProgram result;
+    result.id = createShaderProgram(shaderName);
+
+    // Находим uniform-переменную матрицы проекции.
+    result.projectionMatrixLocation = glGetUniformLocation(result.id, "projectionMatrix");
+    // Находим uniform-переменную матрицы вида.
+    result.viewMatrixLocation       = glGetUniformLocation(result.id, "viewMatrix");
+    // Находим uniform-переменную матрицы модели.
+    result.modelMatrixLocation      = glGetUniformLocation(result.id, "modelMatrix");
+    // Находим uniform-переменную силы солнечного света.
+    result.sunForceLocation         = glGetUniformLocation(result.id, "sunForce");
+    // Находим uniform-переменную направления солнечного света.
+    result.sunDirectionLocation     = glGetUniformLocation(result.id, "sunDirection");
+    // Находим uniform-переменную цвета солнечного света.
+    result.sunColorLocation         = glGetUniformLocation(result.id, "sunColor");
+
+    checkPositive(result.projectionMatrixLocation, "zJ9NCwdGPQ :: Failed to locate shader uniform: projectionMatrix");
+    checkPositive(result.viewMatrixLocation, "V1E8JgGFEo :: Failed to locate shader uniform: viewMatrix");
+    checkPositive(result.modelMatrixLocation, "TWodBEarQO :: Failed to locate shader uniform: modelMatrix");
+    checkPositive(result.sunForceLocation, "bwbBRPuG4e :: Failed to locate shader uniform: sunForce");
+    checkPositive(result.sunDirectionLocation, "snQlp7ciWr :: Failed to locate shader uniform: sunDirection");
+    checkPositive(result.sunColorLocation, "OiRdj622GQ :: Failed to locate shader uniform: sunColor");
+
+    return result;
+  }
 } // namespace
 
 struct Render::Impl
 {
   explicit Impl(const std::filesystem::path &scenePath)
   {
-    shaderProgram_            = createShaderProgram();
-    // Находим uniform-переменную матрицы проекции.
-    projectionMatrixLocation_ = glGetUniformLocation(shaderProgram_, "projectionMatrix");
-    // Находим uniform-переменную матрицы вида.
-    viewMatrixLocation_       = glGetUniformLocation(shaderProgram_, "viewMatrix");
-    // Находим uniform-переменную матрицы модели.
-    modelMatrixLocation_      = glGetUniformLocation(shaderProgram_, "modelMatrix");
-    // Находим uniform-переменную силы солнечного света.
-    sunForceLocation_         = glGetUniformLocation(shaderProgram_, "sunForce");
-    // Находим uniform-переменную направления солнечного света.
-    sunDirectionLocation_     = glGetUniformLocation(shaderProgram_, "sunDirection");
-    // Находим uniform-переменную цвета солнечного света.
-    sunColorLocation_         = glGetUniformLocation(shaderProgram_, "sunColor");
-
-    checkPositive(projectionMatrixLocation_, "zJ9NCwdGPQ :: Failed to locate shader uniform: projectionMatrix");
-    checkPositive(viewMatrixLocation_, "V1E8JgGFEo :: Failed to locate shader uniform: viewMatrix");
-    checkPositive(modelMatrixLocation_, "TWodBEarQO :: Failed to locate shader uniform: modelMatrix");
-    checkPositive(sunForceLocation_, "bwbBRPuG4e :: Failed to locate shader uniform: sunForce");
-    checkPositive(sunDirectionLocation_, "snQlp7ciWr :: Failed to locate shader uniform: sunDirection");
-    checkPositive(sunColorLocation_, "OiRdj622GQ :: Failed to locate shader uniform: sunColor");
-
     scene_.load(scenePath);
+
+    for (const scene::ShapeGroup &shapeGroup : scene_.shapeGroups)
+    {
+      if (!shaderPrograms_.contains(shapeGroup.shaderName))
+      {
+        shaderPrograms_.emplace(shapeGroup.shaderName, createShapeShaderProgram(shapeGroup.shaderName));
+      }
+    }
+
     cameraPosition_ = scene_.camera.position;
     cameraForward_  = normalize(scene_.camera.forward, "camera.forward");
     cameraUp_       = scene_.camera.up;
@@ -260,7 +305,7 @@ struct Render::Impl
                             GL_FLOAT,
                             GL_FALSE,
                             scene::ShapeInstance::Stride,
-                            reinterpret_cast<void *>(shape.firstInstanceOffset()));
+                            nullptr);
       // Включаем атрибут данных инстанса.
       glEnableVertexAttribArray(2);
       // Указываем, что атрибут меняется один раз на инстанс.
@@ -304,12 +349,16 @@ private:
         buffers.vertexArrayID = 0;
       }
     }
-    if (shaderProgram_ != 0)
+    for (auto &[shaderName, shaderProgram] : shaderPrograms_)
     {
       // Освобождаем шейдерную программу.
-      glDeleteProgram(shaderProgram_);
-      shaderProgram_ = 0;
+      if (shaderProgram.id != 0)
+      {
+        glDeleteProgram(shaderProgram.id);
+        shaderProgram.id = 0;
+      }
     }
+    shaderPrograms_.clear();
   }
 
 public:
@@ -350,9 +399,6 @@ public:
     // Очищаем цветовой буфер и буфер глубины.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Активируем шейдерную программу для текущего кадра.
-    glUseProgram(shaderProgram_);
-
     for (std::size_t instanceIndex = 0; instanceIndex < scene_.instances.size(); ++instanceIndex)
     {
       const scene::ShapeInstance &instance   = scene_.instances[instanceIndex];
@@ -375,58 +421,69 @@ public:
     const glm::mat4 view       = viewMatrix(cameraPosition_, cameraForward_, cameraUp_);
     const glm::mat4 model{1.0F};
 
-    // Передаем матрицу проекции в шейдер.
-    glUniformMatrix4fv(projectionMatrixLocation_, 1, GL_FALSE, glm::value_ptr(projection));
-    // Передаем матрицу вида в шейдер.
-    glUniformMatrix4fv(viewMatrixLocation_, 1, GL_FALSE, glm::value_ptr(view));
-    // Передаем матрицу модели в шейдер.
-    glUniformMatrix4fv(modelMatrixLocation_, 1, GL_FALSE, glm::value_ptr(model));
-    // Передаем силу солнечного света в шейдер.
-    glUniform1f(sunForceLocation_, scene_.sun.force);
-    // Передаем направление солнечного света в шейдер.
-    glUniform3fv(sunDirectionLocation_, 1, glm::value_ptr(scene_.sun.direction));
-    // Передаем цвет солнечного света в шейдер.
-    glUniform3fv(sunColorLocation_, 1, glm::value_ptr(scene_.sun.color));
-
-    for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
+    for (const scene::ShapeGroup &shapeGroup : scene_.shapeGroups)
     {
-      const scene::Shape &shape = scene_.shapes[shapeIndex];
-      if (shape.instanceCount == 0)
+      const scene::Shape &shape = scene_.shapes[shapeGroup.shapeIndex];
+      if (shapeGroup.instanceCount == 0)
       {
         continue;
       }
+
+      const auto shaderProgram = shaderPrograms_.find(shapeGroup.shaderName);
+      if (shaderProgram == shaderPrograms_.end())
+      {
+        throw std::runtime_error("YgoNQK3CtV :: Missing shader program: " + shapeGroup.shaderName);
+      }
+
+      // Активируем шейдерную программу группы перед отрисовкой этой группы.
+      glUseProgram(shaderProgram->second.id);
+      // Передаем матрицу проекции в шейдер.
+      glUniformMatrix4fv(shaderProgram->second.projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(projection));
+      // Передаем матрицу вида в шейдер.
+      glUniformMatrix4fv(shaderProgram->second.viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(view));
+      // Передаем матрицу модели в шейдер.
+      glUniformMatrix4fv(shaderProgram->second.modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(model));
+      // Передаем силу солнечного света в шейдер.
+      glUniform1f(shaderProgram->second.sunForceLocation, scene_.sun.force);
+      // Передаем направление солнечного света в шейдер.
+      glUniform3fv(shaderProgram->second.sunDirectionLocation, 1, glm::value_ptr(scene_.sun.direction));
+      // Передаем цвет солнечного света в шейдер.
+      glUniform3fv(shaderProgram->second.sunColorLocation, 1, glm::value_ptr(scene_.sun.color));
+
       // Выбираем VAO фигуры перед отрисовкой.
-      glBindVertexArray(shapeBufferIds_[shapeIndex].vertexArrayID);
+      glBindVertexArray(shapeBufferIds_[shapeGroup.shapeIndex].vertexArrayID);
+      // Для каждой группы сдвигаем instanced-атрибут на первый инстанс группы.
+      glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+      glVertexAttribPointer(2,
+                            scene::ShapeInstance::ComponentCount,
+                            GL_FLOAT,
+                            GL_FALSE,
+                            scene::ShapeInstance::Stride,
+                            reinterpret_cast<void *>(shapeGroup.firstInstanceOffset()));
       // Рисуем все инстансы фигуры по индексам.
       glDrawElementsInstanced(GL_TRIANGLES,
                               static_cast<GLsizei>(shape.indexes.size()),
                               GL_UNSIGNED_INT,
                               nullptr,
-                              static_cast<GLsizei>(shape.instanceCount));
+                              static_cast<GLsizei>(shapeGroup.instanceCount));
     }
 
     textWriter_.drawFps(viewportWidth, viewportHeight, deltaSeconds);
   }
 
 private:
-  scene::Scene                  scene_;
-  GLuint                        shaderProgram_            = 0;
-  GLuint                        shapeInstanceGroup_       = 0;
-  GLint                         projectionMatrixLocation_ = -1;
-  GLint                         viewMatrixLocation_       = -1;
-  GLint                         modelMatrixLocation_      = -1;
-  GLint                         sunForceLocation_         = -1;
-  GLint                         sunDirectionLocation_     = -1;
-  GLint                         sunColorLocation_         = -1;
-  std::vector<ShapeGlBufferIds> shapeBufferIds_;
-  std::vector<float>            instanceData_;
-  TextWriter                    textWriter_;
-  glm::vec3                     cameraPosition_{};
-  glm::vec3                     cameraForward_{};
-  glm::vec3                     cameraUp_{};
-  MoveVert                      moveVert_      = MoveVert::NONE;
-  MoveHoriz                     moveHoriz_     = MoveHoriz::NONE;
-  RotateForward                 rotateForward_ = RotateForward::NONE;
+  scene::Scene                                   scene_;
+  GLuint                                         shapeInstanceGroup_ = 0;
+  std::vector<ShapeGlBufferIds>                  shapeBufferIds_;
+  std::unordered_map<std::string, ShaderProgram> shaderPrograms_;
+  std::vector<float>                             instanceData_;
+  TextWriter                                     textWriter_;
+  glm::vec3                                      cameraPosition_{};
+  glm::vec3                                      cameraForward_{};
+  glm::vec3                                      cameraUp_{};
+  MoveVert                                       moveVert_      = MoveVert::NONE;
+  MoveHoriz                                      moveHoriz_     = MoveHoriz::NONE;
+  RotateForward                                  rotateForward_ = RotateForward::NONE;
 
   GLsizeiptr instanceSizeBytes() const { return static_cast<GLsizeiptr>(instanceData_.size() * sizeof(float)); }
 };
