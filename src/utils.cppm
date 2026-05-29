@@ -2,6 +2,8 @@ module;
 
 #include <epoxy/gl.h>
 
+#include "resources.hpp"
+
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -20,12 +22,12 @@ export template <typename T> void checkPositive(T value, const std::string_view 
   if (value < 0) throw std::runtime_error(errMessage.data());
 }
 
-export GLuint compileShader(const GLenum type, const std::string_view source)
+export GLuint compileShader(const GLenum type, const resources::TxtResource &source)
 {
   // Создаем объект шейдера указанного типа.
   const GLuint shader       = glCreateShader(type);
-  const char  *sourceData   = source.data();
-  const auto   sourceLength = static_cast<GLint>(source.size());
+  const char  *sourceData   = source.text.data();
+  const auto   sourceLength = static_cast<GLint>(source.text.size());
   // Передаем исходный код шейдера в OpenGL.
   glShaderSource(shader, 1, &sourceData, &sourceLength);
   // Компилируем исходный код шейдера.
@@ -44,7 +46,7 @@ export GLuint compileShader(const GLenum type, const std::string_view source)
     glGetShaderInfoLog(shader, logLength, nullptr, log.data());
     // Удаляем неудачно скомпилированный шейдер.
     glDeleteShader(shader);
-    throw std::runtime_error("RiT19tX2PN :: Shader compilation failed:\n" + log);
+    throw std::runtime_error("RiT19tX2PN :: Shader compilation failed in " + std::string(source.path) + ":\n" + log);
   }
 
   return shader;

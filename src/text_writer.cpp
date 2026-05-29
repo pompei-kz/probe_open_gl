@@ -37,11 +37,8 @@ namespace
 
   GLuint createTextShaderProgram()
   {
-    constexpr std::string_view vertexShaderSource   = resources::write_text_vert.text;
-    constexpr std::string_view fragmentShaderSource = resources::write_text_frag.text;
-
-    const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+    const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, resources::write_text_vert);
+    const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, resources::write_text_frag);
     // Создаем шейдерную программу для отрисовки текста.
     const GLuint program        = glCreateProgram();
 

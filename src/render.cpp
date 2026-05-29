@@ -95,16 +95,16 @@ namespace
     }
   }
 
-  std::string_view shaderSource(const std::string_view shaderName, const GLenum type)
+  const resources::TxtResource &shaderSource(const std::string_view shaderName, const GLenum type)
   {
     if (shaderName == "triangle")
     {
       switch (type)
       {
       case GL_VERTEX_SHADER:
-        return resources::triangle_vert.text;
+        return resources::triangle_vert;
       case GL_FRAGMENT_SHADER:
-        return resources::triangle_frag.text;
+        return resources::triangle_frag;
       default: // go following
       }
     }
