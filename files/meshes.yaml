@@ -25,3 +25,12 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "sphera_4x4.indexes.txt"
+
+  sphera_32x32:
+    points:
+      type: "i X Y Z"
+      data-ref: "sphera_32x32.points.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "sphera_32x32.indexes.txt"
