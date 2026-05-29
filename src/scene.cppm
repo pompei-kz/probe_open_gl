@@ -41,14 +41,6 @@ export namespace scene
 
     std::vector<GLuint> indexes;
 
-    // Индекс первого инстанса этой формы в общем массиве инстансов сцены.
-    std::size_t firstInstance = 0;
-
-    // Количество подряд идущих инстансов этой формы в общем массиве инстансов сцены.
-    std::size_t instanceCount = 0;
-
-    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(Shape::Stride); }
-
     GLsizeiptr indexesSizeBytes() const { return static_cast<GLsizeiptr>(indexes.size() * sizeof(GLuint)); }
 
     GLsizeiptr verticesSizeBytes() const { return static_cast<GLsizeiptr>(vertices.size() * sizeof(float)); }

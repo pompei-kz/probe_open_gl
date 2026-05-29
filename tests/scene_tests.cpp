@@ -202,8 +202,6 @@ shape-groups:
   EXPECT_FLOAT_EQ(data.shapes[1].offset[2], -3.0F);
   EXPECT_EQ(data.shapes[0].meshIndex, 0U);
   EXPECT_EQ(data.shapes[1].meshIndex, 0U);
-  EXPECT_EQ(data.meshes[0].firstInstance, 0U);
-  EXPECT_EQ(data.meshes[0].instanceCount, 2U);
 
   ASSERT_EQ(data.materials.size(), 2U);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[0], 0.2F);

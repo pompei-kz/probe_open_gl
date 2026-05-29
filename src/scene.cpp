@@ -552,27 +552,6 @@ namespace
                                                    .instanceCount = result.shapes.size() - firstInstance});
   }
 
-  void updateMeshShapeRanges(scene::Scene &data)
-  {
-    for (scene::Mesh &mesh : data.meshes)
-    {
-      mesh.firstInstance = 0;
-      mesh.instanceCount = 0;
-    }
-    for (std::size_t i = 0; i < data.shapes.size(); ++i)
-    {
-      const scene::Shape shape = data.shapes[i];
-      scene::Mesh       &mesh  = data.meshes[shape.meshIndex];
-
-      if (mesh.instanceCount == 0)
-      {
-        mesh.firstInstance = i;
-      }
-
-      ++mesh.instanceCount;
-    }
-  }
-
   void parseSceneCamera(const YAML::Node &document, const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
   {
     const YAML::Node cameraName = scene["camera"];
@@ -675,8 +654,6 @@ void scene::Scene::load(const std::filesystem::path &path)
       appendShapeGroup(path, shapeGroup, name, *this);
     }
   }
-  updateMeshShapeRanges(*this);
-
   if (meshes.empty() || shapes.empty())
   {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
