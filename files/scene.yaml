@@ -7,9 +7,9 @@ scene:
     color: "1 1 1"
   params:
     background-color: "0.2 0.2 0.2"
-  shape-instance-groups:
-    - ball1
-    - ball2
+  shape-groups:  # TODO it renamed from `shape-instance-group`
+    - group-AAA
+    - group-BBB
 
 cameras:
   main:
@@ -27,37 +27,51 @@ cameras:
       forwardScrollStep: "1"
       forwardRotateDegPSec: "90"
 
-shapes:
+#shapes:  TODO shapes need to be removed
+#
+#  sphera_green:
+#    mesh:
+#      ref: "meshes.yaml#cylinder"
+#    material:
+#      type: "solid"
+#      color: "0.15  0.85  0.10"
+#
+#  sphera_blue:
+#    mesh:
+#      ref: "meshes.yaml#sphera_32x32"
+#    material:
+#      type: "solid"
+#      color: "0.1  0.35  0.90"
 
-  sphera_green:
-    mesh:
-      ref: "meshes.yaml#cylinder"
-    material:
-      type: "solid"
-      color: "0.15  0.85  0.10"
-
-  sphera_blue:
-    mesh:
-      ref: "meshes.yaml#sphera_32x32"
-    material:
-      type: "solid"
-      color: "0.1  0.35  0.90"
-
-shape-instance-groups:
-  ball1:
-    shape:
-      ref: "#sphera_green"
+shape-groups: # TODO `shape-instance-groups`  renamed to it
+  group-AAA:
+    shader: "triangle"
+    mesh-ref: "meshes.yaml#sphera_16x16" # TODO this is reference to mesh
+    materials: # TODO materials with index + materials goto OpenGL using SSBO
+      - index: 0 # TODO this index is `Mi` from offset.type
+        color: "0.15  0.85  0.10"
+        scale: "1.7" # TODO scale generates model matrix to transform it.
+      - index: 1
+        color: "0.1  0.35  0.90"
+        scale: "2.8"
     offsets:
-      type: "i X Y Z"
+      type: "i X Y Z Mi"  # TODO type changed. Old type need to be removed
       data: |
-        # i   X   Y   Z
-          0   0   0   0
-          1   0   3  -1
-          2   2   2   1
-          3   2  -2   0
-          4  -2  -2   3
+        # i     X     Y     Z    Mi  -> `i`, `Mi` - integer, `X`, `Y`, `Z` - float
+          0.0   0.0   0.0   0.0  0
+          1.0   0.0   3.0  -1.0  0
+          2.0   2.0   2.0   1.0  0
+          3.0   2.0  -2.0   0.0  0
+          4.0  -2.0  -2.0   3.0  0
+          
+          # TODO `Mi` is int - need to be used in shader to select materials params from SSBO something like this: materialParams[Mi]
+          
+          5.0   3.0   0.0  -2.0  1
+          6.0  -3.0   0.0   0.0  1
+          7.0   0.0   2.0   3.0  1
+          8.0   2.0   2.0  -3.0  1
 
-  ball2:
+  group-BBB:
     shape:
       ref: "#sphera_blue"
     offsets:
