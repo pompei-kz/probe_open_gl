@@ -442,7 +442,7 @@ namespace
     return result;
   }
 
-  scene::Shape parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath)
+  scene::Mesh parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath)
   {
     const DataSection points     = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes    = extractDataSection(mesh, "indexes", meshPath);
@@ -453,7 +453,7 @@ namespace
     {
       throw std::runtime_error("cDO6R2F96Y :: Index type must be 'i i i' for GL_TRIANGLES in " + meshPath.string() + ": " + indexes.type);
     }
-    scene::Shape                    result;
+    scene::Mesh                     result;
     std::unordered_map<int, GLuint> pointIndexById;
 
     for (const std::string &line : points.lines)
@@ -469,7 +469,7 @@ namespace
       }
 
       const int id = static_cast<int>(values[0]);
-      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / scene::Shape::VertexFloatCount));
+      pointIndexById.emplace(id, static_cast<GLuint>(result.vertices.size() / scene::Mesh::VertexFloatCount));
       for (int i = 0; i < layout.positionFloatCount; ++i)
       {
         result.vertices.push_back(values[1 + static_cast<std::size_t>(i)]);
@@ -526,15 +526,15 @@ namespace
     const YAML::Node  meshDocument  = loadYamlFile(meshRef.path);
     const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Shape      parsedShape   = parseMesh(mesh, Material{}, meshRef.path);
-    const std::size_t firstInstance = result.instances.size();
+    scene::Mesh       parsedMesh    = parseMesh(mesh, Material{}, meshRef.path);
+    const std::size_t firstInstance = result.shapes.size();
 
-    if (parsedShape.vertices.empty() || parsedShape.indexes.empty())
+    if (parsedMesh.vertices.empty() || parsedMesh.indexes.empty())
     {
       throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
     }
-    result.shapes.push_back(std::move(parsedShape));
-    const auto shapeIndex = static_cast<std::uint32_t>(result.shapes.size() - 1U);
+    result.meshes.push_back(std::move(parsedMesh));
+    const auto meshIndex = static_cast<std::uint32_t>(result.meshes.size() - 1U);
 
     for (const OffsetRow &offset : parseOffsets(shapeGroup, path, groupName))
     {
@@ -544,32 +544,32 @@ namespace
         throw std::runtime_error("r8eA2R1nmB :: Missing material index " + std::to_string(offset.materialIndex) + " for shape group '" +
                                  std::string(groupName) + "' in " + path.string());
       }
-      result.instances.push_back(scene::ShapeInstance{.offset = offset.offset, .materialIndex = materialIndex->second, .shapeIndex = shapeIndex});
+      result.shapes.push_back(scene::Shape{.offset = offset.offset, .materialIndex = materialIndex->second, .meshIndex = meshIndex});
     }
     result.shapeGroups.push_back(scene::ShapeGroup{.shaderName    = shaderName,
-                                                   .shapeIndex    = shapeIndex,
+                                                   .meshIndex     = meshIndex,
                                                    .firstInstance = firstInstance,
-                                                   .instanceCount = result.instances.size() - firstInstance});
+                                                   .instanceCount = result.shapes.size() - firstInstance});
   }
 
-  void updateShapeInstanceRanges(scene::Scene &data)
+  void updateMeshShapeRanges(scene::Scene &data)
   {
-    for (scene::Shape &shape : data.shapes)
+    for (scene::Mesh &mesh : data.meshes)
     {
-      shape.firstInstance = 0;
-      shape.instanceCount = 0;
+      mesh.firstInstance = 0;
+      mesh.instanceCount = 0;
     }
-    for (std::size_t i = 0; i < data.instances.size(); ++i)
+    for (std::size_t i = 0; i < data.shapes.size(); ++i)
     {
-      const scene::ShapeInstance shapeInstance = data.instances[i];
-      scene::Shape              &shape         = data.shapes[shapeInstance.shapeIndex];
+      const scene::Shape shape = data.shapes[i];
+      scene::Mesh       &mesh  = data.meshes[shape.meshIndex];
 
-      if (shape.instanceCount == 0)
+      if (mesh.instanceCount == 0)
       {
-        shape.firstInstance = i;
+        mesh.firstInstance = i;
       }
 
-      ++shape.instanceCount;
+      ++mesh.instanceCount;
     }
   }
 
@@ -640,8 +640,8 @@ void scene::Scene::load(const std::filesystem::path &path)
 {
   const YAML::Node document  = loadYamlFile(path);
   const YAML::Node sceneNode = requiredMapChild(document, "scene", path);
+  meshes.clear();
   shapes.clear();
-  instances.clear();
   shapeGroups.clear();
   materials.clear();
   camera = Camera{};
@@ -675,9 +675,9 @@ void scene::Scene::load(const std::filesystem::path &path)
       appendShapeGroup(path, shapeGroup, name, *this);
     }
   }
-  updateShapeInstanceRanges(*this);
+  updateMeshShapeRanges(*this);
 
-  if (shapes.empty() || instances.empty())
+  if (meshes.empty() || shapes.empty())
   {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }

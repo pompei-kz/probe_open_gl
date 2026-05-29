@@ -12,11 +12,11 @@ export module scene;
 
 export namespace scene
 {
-  struct ShapeInstance
+  struct Shape
   {
     glm::vec3     offset{0.0F, 0.0F, 0.0F};
     std::uint32_t materialIndex = 0;
-    std::uint32_t shapeIndex    = 0;
+    std::uint32_t meshIndex     = 0;
 
     static constexpr size_t OffsetOffset        = 0U;
     static constexpr size_t MaterialIndexOffset = 3U * sizeof(float);
@@ -29,7 +29,7 @@ export namespace scene
     float     scale = 1.0F;
   };
 
-  struct Shape
+  struct Mesh
   {
     std::vector<float>       vertices;
     static constexpr size_t  VertexPosFloatCount   = 3;
@@ -47,7 +47,7 @@ export namespace scene
     // Количество подряд идущих инстансов этой формы в общем массиве инстансов сцены.
     std::size_t instanceCount = 0;
 
-    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(ShapeInstance::Stride); }
+    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(Shape::Stride); }
 
     GLsizeiptr indexesSizeBytes() const { return static_cast<GLsizeiptr>(indexes.size() * sizeof(GLuint)); }
 
@@ -57,7 +57,7 @@ export namespace scene
   struct ShapeGroup
   {
     std::string   shaderName = "triangle";
-    std::uint32_t shapeIndex = 0;
+    std::uint32_t meshIndex  = 0;
 
     // Индекс первого инстанса этой группы в общем массиве инстансов сцены.
     std::size_t firstInstance = 0;
@@ -65,7 +65,7 @@ export namespace scene
     // Количество подряд идущих инстансов этой группы в общем массиве инстансов сцены.
     std::size_t instanceCount = 0;
 
-    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(ShapeInstance::Stride); }
+    size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(Shape::Stride); }
   };
 
   struct Camera
@@ -98,8 +98,8 @@ export namespace scene
   class Scene
   {
   public:
+    std::vector<Mesh>           meshes;
     std::vector<Shape>          shapes;
-    std::vector<ShapeInstance>  instances;
     std::vector<ShapeGroup>     shapeGroups;
     std::vector<MaterialParams> materials;
     Camera                      camera;
@@ -108,7 +108,7 @@ export namespace scene
 
     void load(const std::filesystem::path &path);
 
-    GLsizeiptr instancesSizeBytes() const { return static_cast<GLsizeiptr>(instances.size() * ShapeInstance::Stride); }
+    GLsizeiptr shapesSizeBytes() const { return static_cast<GLsizeiptr>(shapes.size() * Shape::Stride); }
 
     GLsizeiptr materialsSizeBytes() const { return static_cast<GLsizeiptr>(materials.size() * sizeof(MaterialParams)); }
   };
