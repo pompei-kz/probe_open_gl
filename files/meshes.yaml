@@ -7,3 +7,21 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "sphera_16x16.indexes.txt"
+
+  sphera_8x8:
+    points:
+      type: "i X Y Z"
+      data-ref: "sphera_8x8.points.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "sphera_8x8.indexes.txt"
+
+  sphera_4x4:
+    points:
+      type: "i X Y Z"
+      data-ref: "sphera_4x4.points.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "sphera_4x4.indexes.txt"

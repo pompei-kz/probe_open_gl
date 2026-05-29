@@ -29,14 +29,14 @@ cameras:
 
 shapes:
 
-  sphera_16x16_green:
+  sphera_green:
     mesh:
       ref: "meshes.yaml#sphera_16x16"
     material:
       type: "solid"
       color: "0.15  0.85  0.10"
 
-  sphera_16x16_blue:
+  sphera_blue:
     mesh:
       ref: "meshes.yaml#sphera_16x16"
     material:
@@ -46,7 +46,7 @@ shapes:
 shape-instance-groups:
   ball1:
     shape:
-      ref: "#sphera_16x16_green"
+      ref: "#sphera_green"
     offsets:
       type: "i X Y Z"
       data: |
@@ -55,7 +55,7 @@ shape-instance-groups:
           1   0   3   0
   ball2:
     shape:
-      ref: "#sphera_16x16_blue"
+      ref: "#sphera_blue"
     offsets:
       type: "i X Y Z"
       data: |
