@@ -55,11 +55,14 @@ shape-groups:
 
   group-BBB:
     shader: "triangle"
-    mesh-ref: "meshes.yaml#sphera_32x32"
+    mesh-ref: "meshes.yaml#cylinder"
     materials:
       - index: 0
         color: "0.9  0.0  0.0"
         scale: "1.0"
+      - index: 1
+        color: "0.1  0.5  0.5"
+        scale: "0.5"
     offsets:
       type: "i X Y Z Mi"
       data: |
@@ -69,3 +72,5 @@ shape-groups:
           1  -5   0   0   0
           2   0   5   5   0
           3   2   5  -5   0
+          
+          4  -2   5  -5   1
