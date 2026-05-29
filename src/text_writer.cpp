@@ -37,8 +37,8 @@ namespace
 
   GLuint createTextShaderProgram()
   {
-    constexpr std::string_view vertexShaderSource   = resources::write_text_vert;
-    constexpr std::string_view fragmentShaderSource = resources::write_text_frag;
+    constexpr std::string_view vertexShaderSource   = resources::write_text_vert.text;
+    constexpr std::string_view fragmentShaderSource = resources::write_text_frag.text;
 
     const GLuint vertexShader   = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
     const GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -283,7 +283,7 @@ private:
       throw std::runtime_error("AWv2sDuFfl :: Failed to initialize FreeType");
     }
 
-    const std::span<const unsigned char> font = resources::fonts_Roboto_Regular_ttf();
+    const std::span<const unsigned char> font = resources::fonts_Roboto_Regular_ttf.binary;
 
     FT_Face face = nullptr;
     if (FT_New_Memory_Face(library, font.data(), static_cast<FT_Long>(font.size()), 0, &face) != 0)

@@ -47,6 +47,16 @@ endforeach ()
 string(APPEND GENERATED_CONTENT "${BINARY_RESOURCE_DECLARATIONS}")
 string(APPEND GENERATED_CONTENT "}\n\n")
 string(APPEND GENERATED_CONTENT "namespace resources {\n\n")
+string(APPEND GENERATED_CONTENT "struct TxtResource\n")
+string(APPEND GENERATED_CONTENT "{\n")
+string(APPEND GENERATED_CONTENT "  std::string_view path;\n")
+string(APPEND GENERATED_CONTENT "  std::string_view text;\n")
+string(APPEND GENERATED_CONTENT "};\n\n")
+string(APPEND GENERATED_CONTENT "struct BinResource\n")
+string(APPEND GENERATED_CONTENT "{\n")
+string(APPEND GENERATED_CONTENT "  std::string_view path;\n")
+string(APPEND GENERATED_CONTENT "  std::span<const unsigned char> binary;\n")
+string(APPEND GENERATED_CONTENT "};\n\n")
 
 set(RESOURCE_NAMES "")
 foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
@@ -72,19 +82,25 @@ foreach (RESOURCE_FILE IN LISTS RESOURCE_FILES)
         file(READ "${RESOURCE_FILE}" RESOURCE_SOURCE)
 
         string(APPEND GENERATED_CONTENT
-                "inline constexpr std::string_view ${RESOURCE_NAME} = R\"RESOURCE(")
+                "inline constexpr TxtResource ${RESOURCE_NAME} = {\n")
+        string(APPEND GENERATED_CONTENT
+                "  .path = \"resources/${RESOURCE_FILE_NAME}\",\n")
+        string(APPEND GENERATED_CONTENT
+                "  .text = R\"RESOURCE(")
         string(APPEND GENERATED_CONTENT "${RESOURCE_SOURCE}")
-        string(APPEND GENERATED_CONTENT ")RESOURCE\";\n\n")
+        string(APPEND GENERATED_CONTENT ")RESOURCE\"\n")
+        string(APPEND GENERATED_CONTENT "};\n\n")
     else ()
         set(RESOURCE_SYMBOL_NAME "${RESOURCE_FILE_NAME}")
         string(REGEX REPLACE "[^A-Za-z0-9]" "_" RESOURCE_SYMBOL_NAME "${RESOURCE_SYMBOL_NAME}")
 
         string(APPEND GENERATED_CONTENT
-                "inline std::span<const unsigned char> ${RESOURCE_NAME}() noexcept\n")
-        string(APPEND GENERATED_CONTENT "{\n")
+                "inline const BinResource ${RESOURCE_NAME} = {\n")
         string(APPEND GENERATED_CONTENT
-                "  return {_binary_${RESOURCE_SYMBOL_NAME}_start, static_cast<std::size_t>(_binary_${RESOURCE_SYMBOL_NAME}_end - _binary_${RESOURCE_SYMBOL_NAME}_start)};\n")
-        string(APPEND GENERATED_CONTENT "}\n\n")
+                "  .path = \"resources/${RESOURCE_FILE_NAME}\",\n")
+        string(APPEND GENERATED_CONTENT
+                "  .binary = {_binary_${RESOURCE_SYMBOL_NAME}_start, static_cast<std::size_t>(_binary_${RESOURCE_SYMBOL_NAME}_end - _binary_${RESOURCE_SYMBOL_NAME}_start)}\n")
+        string(APPEND GENERATED_CONTENT "};\n\n")
     endif ()
 endforeach ()
 

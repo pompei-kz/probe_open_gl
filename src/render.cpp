@@ -102,9 +102,9 @@ namespace
       switch (type)
       {
       case GL_VERTEX_SHADER:
-        return resources::triangle_vert;
+        return resources::triangle_vert.text;
       case GL_FRAGMENT_SHADER:
-        return resources::triangle_frag;
+        return resources::triangle_frag.text;
       default: // go following
       }
     }
