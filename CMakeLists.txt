@@ -52,6 +52,7 @@ target_sources(probe_open_gl
     src/application.cppm
     src/arguments.cppm
     src/atom.cppm
+    src/keys.cppm
     src/generator.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm

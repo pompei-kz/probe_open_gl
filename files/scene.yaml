@@ -143,8 +143,8 @@ shape-groups:
     mesh:
       type: "cylinder"
       params:
-        bottom-base-center: "0.0   0 10.0"
-        top-base-center: "0.0  0  -10.0"
+        bottom-base-center: "0.0  0   10.0"
+        top-base-center: "   0.0  0  -10.0"
         radius: "0.3"
         loop-segments: 5
         axis-segments: 4
