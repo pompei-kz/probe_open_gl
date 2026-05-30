@@ -1,8 +1,6 @@
 module;
 
-#include <stdexcept>
 #include <string>
-#include <string_view>
 
 export module atom;
 
@@ -31,6 +29,6 @@ export namespace atom
       return Carbon;
     }
 
-    throw std::runtime_error("atom::byName(): unknown atom name: " + name);
+    return Unknown;
   }
 } // namespace atom

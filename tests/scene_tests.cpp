@@ -663,7 +663,7 @@ shape-groups:
   expectRuntimeErrorContains(path, " :: Missing material index 0 for shape group 'selected_group'");
 }
 
-TEST(LoadScene, ThrowsWhenAtomNameIsUnknown)
+TEST(LoadScene, TreatsUnknownAtomNameAsUnknown)
 {
   const std::filesystem::path path = writeYaml("unknown_atom_name", R"yaml(
 scene:
@@ -686,7 +686,12 @@ shape-groups:
         0 1 2 3 0
 )yaml");
 
-  expectRuntimeErrorContains(path, "atom::byName(): unknown atom name: Helium");
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.shapeGroups.size(), 1U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 1U);
+  EXPECT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].atom, atom::Unknown);
 }
 
 TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
