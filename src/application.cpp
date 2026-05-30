@@ -54,6 +54,8 @@ struct Application::Impl
   {
     Uint64 previousCounter = SDL_GetPerformanceCounter();
 
+    render.init();
+
     running_ = true;
     while (running_)
     {

@@ -3,6 +3,8 @@ module;
 #include <filesystem>
 #include <memory>
 
+import world;
+
 export module render;
 
 export enum class MoveVert
@@ -29,7 +31,7 @@ export enum class RotateForward
 export class Render
 {
 public:
-  explicit Render(const std::filesystem::path &scenePath);
+  explicit Render(const std::filesystem::path &scenePath, world::World *world);
 
   Render(const Render &) = delete;
 
@@ -52,6 +54,8 @@ public:
   void scrollCamera(int wheelY) const;
 
   void drawFrame(int viewportWidth, int viewportHeight, float deltaSeconds) const;
+
+  void init() const;
 
 private:
   struct Impl;

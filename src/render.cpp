@@ -23,6 +23,7 @@ module render;
 import scene;
 import text_writer;
 import utils;
+import world;
 
 namespace
 {
@@ -189,7 +190,8 @@ namespace
 
 struct Render::Impl
 {
-  explicit Impl(const std::filesystem::path &scenePath)
+  explicit Impl(const std::filesystem::path &scenePath, world::World *world)
+      : worldRef_(world)
   {
     scene_.load(scenePath);
 
@@ -205,10 +207,10 @@ struct Render::Impl
     cameraForward_  = normalize(scene_.camera.forward, "camera.forward");
     cameraUp_       = scene_.camera.up;
 
-    // Создаем буфер для данных инстансов.
-    glGenBuffers(1, &shapeInstanceGroup_);
-    // Делаем буфер инстансов текущим.
-    glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+    // Создаем буфер для данных группы фигур.
+    glGenBuffers(1, &shapeGroup_);
+    // Делаем буфер группы фигур текущим.
+    glBindBuffer(GL_ARRAY_BUFFER, shapeGroup_);
     // Выделяем память GPU под данные инстансов.
     glBufferData(GL_ARRAY_BUFFER, scene_.shapesSizeBytes(), nullptr, GL_DYNAMIC_DRAW);
 
@@ -266,7 +268,7 @@ struct Render::Impl
       //
 
       // Делаем буфер инстансов текущим.
-      glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+      glBindBuffer(GL_ARRAY_BUFFER, shapeGroup_);
       // Описываем атрибут смещения инстанса.
       glVertexAttribPointer(2, // index of attribute
                             3,
@@ -293,11 +295,11 @@ struct Render::Impl
 private:
   void release()
   {
-    if (shapeInstanceGroup_ != 0)
+    if (shapeGroup_ != 0)
     {
       // Освобождаем буфер инстансов.
-      glDeleteBuffers(1, &shapeInstanceGroup_);
-      shapeInstanceGroup_ = 0;
+      glDeleteBuffers(1, &shapeGroup_);
+      shapeGroup_ = 0;
     }
     if (materialParamsBuffer_ != 0)
     {
@@ -353,6 +355,8 @@ public:
 
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
+    worldRef_->writeToShapesBeforeRender(scene_.shapes);
+
     const glm::vec3 cameraLeft             = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
     const float     sideMoveDirection      = select1m1(moveHoriz_, MoveHoriz::RIGHT, MoveHoriz::LEFT);
     const float     vertMoveDirection      = select1m1(moveVert_, MoveVert::UP, MoveVert::DOWN);
@@ -386,7 +390,7 @@ public:
     }
 
     // Делаем буфер инстансов текущим перед обновлением.
-    glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+    glBindBuffer(GL_ARRAY_BUFFER, shapeGroup_);
     // Загружаем актуальные данные инстансов в GPU.
     glBufferSubData(GL_ARRAY_BUFFER, 0, shapeDataSizeBytes(), shapeData_.data());
 
@@ -429,7 +433,7 @@ public:
       // Выбираем VAO фигуры перед отрисовкой.
       glBindVertexArray(meshBufferIds_[shapeGroup.meshIndex].vertexArrayID);
       // Для каждой группы сдвигаем instanced-атрибут на первый инстанс группы.
-      glBindBuffer(GL_ARRAY_BUFFER, shapeInstanceGroup_);
+      glBindBuffer(GL_ARRAY_BUFFER, shapeGroup_);
       glVertexAttribPointer(2,
                             3,
                             GL_FLOAT,
@@ -452,9 +456,12 @@ public:
     textWriter_.drawFps(viewportWidth, viewportHeight, deltaSeconds);
   }
 
+  void init() { worldRef_->initShapes(scene_.shapes); }
+
 private:
   scene::Scene                                   scene_;
-  GLuint                                         shapeInstanceGroup_   = 0;
+  world::World                                  *worldRef_;
+  GLuint                                         shapeGroup_           = 0;
   GLuint                                         materialParamsBuffer_ = 0;
   std::vector<MeshGlBufferIds>                   meshBufferIds_;
   std::unordered_map<std::string, ShaderProgram> shaderPrograms_;
@@ -470,8 +477,8 @@ private:
   GLsizeiptr shapeDataSizeBytes() const { return static_cast<GLsizeiptr>(shapeData_.size() * sizeof(ShapeGpuData)); }
 };
 
-Render::Render(const std::filesystem::path &scenePath)
-    : impl_(std::make_unique<Impl>(scenePath))
+Render::Render(const std::filesystem::path &scenePath, world::World *world)
+    : impl_(std::make_unique<Impl>(scenePath, world))
 {
 }
 
@@ -505,4 +512,9 @@ void Render::scrollCamera(const int wheelY) const
 void Render::drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds) const
 {
   impl_->drawFrame(viewportWidth, viewportHeight, deltaSeconds);
+}
+
+void Render::init() const
+{
+  impl_->init();
 }

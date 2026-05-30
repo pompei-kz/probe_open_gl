@@ -56,6 +56,8 @@ target_sources(probe_open_gl
     src/scene.cppm
     src/sync_map.cppm
     src/text_writer.cppm
+    src/world.cppm
+    src/world_01.cppm
     src/utils.cppm
 )
 
@@ -65,46 +67,46 @@ set(GENERATED_RESOURCE_HEADER
 
 find_program(OBJCOPY_EXECUTABLE objcopy REQUIRED)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
-    set(OBJCOPY_OUTPUT_TARGET elf64-x86-64)
-    set(OBJCOPY_BINARY_ARCHITECTURE i386:x86-64)
+  set(OBJCOPY_OUTPUT_TARGET elf64-x86-64)
+  set(OBJCOPY_BINARY_ARCHITECTURE i386:x86-64)
 else ()
-    message(FATAL_ERROR "Binary resource embedding with objcopy is configured only for Linux x86_64")
+  message(FATAL_ERROR "Binary resource embedding with objcopy is configured only for Linux x86_64")
 endif ()
 
 set(BINARY_RESOURCE_OBJECTS "")
 foreach (RESOURCE_SOURCE IN LISTS RESOURCE_SOURCES)
-    get_filename_component(RESOURCE_SOURCE_EXTENSION "${RESOURCE_SOURCE}" EXT)
-    string(TOLOWER "${RESOURCE_SOURCE_EXTENSION}" RESOURCE_SOURCE_EXTENSION)
-    list(FIND TEXT_RESOURCE_EXTENSIONS "${RESOURCE_SOURCE_EXTENSION}" TEXT_RESOURCE_EXTENSION_INDEX)
+  get_filename_component(RESOURCE_SOURCE_EXTENSION "${RESOURCE_SOURCE}" EXT)
+  string(TOLOWER "${RESOURCE_SOURCE_EXTENSION}" RESOURCE_SOURCE_EXTENSION)
+  list(FIND TEXT_RESOURCE_EXTENSIONS "${RESOURCE_SOURCE_EXTENSION}" TEXT_RESOURCE_EXTENSION_INDEX)
 
-    if (TEXT_RESOURCE_EXTENSION_INDEX EQUAL -1)
-        file(RELATIVE_PATH RESOURCE_RELATIVE_PATH "${RESOURCE_DIRECTORY}" "${RESOURCE_SOURCE}")
-        set(RESOURCE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.o")
-        set(RESOURCE_NOTE "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.note.GNU-stack")
-        get_filename_component(RESOURCE_OBJECT_DIRECTORY "${RESOURCE_OBJECT}" DIRECTORY)
+  if (TEXT_RESOURCE_EXTENSION_INDEX EQUAL -1)
+    file(RELATIVE_PATH RESOURCE_RELATIVE_PATH "${RESOURCE_DIRECTORY}" "${RESOURCE_SOURCE}")
+    set(RESOURCE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.o")
+    set(RESOURCE_NOTE "${CMAKE_CURRENT_BINARY_DIR}/generated/resources/${RESOURCE_RELATIVE_PATH}.note.GNU-stack")
+    get_filename_component(RESOURCE_OBJECT_DIRECTORY "${RESOURCE_OBJECT}" DIRECTORY)
 
-        add_custom_command(
-            OUTPUT ${RESOURCE_OBJECT}
-            BYPRODUCTS ${RESOURCE_NOTE}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_OBJECT_DIRECTORY}
-            COMMAND ${CMAKE_COMMAND} -E touch ${RESOURCE_NOTE}
-            COMMAND ${OBJCOPY_EXECUTABLE}
-            --input-target=binary
-            --output-target=${OBJCOPY_OUTPUT_TARGET}
-            --binary-architecture=${OBJCOPY_BINARY_ARCHITECTURE}
-            --rename-section .data=.rodata,alloc,load,readonly,data,contents
-            --add-section .note.GNU-stack=${RESOURCE_NOTE}
-            --set-section-flags .note.GNU-stack=contents,readonly
-            ${RESOURCE_RELATIVE_PATH}
-            ${RESOURCE_OBJECT}
-            WORKING_DIRECTORY ${RESOURCE_DIRECTORY}
-            DEPENDS ${RESOURCE_SOURCE}
-            COMMENT "Embedding binary resource ${RESOURCE_RELATIVE_PATH}"
-            VERBATIM
-        )
+    add_custom_command(
+        OUTPUT ${RESOURCE_OBJECT}
+        BYPRODUCTS ${RESOURCE_NOTE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCE_OBJECT_DIRECTORY}
+        COMMAND ${CMAKE_COMMAND} -E touch ${RESOURCE_NOTE}
+        COMMAND ${OBJCOPY_EXECUTABLE}
+        --input-target=binary
+        --output-target=${OBJCOPY_OUTPUT_TARGET}
+        --binary-architecture=${OBJCOPY_BINARY_ARCHITECTURE}
+        --rename-section .data=.rodata,alloc,load,readonly,data,contents
+        --add-section .note.GNU-stack=${RESOURCE_NOTE}
+        --set-section-flags .note.GNU-stack=contents,readonly
+        ${RESOURCE_RELATIVE_PATH}
+        ${RESOURCE_OBJECT}
+        WORKING_DIRECTORY ${RESOURCE_DIRECTORY}
+        DEPENDS ${RESOURCE_SOURCE}
+        COMMENT "Embedding binary resource ${RESOURCE_RELATIVE_PATH}"
+        VERBATIM
+    )
 
-        list(APPEND BINARY_RESOURCE_OBJECTS "${RESOURCE_OBJECT}")
-    endif ()
+    list(APPEND BINARY_RESOURCE_OBJECTS "${RESOURCE_OBJECT}")
+  endif ()
 endforeach ()
 
 add_custom_command(

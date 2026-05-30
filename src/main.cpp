@@ -6,6 +6,8 @@ import main_window;
 
 #include <iostream>
 import render;
+import world_01;
+import world;
 
 int main(const int argvCount, char **argv)
 {
@@ -29,8 +31,10 @@ int main(const int argvCount, char **argv)
     MainWindow window(args.cacheFolder(), "Atom Simulation");
 
     {
-      Application application(window);
-      Render      render(args.exeFolder() / "scene.yaml");
+      world::World_01 world;
+
+      const Application application(window);
+      const Render      render(args.exeFolder() / "scene.yaml", &world);
 
       application.run(render);
     }
