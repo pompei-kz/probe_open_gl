@@ -8,6 +8,9 @@ export module arguments;
 
 export class Arguments
 {
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+
 public:
   Arguments(int argumentCount, char **arguments);
 
@@ -30,9 +33,4 @@ public:
   [[nodiscard]] const std::filesystem::path &cacheFolder() const;
 
   void printIntro() const;
-
-private:
-  struct Impl;
-
-  std::unique_ptr<Impl> impl_;
 };

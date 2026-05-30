@@ -44,6 +44,9 @@ export enum class RotatePitch
 
 export class Render
 {
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+
 public:
   explicit Render(const std::filesystem::path &scenePath, world::World *world);
 
@@ -74,9 +77,4 @@ public:
   void drawFrame(int viewportWidth, int viewportHeight, float deltaSeconds) const;
 
   void init() const;
-
-private:
-  struct Impl;
-
-  std::unique_ptr<Impl> impl_;
 };

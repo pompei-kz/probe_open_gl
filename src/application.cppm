@@ -9,6 +9,9 @@ import render;
 
 export class Application
 {
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+
 public:
   explicit Application(MainWindow &window);
 
@@ -19,9 +22,4 @@ public:
   ~Application();
 
   void run(const Render &render) const;
-
-private:
-  struct Impl;
-
-  std::unique_ptr<Impl> impl_;
 };

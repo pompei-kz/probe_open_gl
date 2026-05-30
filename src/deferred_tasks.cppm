@@ -9,6 +9,9 @@ export module deferred_tasks;
 
 export class DeferredTasks
 {
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+
 public:
   DeferredTasks();
 
@@ -31,9 +34,4 @@ public:
   [[nodiscard]] bool empty() const;
 
   [[nodiscard]] std::size_t size() const;
-
-private:
-  struct Impl;
-
-  std::unique_ptr<Impl> impl_;
 };

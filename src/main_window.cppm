@@ -9,6 +9,9 @@ export module main_window;
 
 export class MainWindow
 {
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
+
 public:
   MainWindow(const std::filesystem::path &cacheDirectory, const char *title);
 
@@ -33,9 +36,4 @@ public:
   void close() const;
 
   void idle() const;
-
-private:
-  struct Impl;
-
-  std::unique_ptr<Impl> impl_;
 };

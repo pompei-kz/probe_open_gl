@@ -9,6 +9,11 @@ export module text_writer;
 
 export class TextWriter
 {
+  struct Impl;
+
+  // Закрытая реализация отрисовки текста. Изменения внутри Impl не меняют BMI модуля text_writer.
+  std::unique_ptr<Impl> impl_;
+
 public:
   TextWriter();
 
@@ -25,10 +30,4 @@ public:
   void drawFps(int viewportWidth, int viewportHeight, float deltaSeconds) const;
 
   void drawText(int viewportWidth, int viewportHeight, std::string_view text, float left, float top, float scale, const glm::vec3 &color) const;
-
-private:
-  struct Impl;
-
-  // Закрытая реализация отрисовки текста. Изменения внутри Impl не меняют BMI модуля text_writer.
-  std::unique_ptr<Impl> impl_;
 };
