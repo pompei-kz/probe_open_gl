@@ -15,39 +15,6 @@ import main_window;
 import render;
 import keys;
 
-namespace
-{
-  enum class KeyboardMode
-  {
-    Base,
-    Shift,
-    Ctrl,
-    Alt,
-  };
-
-  KeyboardMode keyboardMode(const Uint16 mod)
-  {
-    if ((mod & KMOD_CTRL) != 0)
-    {
-      return KeyboardMode::Ctrl;
-    }
-    if ((mod & KMOD_ALT) != 0)
-    {
-      return KeyboardMode::Alt;
-    }
-    if ((mod & KMOD_SHIFT) != 0)
-    {
-      return KeyboardMode::Shift;
-    }
-    return KeyboardMode::Base;
-  }
-
-  bool hasModifier(const Uint16 mod)
-  {
-    return keyboardMode(mod) != KeyboardMode::Base;
-  }
-} // namespace
-
 struct Application::Impl
 {
   explicit Impl(MainWindow &window)
@@ -129,185 +96,148 @@ private:
       setMouseCaptured(false);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_ShiftW(event) || keys::KeyDown_CtrlW(event) || keys::KeyDown_CtrlShiftW(event)
+        || keys::KeyDown_CtrlAltW(event) || keys::KeyDown_CtrlShiftAltW(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-      case KeyboardMode::Ctrl:
-        render.rotateCamera(0, -8);
-        return;
-      case KeyboardMode::Alt:
-        render.scrollCamera(1);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.rotateCamera(0, -8);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_AltW(event) || keys::KeyDown_ShiftAltW(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-      case KeyboardMode::Ctrl:
-        render.rotateCamera(0, 8);
-        return;
-      case KeyboardMode::Alt:
-        render.scrollCamera(-1);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.scrollCamera(1);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_ShiftS(event) || keys::KeyDown_CtrlS(event) || keys::KeyDown_CtrlShiftS(event)
+        || keys::KeyDown_CtrlAltS(event) || keys::KeyDown_CtrlShiftAltS(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-        render.rotateCamera(-8, 0);
-        return;
-      case KeyboardMode::Ctrl:
-        render.scrollCamera(1);
-        return;
-      case KeyboardMode::Alt:
-        render.rotateCamera(0, -8);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.rotateCamera(0, 8);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_AltS(event) || keys::KeyDown_ShiftAltS(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-        render.rotateCamera(8, 0);
-        return;
-      case KeyboardMode::Ctrl:
-        render.scrollCamera(-1);
-        return;
-      case KeyboardMode::Alt:
-        render.rotateCamera(0, 8);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.scrollCamera(-1);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_ShiftA(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-        render.scrollCamera(1);
-        return;
-      case KeyboardMode::Ctrl:
-        render.rotateCamera(-8, 0);
-        return;
-      case KeyboardMode::Alt:
-        render.rotateCamera(8, 0);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.rotateCamera(-8, 0);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_e && hasModifier(event.key.keysym.mod))
+    if (keys::KeyDown_CtrlA(event) || keys::KeyDown_CtrlShiftA(event) || keys::KeyDown_CtrlAltA(event)
+        || keys::KeyDown_CtrlShiftAltA(event))
     {
-      switch (keyboardMode(event.key.keysym.mod))
-      {
-      case KeyboardMode::Shift:
-        render.scrollCamera(-1);
-        return;
-      case KeyboardMode::Ctrl:
-        render.rotateCamera(8, 0);
-        return;
-      case KeyboardMode::Alt:
-        render.rotateCamera(-8, 0);
-        return;
-      case KeyboardMode::Base:
-        break;
-      }
+      render.scrollCamera(1);
+      return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
+    if (keys::KeyDown_AltA(event) || keys::KeyDown_ShiftAltA(event))
+    {
+      render.rotateCamera(0, -8);
+      return;
+    }
+    if (keys::KeyDown_ShiftD(event))
+    {
+      render.rotateCamera(8, 0);
+      return;
+    }
+    if (keys::KeyDown_CtrlD(event) || keys::KeyDown_CtrlShiftD(event) || keys::KeyDown_CtrlAltD(event)
+        || keys::KeyDown_CtrlShiftAltD(event))
+    {
+      render.scrollCamera(-1);
+      return;
+    }
+    if (keys::KeyDown_AltD(event) || keys::KeyDown_ShiftAltD(event))
+    {
+      render.rotateCamera(0, 8);
+      return;
+    }
+    if (keys::KeyDown_ShiftQ(event))
+    {
+      render.scrollCamera(1);
+      return;
+    }
+    if (keys::KeyDown_CtrlShiftQ(event) || keys::KeyDown_CtrlAltQ(event) || keys::KeyDown_CtrlShiftAltQ(event))
+    {
+      render.rotateCamera(-8, 0);
+      return;
+    }
+    if (keys::KeyDown_AltQ(event) || keys::KeyDown_ShiftAltQ(event))
+    {
+      render.rotateCamera(8, 0);
+      return;
+    }
+    if (keys::KeyDown_ShiftE(event))
+    {
+      render.scrollCamera(-1);
+      return;
+    }
+    if (keys::KeyDown_CtrlE(event) || keys::KeyDown_CtrlShiftE(event) || keys::KeyDown_CtrlAltE(event)
+        || keys::KeyDown_CtrlShiftAltE(event))
+    {
+      render.rotateCamera(8, 0);
+      return;
+    }
+    if (keys::KeyDown_AltE(event) || keys::KeyDown_ShiftAltE(event))
+    {
+      render.rotateCamera(-8, 0);
+      return;
+    }
+    if (keys::KeyDown_FreeW(event))
     {
       render.setMoveVert(MoveVert::UP);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_s)
+    if (keys::KeyDown_FreeS(event))
     {
       render.setMoveVert(MoveVert::DOWN);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_a)
+    if (keys::KeyDown_FreeA(event))
     {
       render.setMoveHoriz(MoveHoriz::LEFT);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_d)
+    if (keys::KeyDown_FreeD(event))
     {
       render.setMoveHoriz(MoveHoriz::RIGHT);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_q)
+    if (keys::KeyDown_FreeQ(event))
     {
       render.setRotateForward(RotateForward::RIGHT);
       return;
     }
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_e)
+    if (keys::KeyDown_FreeE(event))
     {
       render.setRotateForward(RotateForward::LEFT);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_w)
+    if (keys::KeyUp_FreeW(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setMoveVert(MoveVert::NONE);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_s)
+    if (keys::KeyUp_FreeS(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setMoveVert(MoveVert::NONE);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_a)
+    if (keys::KeyUp_FreeA(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setMoveHoriz(MoveHoriz::NONE);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_d)
+    if (keys::KeyUp_FreeD(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setMoveHoriz(MoveHoriz::NONE);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_q)
+    if (keys::KeyUp_FreeQ(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setRotateForward(RotateForward::NONE);
       return;
     }
-    if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_e)
+    if (keys::KeyUp_FreeE(event))
     {
-      if (hasModifier(event.key.keysym.mod))
-      {
-        return;
-      }
       render.setRotateForward(RotateForward::NONE);
       return;
     }
