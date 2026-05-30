@@ -10,7 +10,9 @@ scene:
   shape-groups:
     - group-AAA
     - group-BBB
-  world-shape-group: "group-AAA"
+  world:
+    shape-groups:
+      atoms: "group-AAA"
 
 cameras:
   main:

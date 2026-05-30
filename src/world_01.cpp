@@ -32,20 +32,20 @@ struct world::World_01::Impl
   std::vector<atom::Atom> atoms_;
   const float             R = 0.5F;
 
-  void initShapes(const scene::ShapeGroup &shapeGroup, const std::vector<scene::MaterialParams> &materials)
+  void initShapes(const scene::ShapeGroup &atoms, const std::vector<scene::MaterialParams> &materials)
   {
     std::random_device             rd;
     std::mt19937                   gen(rd());
     std::uniform_real_distribution dist(0.0F, 1.0F);
 
-    positions_.resize(shapeGroup.shapes.size());
-    moveX_.resize(shapeGroup.shapes.size());
-    moveY_.resize(shapeGroup.shapes.size());
-    angle_.resize(shapeGroup.shapes.size());
-    atoms_.resize(shapeGroup.shapes.size());
-    velocity_.resize(shapeGroup.shapes.size());
+    positions_.resize(atoms.shapes.size());
+    moveX_.resize(atoms.shapes.size());
+    moveY_.resize(atoms.shapes.size());
+    angle_.resize(atoms.shapes.size());
+    atoms_.resize(atoms.shapes.size());
+    velocity_.resize(atoms.shapes.size());
 
-    for (std::size_t i = 0; const scene::Shape &shape : shapeGroup.shapes)
+    for (std::size_t i = 0; const scene::Shape &shape : atoms.shapes)
     {
       const scene::MaterialParams material = materials[shape.materialIndex];
 
@@ -101,9 +101,9 @@ world::World_01::World_01()
 
 world::World_01::~World_01() = default;
 
-void world::World_01::initShapes(scene::ShapeGroup &shapeGroup, const std::vector<scene::MaterialParams> &materials)
+void world::World_01::initShapes(scene::ShapeGroup &atoms, const std::vector<scene::MaterialParams> &materials)
 {
-  impl_->initShapes(shapeGroup, materials);
+  impl_->initShapes(atoms, materials);
 }
 
 void world::World_01::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)

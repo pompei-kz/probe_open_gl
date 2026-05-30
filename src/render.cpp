@@ -211,7 +211,7 @@ struct Render::Impl
     {
       if (scene_.worldShapeGroup.empty())
       {
-        throw std::runtime_error("k1V8eZt0cA :: Missing scene.world-shape-group in " + scenePath.string());
+        throw std::runtime_error("k1V8eZt0cA :: Missing scene.world.shape-groups.atoms in " + scenePath.string());
       }
       worldShapeGroupIndex_ = findShapeGroupIndex(scene_.worldShapeGroup);
     }

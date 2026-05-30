@@ -129,7 +129,9 @@ scene:
   shape-groups:
     - selected_group
   camera: "main"
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
   sun:
     force: "2.5"
     direction: "0 3 4"
@@ -252,7 +254,9 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 shape-groups:
   selected_group:
@@ -293,7 +297,9 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -332,7 +338,9 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -529,7 +537,9 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -562,7 +572,9 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
-  world-shape-group: "selected_group"
+  world:
+    shape-groups:
+      atoms: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:

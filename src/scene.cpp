@@ -644,13 +644,29 @@ void scene::Scene::load(const std::filesystem::path &path)
   parseSceneCamera(document, sceneNode, path, *this);
   parseSceneSun(sceneNode, path, *this);
   parseSceneParams(sceneNode, path, *this);
-  if (const YAML::Node worldShapeGroupNode = sceneNode["world-shape-group"])
+  if (const YAML::Node worldNode = sceneNode["world"])
   {
-    if (!worldShapeGroupNode.IsScalar())
+    if (!worldNode.IsMap())
     {
-      throw std::runtime_error("fQ8mYpWc2L :: YAML scalar 'scene.world-shape-group' must be scalar in " + path.string());
+      throw std::runtime_error("fQ8mYpWc2L :: YAML container 'scene.world' must be map in " + path.string());
     }
-    worldShapeGroup = worldShapeGroupNode.as<std::string>();
+
+    if (const YAML::Node shapeGroupsNode = worldNode["shape-groups"])
+    {
+      if (!shapeGroupsNode.IsMap())
+      {
+        throw std::runtime_error("fQ8mYpWc2L :: YAML container 'scene.world.shape-groups' must be map in " + path.string());
+      }
+
+      if (const YAML::Node atomsNode = shapeGroupsNode["atoms"])
+      {
+        if (!atomsNode.IsScalar())
+        {
+          throw std::runtime_error("fQ8mYpWc2L :: YAML scalar 'scene.world.shape-groups.atoms' must be scalar in " + path.string());
+        }
+        worldShapeGroup = atomsNode.as<std::string>();
+      }
+    }
   }
 
   const YAML::Node sceneShapeGroups = sceneNode["shape-groups"];
@@ -687,7 +703,7 @@ void scene::Scene::load(const std::filesystem::path &path)
     });
     if (selectedGroup == this->shapeGroups.end())
     {
-      throw std::runtime_error("Jx7h8mMZ0N :: Missing scene.world-shape-group '" + worldShapeGroup + "' in " + path.string());
+      throw std::runtime_error("Jx7h8mMZ0N :: Missing scene.world.shape-groups.atoms '" + worldShapeGroup + "' in " + path.string());
     }
   }
   if (meshes.empty() || shapeCount == 0U)
