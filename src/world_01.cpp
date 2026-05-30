@@ -32,20 +32,20 @@ struct world::World_01::Impl
   std::vector<atom::Atom> atoms_;
   const float             R = 0.5F;
 
-  void initShapes(const std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials)
+  void initShapes(const scene::ShapeGroup &shapeGroup, const std::vector<scene::MaterialParams> &materials)
   {
     std::random_device             rd;
     std::mt19937                   gen(rd());
     std::uniform_real_distribution dist(0.0F, 1.0F);
 
-    positions_.resize(shapes.size());
-    moveX_.resize(shapes.size());
-    moveY_.resize(shapes.size());
-    angle_.resize(shapes.size());
-    atoms_.resize(shapes.size());
-    velocity_.resize(shapes.size());
+    positions_.resize(shapeGroup.shapes.size());
+    moveX_.resize(shapeGroup.shapes.size());
+    moveY_.resize(shapeGroup.shapes.size());
+    angle_.resize(shapeGroup.shapes.size());
+    atoms_.resize(shapeGroup.shapes.size());
+    velocity_.resize(shapeGroup.shapes.size());
 
-    for (std::size_t i = 0; const scene::Shape &shape : shapes)
+    for (std::size_t i = 0; const scene::Shape &shape : shapeGroup.shapes)
     {
       const scene::MaterialParams material = materials[shape.materialIndex];
 
@@ -70,11 +70,11 @@ struct world::World_01::Impl
     }
   }
 
-  void writeToShapesBeforeRender(std::vector<scene::Shape> &shapes) const
+  void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) const
   {
     const float timeSec = std::chrono::duration<float>(std::chrono::steady_clock::now() - startedAt_).count();
 
-    for (std::size_t i = 0; scene::Shape &shape : shapes)
+    for (std::size_t i = 0; scene::Shape &shape : shapeGroup.shapes)
     {
       const float velocity = velocity_[i];
       const float angle    = angle_[i] + timeSec * velocity;
@@ -101,12 +101,12 @@ world::World_01::World_01()
 
 world::World_01::~World_01() = default;
 
-void world::World_01::initShapes(std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials)
+void world::World_01::initShapes(scene::ShapeGroup &shapeGroup, const std::vector<scene::MaterialParams> &materials)
 {
-  impl_->initShapes(shapes, materials);
+  impl_->initShapes(shapeGroup, materials);
 }
 
-void world::World_01::writeToShapesBeforeRender(std::vector<scene::Shape> &shapes)
+void world::World_01::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)
 {
-  impl_->writeToShapesBeforeRender(shapes);
+  impl_->writeToShapesBeforeRender(shapeGroup);
 }

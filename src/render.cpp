@@ -207,12 +207,23 @@ struct Render::Impl
     cameraForward_  = normalize(scene_.camera.forward, "camera.forward");
     cameraUp_       = scene_.camera.up;
 
+    if (worldRef_ != nullptr)
+    {
+      if (scene_.worldShapeGroup.empty())
+      {
+        throw std::runtime_error("k1V8eZt0cA :: Missing scene.world-shape-group in " + scenePath.string());
+      }
+      worldShapeGroupIndex_ = findShapeGroupIndex(scene_.worldShapeGroup);
+    }
+
+    shapeData_.resize(totalShapeCount());
+
     // Создаем буфер для данных группы фигур.
     glGenBuffers(1, &shapeGroup_);
     // Делаем буфер группы фигур текущим.
     glBindBuffer(GL_ARRAY_BUFFER, shapeGroup_);
     // Выделяем память GPU под данные инстансов.
-    glBufferData(GL_ARRAY_BUFFER, scene_.shapesSizeBytes(), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, shapeDataSizeBytes(), nullptr, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &materialParamsBuffer_);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialParamsBuffer_);
@@ -295,7 +306,6 @@ struct Render::Impl
 
     // Включаем проверку глубины для 3D-отрисовки.
     glEnable(GL_DEPTH_TEST);
-    shapeData_.resize(scene_.shapes.size());
   }
 
   ~Impl() { release(); }
@@ -363,7 +373,10 @@ public:
 
   void drawFrame(const int viewportWidth, const int viewportHeight, const float deltaSeconds)
   {
-    worldRef_->writeToShapesBeforeRender(scene_.shapes);
+    if (worldRef_ != nullptr)
+    {
+      worldRef_->writeToShapesBeforeRender(scene_.shapeGroups[worldShapeGroupIndex_]);
+    }
 
     const glm::vec3 cameraLeft             = normalize(glm::cross(cameraForward_, cameraUp_), "camera.left");
     const float     sideMoveDirection      = select1m1(moveHoriz_, MoveHoriz::RIGHT, MoveHoriz::LEFT);
@@ -387,14 +400,18 @@ public:
     // Очищаем цветовой буфер и буфер глубины.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    for (std::size_t shapeIndex = 0; shapeIndex < scene_.shapes.size(); ++shapeIndex)
+    for (const scene::ShapeGroup &shapeGroup : scene_.shapeGroups)
     {
-      const scene::Shape &shape = scene_.shapes[shapeIndex];
+      for (std::size_t shapeIndex = 0; shapeIndex < shapeGroup.shapes.size(); ++shapeIndex)
+      {
+        const scene::Shape &shape            = shapeGroup.shapes[shapeIndex];
+        const std::size_t   globalShapeIndex = shapeGroup.firstInstance + shapeIndex;
 
-      shapeData_[shapeIndex].offset[0]     = shape.offset[0];
-      shapeData_[shapeIndex].offset[1]     = shape.offset[1];
-      shapeData_[shapeIndex].offset[2]     = shape.offset[2];
-      shapeData_[shapeIndex].materialIndex = shape.materialIndex;
+        shapeData_[globalShapeIndex].offset[0]     = shape.offset[0];
+        shapeData_[globalShapeIndex].offset[1]     = shape.offset[1];
+        shapeData_[globalShapeIndex].offset[2]     = shape.offset[2];
+        shapeData_[globalShapeIndex].materialIndex = shape.materialIndex;
+      }
     }
 
     // Делаем буфер инстансов текущим перед обновлением.
@@ -466,13 +483,17 @@ public:
 
   void init()
   {
-    worldRef_->initShapes(scene_.shapes, scene_.materials);
+    if (worldRef_ != nullptr)
+    {
+      worldRef_->initShapes(scene_.shapeGroups[worldShapeGroupIndex_], scene_.materials);
+    }
   }
 
 private:
   scene::Scene                                   scene_;
   std::vector<glm::vec4>                         materialParams_;
-  world::World                                  *worldRef_;
+  world::World                                  *worldRef_             = nullptr;
+  std::size_t                                    worldShapeGroupIndex_ = 0;
   GLuint                                         shapeGroup_           = 0;
   GLuint                                         materialParamsBuffer_ = 0;
   std::vector<MeshGlBufferIds>                   meshBufferIds_;
@@ -485,6 +506,29 @@ private:
   MoveVert                                       moveVert_      = MoveVert::NONE;
   MoveHoriz                                      moveHoriz_     = MoveHoriz::NONE;
   RotateForward                                  rotateForward_ = RotateForward::NONE;
+
+  std::size_t totalShapeCount() const
+  {
+    std::size_t total = 0U;
+    for (const scene::ShapeGroup &shapeGroup : scene_.shapeGroups)
+    {
+      total += shapeGroup.shapes.size();
+    }
+    return total;
+  }
+
+  std::size_t findShapeGroupIndex(const std::string &name) const
+  {
+    for (std::size_t index = 0; index < scene_.shapeGroups.size(); ++index)
+    {
+      if (scene_.shapeGroups[index].name == name)
+      {
+        return index;
+      }
+    }
+
+    throw std::runtime_error("m2VKvM8y5B :: Missing scene shape group: " + name);
+  }
 
   GLsizeiptr shapeDataSizeBytes() const { return static_cast<GLsizeiptr>(shapeData_.size() * sizeof(ShapeGpuData)); }
 };

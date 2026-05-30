@@ -17,9 +17,9 @@ export namespace world
 
     ~World_01() override;
 
-    void initShapes(std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials) override;
+    void initShapes(scene::ShapeGroup &shapeGroup, const std::vector<scene::MaterialParams> &materials) override;
 
-    void writeToShapesBeforeRender(std::vector<scene::Shape> &shapes) override;
+    void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) override;
 
   private:
     struct Impl;

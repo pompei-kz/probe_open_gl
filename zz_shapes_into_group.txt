@@ -1,6 +1,0 @@
-The field of the class `Scene.shapes` need to move into class `ShapeGroup`. The method `Scene.shapesSizeBytes` is too.
-
-I added `scene.world-shape-group` with shape-group using in World.
-Then class World must accept shapes only from this shape group.
-
-

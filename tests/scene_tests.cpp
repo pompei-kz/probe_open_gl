@@ -129,6 +129,7 @@ scene:
   shape-groups:
     - selected_group
   camera: "main"
+  world-shape-group: "selected_group"
   sun:
     force: "2.5"
     direction: "0 3 4"
@@ -186,38 +187,39 @@ shape-groups:
   data.load(path);
 
   ASSERT_EQ(data.meshes.size(), 1U);
-  ASSERT_EQ(data.shapes.size(), 2U);
   ASSERT_EQ(data.shapeGroups.size(), 1U);
   EXPECT_EQ(data.shapeGroups[0].shaderName, "triangle");
   EXPECT_EQ(data.shapeGroups[0].meshIndex, 0U);
   EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
   EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 2U);
+  EXPECT_EQ(data.worldShapeGroup, "selected_group");
   EXPECT_EQ(data.meshes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
   ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[0], 0.0F);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[4], 0.0F);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[5], 0.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[0], 10.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[1], 20.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 30.0F);
-  EXPECT_FLOAT_EQ(data.shapes[1].offset[0], -1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[1].offset[1], -2.0F);
-  EXPECT_FLOAT_EQ(data.shapes[1].offset[2], -3.0F);
-  EXPECT_EQ(data.shapes[0].meshIndex, 0U);
-  EXPECT_EQ(data.shapes[1].meshIndex, 0U);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[0], 10.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[1], 20.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[2], 30.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[1].offset[0], -1.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[1].offset[1], -2.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[1].offset[2], -3.0F);
+  EXPECT_EQ(data.shapeGroups[0].shapes[0].meshIndex, 0U);
+  EXPECT_EQ(data.shapeGroups[0].shapes[1].meshIndex, 0U);
 
   ASSERT_EQ(data.materials.size(), 2U);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[0], 0.2F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[1], 0.4F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[2], 0.6F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].scale, 2.5F);
-  EXPECT_EQ(data.materials[data.shapes[0].materialIndex].atom, atom::Oxygen);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[0], 0.7F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[1], 0.8F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[2], 0.9F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].scale, 3.5F);
-  EXPECT_EQ(data.materials[data.shapes[1].materialIndex].atom, atom::Nitrogen);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].color[0], 0.2F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].color[1], 0.4F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].color[2], 0.6F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].scale, 2.5F);
+  EXPECT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].atom, atom::Oxygen);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[1].materialIndex].color[0], 0.7F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[1].materialIndex].color[1], 0.8F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[1].materialIndex].color[2], 0.9F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[1].materialIndex].scale, 3.5F);
+  EXPECT_EQ(data.materials[data.shapeGroups[0].shapes[1].materialIndex].atom, atom::Nitrogen);
 
   EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
   EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
@@ -250,6 +252,7 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
+  world-shape-group: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 shape-groups:
   selected_group:
@@ -265,10 +268,11 @@ shape-groups:
   data.load(path);
 
   ASSERT_EQ(data.meshes.size(), 1U);
-  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapeGroups.size(), 1U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 1U);
   EXPECT_EQ(data.meshes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[0], 1.0F);
-  EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].scale, 1.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[0], 1.0F);
+  EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].scale, 1.0F);
 }
 
 TEST(LoadScene, ReadsPointIndexAndOffsetDataRefs)
@@ -289,6 +293,7 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
+  world-shape-group: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -311,12 +316,13 @@ shape-groups:
   data.load(path);
 
   ASSERT_EQ(data.meshes.size(), 1U);
-  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapeGroups.size(), 1U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 1U);
   ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[0], 4.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[1], 5.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 6.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[0], 4.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[1], 5.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[2], 6.0F);
 }
 
 TEST(LoadScene, IgnoresCommentsAndBlankLines)
@@ -326,6 +332,7 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
+  world-shape-group: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -356,10 +363,11 @@ shape-groups:
   data.load(path);
 
   ASSERT_EQ(data.meshes.size(), 1U);
-  ASSERT_EQ(data.shapes.size(), 1U);
+  ASSERT_EQ(data.shapeGroups.size(), 1U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 1U);
   ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
-  EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 9.0F);
+  EXPECT_FLOAT_EQ(data.shapeGroups[0].shapes[0].offset[2], 9.0F);
 }
 
 TEST(LoadScene, StoresOnlySelectedShapeGroups)
@@ -434,7 +442,6 @@ shape-groups:
   data.load(path);
 
   ASSERT_EQ(data.meshes.size(), 2U);
-  ASSERT_EQ(data.shapes.size(), 3U);
   ASSERT_EQ(data.shapeGroups.size(), 2U);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[0], 0.0F);
   EXPECT_FLOAT_EQ(data.meshes[1].vertices[0], 2.0F);
@@ -442,8 +449,10 @@ shape-groups:
   EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
   EXPECT_EQ(data.shapeGroups[1].firstInstance, 2U);
   EXPECT_EQ(data.shapeGroups[1].instanceCount, 1U);
-  EXPECT_EQ(data.shapes[0].meshIndex, 0U);
-  EXPECT_EQ(data.shapes[2].meshIndex, 1U);
+  ASSERT_EQ(data.shapeGroups[0].shapes.size(), 2U);
+  ASSERT_EQ(data.shapeGroups[1].shapes.size(), 1U);
+  EXPECT_EQ(data.shapeGroups[0].shapes[0].meshIndex, 0U);
+  EXPECT_EQ(data.shapeGroups[1].shapes[0].meshIndex, 1U);
 }
 
 TEST(LoadScene, DoesNotReadLegacyRootShapesOrShapeInstanceGroups)
@@ -520,6 +529,7 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
+  world-shape-group: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:
@@ -552,6 +562,7 @@ scene:
   camera: "main"
   shape-groups:
     - selected_group
+  world-shape-group: "selected_group"
 )yaml" + cameraYaml() + R"yaml(
 meshes:
   triangle:

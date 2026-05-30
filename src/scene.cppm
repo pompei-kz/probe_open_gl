@@ -47,8 +47,10 @@ export namespace scene
 
   struct ShapeGroup
   {
+    std::string   name;
     std::string   shaderName = "triangle";
     std::uint32_t meshIndex  = 0;
+    std::vector<Shape> shapes;
 
     // Индекс первого инстанса этой группы в общем массиве инстансов сцены.
     std::size_t firstInstance = 0;
@@ -57,6 +59,7 @@ export namespace scene
     std::size_t instanceCount = 0;
 
     size_t firstInstanceOffset() const { return firstInstance * static_cast<std::size_t>(Shape::Stride); }
+    GLsizeiptr shapesSizeBytes() const { return static_cast<GLsizeiptr>(shapes.size() * Shape::Stride); }
   };
 
   struct Camera
@@ -90,16 +93,14 @@ export namespace scene
   {
   public:
     std::vector<Mesh>           meshes;
-    std::vector<Shape>          shapes;
     std::vector<ShapeGroup>     shapeGroups;
     std::vector<MaterialParams> materials;
     Camera                      camera;
     Sun                         sun;
     SceneParams                 params;
+    std::string                 worldShapeGroup;
 
     void load(const std::filesystem::path &path);
-
-    GLsizeiptr shapesSizeBytes() const { return static_cast<GLsizeiptr>(shapes.size() * Shape::Stride); }
   };
 
 } // namespace scene

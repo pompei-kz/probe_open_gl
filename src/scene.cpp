@@ -519,7 +519,11 @@ namespace
     return result;
   }
 
-  void appendShapeGroup(const std::filesystem::path &path, const YAML::Node &shapeGroup, const std::string_view groupName, scene::Scene &result)
+  std::size_t appendShapeGroup(const std::filesystem::path &path,
+                               const YAML::Node &shapeGroup,
+                               const std::string_view groupName,
+                               const std::size_t firstInstance,
+                               scene::Scene &result)
   {
     const std::string                      shaderName = parseShaderName(shapeGroup, path, groupName);
     const MeshRef                          meshRef    = parseGroupMeshRef(shapeGroup, path, groupName);
@@ -533,7 +537,7 @@ namespace
     const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
     scene::Mesh       parsedMesh    = parseMesh(mesh, meshRef.path);
-    const std::size_t firstInstance = result.shapes.size();
+    std::vector<scene::Shape> shapes;
 
     if (parsedMesh.vertices.empty() || parsedMesh.indexes.empty())
     {
@@ -550,12 +554,16 @@ namespace
         throw std::runtime_error("r8eA2R1nmB :: Missing material index " + std::to_string(offset.materialIndex) + " for shape group '" +
                                  std::string(groupName) + "' in " + path.string());
       }
-      result.shapes.push_back(scene::Shape{.offset = offset.offset, .materialIndex = materialIndex->second, .meshIndex = meshIndex});
+      shapes.push_back(scene::Shape{.offset = offset.offset, .materialIndex = materialIndex->second, .meshIndex = meshIndex});
     }
-    result.shapeGroups.push_back(scene::ShapeGroup{.shaderName    = shaderName,
+    const std::size_t shapeCount = shapes.size();
+    result.shapeGroups.push_back(scene::ShapeGroup{.name          = std::string(groupName),
+                                                   .shaderName    = shaderName,
                                                    .meshIndex     = meshIndex,
+                                                   .shapes        = std::move(shapes),
                                                    .firstInstance = firstInstance,
-                                                   .instanceCount = result.shapes.size() - firstInstance});
+                                                   .instanceCount = shapeCount});
+    return shapeCount;
   }
 
   void parseSceneCamera(const YAML::Node &document, const YAML::Node &scene, const std::filesystem::path &path, scene::Scene &result)
@@ -626,16 +634,24 @@ void scene::Scene::load(const std::filesystem::path &path)
   const YAML::Node document  = loadYamlFile(path);
   const YAML::Node sceneNode = requiredMapChild(document, "scene", path);
   meshes.clear();
-  shapes.clear();
   shapeGroups.clear();
   materials.clear();
   camera = Camera{};
   sun    = Sun{};
   params = SceneParams{};
+  worldShapeGroup.clear();
 
   parseSceneCamera(document, sceneNode, path, *this);
   parseSceneSun(sceneNode, path, *this);
   parseSceneParams(sceneNode, path, *this);
+  if (const YAML::Node worldShapeGroupNode = sceneNode["world-shape-group"])
+  {
+    if (!worldShapeGroupNode.IsScalar())
+    {
+      throw std::runtime_error("fQ8mYpWc2L :: YAML scalar 'scene.world-shape-group' must be scalar in " + path.string());
+    }
+    worldShapeGroup = worldShapeGroupNode.as<std::string>();
+  }
 
   const YAML::Node sceneShapeGroups = sceneNode["shape-groups"];
   if (sceneShapeGroups && !sceneShapeGroups.IsSequence())
@@ -644,6 +660,8 @@ void scene::Scene::load(const std::filesystem::path &path)
   }
 
   const YAML::Node shapeGroups = optionalMapChild(document, "shape-groups", path);
+  std::size_t     firstInstance = 0U;
+  std::size_t     shapeCount    = 0U;
 
   if (sceneShapeGroups)
   {
@@ -657,10 +675,22 @@ void scene::Scene::load(const std::filesystem::path &path)
       const std::string name       = groupName.as<std::string>();
       const YAML::Node  shapeGroup = requiredMapChild(shapeGroups, name, path);
 
-      appendShapeGroup(path, shapeGroup, name, *this);
+      const std::size_t appendedShapeCount = appendShapeGroup(path, shapeGroup, name, firstInstance, *this);
+      firstInstance += appendedShapeCount;
+      shapeCount += appendedShapeCount;
     }
   }
-  if (meshes.empty() || shapes.empty())
+  if (!worldShapeGroup.empty())
+  {
+    const auto selectedGroup = std::ranges::find_if(this->shapeGroups.begin(), this->shapeGroups.end(), [&](const scene::ShapeGroup &shapeGroup) {
+      return shapeGroup.name == worldShapeGroup;
+    });
+    if (selectedGroup == this->shapeGroups.end())
+    {
+      throw std::runtime_error("Jx7h8mMZ0N :: Missing scene.world-shape-group '" + worldShapeGroup + "' in " + path.string());
+    }
+  }
+  if (meshes.empty() || shapeCount == 0U)
   {
     throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + path.string());
   }
