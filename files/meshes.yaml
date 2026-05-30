@@ -52,3 +52,32 @@ meshes:
     indexes:
       type: "i i i"
       data-ref: "cylinder/cylinder.indexes.txt"
+
+  axis-X:
+    points:
+      type: "i X Y Z"
+      data-ref: "cylinder/cylinder-X-5x4.poitns.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "cylinder/cylinder-X-5x4.indexes.txt"
+
+  axis-Y:
+    points:
+      type: "i X Y Z"
+      data-ref: "cylinder/cylinder-Y-5x4.poitns.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "cylinder/cylinder-Y-5x4.indexes.txt"
+
+  axis-Z:
+    points:
+      type: "i X Y Z"
+      data-ref: "cylinder/cylinder-Z-5x4.poitns.txt"
+
+    indexes:
+      type: "i i i"
+      data-ref: "cylinder/cylinder-Z-5x4.indexes.txt"
+
+

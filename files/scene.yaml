@@ -10,6 +10,9 @@ scene:
   shape-groups:
     - group-atoms
     - group-BBB
+    - axis-X
+    - axis-Y
+    - axis-Z
   world:
     shape-groups:
       atoms: "group-atoms"
@@ -77,5 +80,56 @@ shape-groups:
           1  -5   0   0   0
           2   0   5   5   0
           3   2   5  -5   0
-          
+        
           4  -2   5  -5   1
+
+  axis-X:
+    shader: "triangle"
+    mesh-ref: "meshes.yaml#axis-X"
+    materials:
+      - index: 0
+        color: "0.9  0.0  0.0"
+        scale: "1.0"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        # comments
+        # i   X   Y    Z    Mi
+          0   0   10   10   0
+          1   0  -10   10   0
+          2   0   10  -10   0
+          3   0  -10  -10   0
+
+  axis-Y:
+    shader: "triangle"
+    mesh-ref: "meshes.yaml#axis-Y"
+    materials:
+      - index: 0
+        color: "0.9  0.0  0.0"
+        scale: "1.0"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        # comments
+        # i    X   Y    Z   Mi
+          0   10   0   10   0
+          1  -10   0   10   0
+          2   10   0  -10   0
+          3  -10   0  -10   0
+
+  axis-Z:
+    shader: "triangle"
+    mesh-ref: "meshes.yaml#axis-Z"
+    materials:
+      - index: 0
+        color: "0.9  0.0  0.0"
+        scale: "1.0"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        # comments
+        # i    X    Y   Z   Mi
+          0   10   10   0   0
+          1  -10   10   0   0
+          2   10  -10   0   0
+          3  -10  -10   0   0
