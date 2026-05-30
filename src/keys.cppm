@@ -858,4 +858,48 @@ export namespace keys
     ;
     // clang-format on
   }
+
+  bool MouseWheel_Free(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_MOUSEWHEEL
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool MouseMotion_Free(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_MOUSEMOTION
+    ;
+    // clang-format on
+  }
+
+  bool Window_SizeChanged(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_WINDOWEVENT
+            && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
+    ;
+    // clang-format on
+  }
+
+  bool Quit(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_QUIT
+    ;
+    // clang-format on
+  }
 } // namespace keys

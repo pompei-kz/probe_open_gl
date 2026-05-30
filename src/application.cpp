@@ -76,7 +76,7 @@ struct Application::Impl
 private:
   void processEvent(const SDL_Event &event, const Render &render)
   {
-    if (event.type == SDL_QUIT)
+    if (keys::Quit(event))
     {
       running_ = false;
       return;
@@ -96,91 +96,7 @@ private:
       setMouseCaptured(false);
       return;
     }
-    if (keys::KeyDown_ShiftW(event) || keys::KeyDown_CtrlW(event) || keys::KeyDown_CtrlShiftW(event)
-        || keys::KeyDown_CtrlAltW(event) || keys::KeyDown_CtrlShiftAltW(event))
-    {
-      render.rotateCamera(0, -8);
-      return;
-    }
-    if (keys::KeyDown_AltW(event) || keys::KeyDown_ShiftAltW(event))
-    {
-      render.scrollCamera(1);
-      return;
-    }
-    if (keys::KeyDown_ShiftS(event) || keys::KeyDown_CtrlS(event) || keys::KeyDown_CtrlShiftS(event)
-        || keys::KeyDown_CtrlAltS(event) || keys::KeyDown_CtrlShiftAltS(event))
-    {
-      render.rotateCamera(0, 8);
-      return;
-    }
-    if (keys::KeyDown_AltS(event) || keys::KeyDown_ShiftAltS(event))
-    {
-      render.scrollCamera(-1);
-      return;
-    }
-    if (keys::KeyDown_ShiftA(event))
-    {
-      render.rotateCamera(-8, 0);
-      return;
-    }
-    if (keys::KeyDown_CtrlA(event) || keys::KeyDown_CtrlShiftA(event) || keys::KeyDown_CtrlAltA(event)
-        || keys::KeyDown_CtrlShiftAltA(event))
-    {
-      render.scrollCamera(1);
-      return;
-    }
-    if (keys::KeyDown_AltA(event) || keys::KeyDown_ShiftAltA(event))
-    {
-      render.rotateCamera(0, -8);
-      return;
-    }
-    if (keys::KeyDown_ShiftD(event))
-    {
-      render.rotateCamera(8, 0);
-      return;
-    }
-    if (keys::KeyDown_CtrlD(event) || keys::KeyDown_CtrlShiftD(event) || keys::KeyDown_CtrlAltD(event)
-        || keys::KeyDown_CtrlShiftAltD(event))
-    {
-      render.scrollCamera(-1);
-      return;
-    }
-    if (keys::KeyDown_AltD(event) || keys::KeyDown_ShiftAltD(event))
-    {
-      render.rotateCamera(0, 8);
-      return;
-    }
-    if (keys::KeyDown_ShiftQ(event))
-    {
-      render.scrollCamera(1);
-      return;
-    }
-    if (keys::KeyDown_CtrlShiftQ(event) || keys::KeyDown_CtrlAltQ(event) || keys::KeyDown_CtrlShiftAltQ(event))
-    {
-      render.rotateCamera(-8, 0);
-      return;
-    }
-    if (keys::KeyDown_AltQ(event) || keys::KeyDown_ShiftAltQ(event))
-    {
-      render.rotateCamera(8, 0);
-      return;
-    }
-    if (keys::KeyDown_ShiftE(event))
-    {
-      render.scrollCamera(-1);
-      return;
-    }
-    if (keys::KeyDown_CtrlE(event) || keys::KeyDown_CtrlShiftE(event) || keys::KeyDown_CtrlAltE(event)
-        || keys::KeyDown_CtrlShiftAltE(event))
-    {
-      render.rotateCamera(8, 0);
-      return;
-    }
-    if (keys::KeyDown_AltE(event) || keys::KeyDown_ShiftAltE(event))
-    {
-      render.rotateCamera(-8, 0);
-      return;
-    }
+
     if (keys::KeyDown_FreeW(event))
     {
       render.setMoveVert(MoveVert::UP);
@@ -241,17 +157,17 @@ private:
       render.setRotateForward(RotateForward::NONE);
       return;
     }
-    if (event.type == SDL_MOUSEMOTION && mouseCaptured_)
+    if (keys::MouseMotion_Free(event) && mouseCaptured_)
     {
       render.rotateCamera(event.motion.xrel, event.motion.yrel);
       return;
     }
-    if (event.type == SDL_MOUSEWHEEL)
+    if (keys::MouseWheel_Free(event))
     {
       render.scrollCamera(event.wheel.y);
       return;
     }
-    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+    if (keys::Window_SizeChanged(event))
     {
       // Обновляем viewport под новый размер окна.
       glViewport(0, 0, event.window.data1, event.window.data2);
