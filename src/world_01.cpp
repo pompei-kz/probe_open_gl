@@ -66,7 +66,7 @@ void world::World_01::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)
 }
 
 world::World_01::Impl::Impl()
-    : thread_([this](std::stop_token stopToken) { calculationProcess(stopToken); })
+    : thread_([this](const std::stop_token &stopToken) { calculationProcess(stopToken); })
 {
 }
 
