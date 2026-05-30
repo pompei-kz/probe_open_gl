@@ -456,7 +456,10 @@ public:
     textWriter_.drawFps(viewportWidth, viewportHeight, deltaSeconds);
   }
 
-  void init() { worldRef_->initShapes(scene_.shapes); }
+  void init()
+  {
+    worldRef_->initShapes(scene_.shapes, scene_.materials);
+  }
 
 private:
   scene::Scene                                   scene_;

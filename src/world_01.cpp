@@ -29,7 +29,7 @@ struct world::World_01::Impl
   std::vector<float>     angle_;
   const float            R = 0.5F;
 
-  void initShapes(const std::vector<scene::Shape> &shapes)
+  void initShapes(const std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials)
   {
     std::random_device             rd;
     std::mt19937                   gen(rd());
@@ -90,9 +90,9 @@ world::World_01::World_01()
 
 world::World_01::~World_01() = default;
 
-void world::World_01::initShapes(std::vector<scene::Shape> &shapes)
+void world::World_01::initShapes(std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials)
 {
-  impl_->initShapes(shapes);
+  impl_->initShapes(shapes, materials);
 }
 
 void world::World_01::writeToShapesBeforeRender(std::vector<scene::Shape> &shapes)

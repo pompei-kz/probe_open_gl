@@ -8,6 +8,8 @@ module;
 
 export module scene;
 
+import atom;
+
 export namespace scene
 {
   struct Shape
@@ -23,8 +25,9 @@ export namespace scene
 
   struct MaterialParams
   {
-    glm::vec3 color{1.0F, 1.0F, 1.0F};
-    float     scale = 1.0F;
+    glm::vec3  color{1.0F, 1.0F, 1.0F};
+    float      scale = 1.0F;
+    atom::Atom atom;
   };
 
   struct Mesh

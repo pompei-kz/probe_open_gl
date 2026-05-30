@@ -13,7 +13,7 @@ export namespace world
   public:
     virtual ~World();
 
-    virtual void initShapes(std::vector<scene::Shape> &shapes) = 0;
+    virtual void initShapes(std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials) = 0;
 
     virtual void writeToShapesBeforeRender(std::vector<scene::Shape> &shapes) = 0;
   };
