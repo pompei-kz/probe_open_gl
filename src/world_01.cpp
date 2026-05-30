@@ -38,12 +38,14 @@ struct world::World_01::Impl
     std::mt19937                   gen(rd());
     std::uniform_real_distribution dist(0.0F, 1.0F);
 
-    positions_.resize(atoms.shapes.size());
-    moveX_.resize(atoms.shapes.size());
-    moveY_.resize(atoms.shapes.size());
-    angle_.resize(atoms.shapes.size());
-    atoms_.resize(atoms.shapes.size());
-    velocity_.resize(atoms.shapes.size());
+    const std::size_t atomsCount = atoms.shapes.size();
+
+    positions_.resize(atomsCount);
+    moveX_.resize(atomsCount);
+    moveY_.resize(atomsCount);
+    angle_.resize(atomsCount);
+    atoms_.resize(atomsCount);
+    velocity_.resize(atomsCount);
 
     for (std::size_t i = 0; const scene::Shape &shape : atoms.shapes)
     {
