@@ -281,6 +281,59 @@ shape-groups:
   EXPECT_FLOAT_EQ(data.materials[data.shapeGroups[0].shapes[0].materialIndex].scale, 1.0F);
 }
 
+TEST(LoadScene, LoadsGeneratedCylinderAndSpheraMeshes)
+{
+  const std::filesystem::path path = writeYaml("generated_meshes", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - cyl_group
+    - sph_group
+)yaml" + cameraYaml() + R"yaml(
+shape-groups:
+  cyl_group:
+    shader: "triangle"
+    mesh:
+      type: "cylinder"
+      params:
+        bottom-base-center: "-10 0 0"
+        top-base-center: "10 0 0"
+        radius: "0.3"
+        loop-segments: 5
+        axis-segments: 4
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 0 0 0
+  sph_group:
+    shader: "triangle"
+    mesh:
+      type: "sphera"
+      params:
+        center: "0 0 0"
+        north-pole-direction: "0 0 1"
+        radius: "2"
+        latitude-segments: 4
+        longitude-segments: 5
+    offsets:
+      type: "i X Y Z"
+      data: |
+        0 1 2 3
+)yaml");
+
+  scene::Scene data;
+  data.load(path);
+
+  ASSERT_EQ(data.meshes.size(), 2U);
+  EXPECT_EQ(data.meshes[0].vertices.size(), 81U);
+  EXPECT_EQ(data.meshes[0].indexes.size(), 150U);
+  EXPECT_EQ(data.meshes[1].vertices.size(), 51U);
+  EXPECT_EQ(data.meshes[1].indexes.size(), 90U);
+  ASSERT_EQ(data.shapeGroups.size(), 2U);
+  EXPECT_EQ(data.shapeGroups[0].name, "cyl_group");
+  EXPECT_EQ(data.shapeGroups[1].name, "sph_group");
+}
+
 TEST(LoadScene, ReadsPointIndexAndOffsetDataRefs)
 {
   writeTextFile("probe_open_gl_points.txt", R"txt(

@@ -2,6 +2,7 @@ module;
 
 #include <cmath>
 #include <epoxy/gl.h>
+#include <cstdint>
 #include <stdexcept>
 #include <glm/glm.hpp>
 
@@ -10,6 +11,7 @@ import scene;
 
 namespace
 {
+  constexpr float Pi    = 3.14159265358979323846F;
   constexpr float TwoPi = 6.28318530717958647692F;
 
   glm::vec3 normalizedCross(const glm::vec3 &lhs, const glm::vec3 &rhs)
@@ -90,6 +92,15 @@ export namespace gen
     int       axisSegments;
   };
 
+  struct GenSpheraParams
+  {
+    glm::vec3 center;
+    glm::vec3 northPoleDirection;
+    float     radius;
+    int       latitudeSegments;
+    int       longitudeSegments;
+  };
+
   void populateMeshWithCylinder(scene::Mesh *mesh, const GenCylinderParams &params)
   {
     if (mesh == nullptr)
@@ -168,5 +179,88 @@ export namespace gen
     appendCap(*mesh, bottomCenterIndex, 0U, params.loopSegments, false);
     appendCap(*mesh, topCenterIndex, static_cast<std::uint32_t>(params.axisSegments * params.loopSegments), params.loopSegments, true);
 
+  }
+
+  void populateMeshWithSphera(scene::Mesh *mesh, const GenSpheraParams &params)
+  {
+    if (mesh == nullptr)
+    {
+      throw std::runtime_error("q5C4eGqW8m :: populateMeshWithSphera(): mesh is null");
+    }
+    if (params.latitudeSegments < 2)
+    {
+      throw std::runtime_error("x2bY6gQ2fK :: populateMeshWithSphera(): latitudeSegments must be at least 2");
+    }
+    if (params.longitudeSegments < 3)
+    {
+      throw std::runtime_error("p8K2rN7zV1 :: populateMeshWithSphera(): longitudeSegments must be at least 3");
+    }
+    if (params.radius <= 0.0F)
+    {
+      throw std::runtime_error("t4Y1hM5cQ0 :: populateMeshWithSphera(): radius must be positive");
+    }
+
+    mesh->vertices.clear();
+    mesh->indexes.clear();
+    mesh->vertices.reserve(static_cast<std::size_t>(params.latitudeSegments - 1) * static_cast<std::size_t>(params.longitudeSegments) * 3U + 6U);
+    mesh->indexes.reserve(static_cast<std::size_t>(params.latitudeSegments) * static_cast<std::size_t>(params.longitudeSegments) * 6U);
+
+    const float northDirectionLength = glm::length(params.northPoleDirection);
+    if (northDirectionLength <= 0.0F)
+    {
+      throw std::runtime_error("n1R0fG8mQ7 :: populateMeshWithSphera(): northPoleDirection must be non-zero");
+    }
+    const glm::vec3 northDirection = params.northPoleDirection / northDirectionLength;
+    glm::vec3       u;
+    glm::vec3       v;
+    buildCylinderBasis(northDirection, u, v);
+
+    const std::uint32_t northPoleIndex = 0U;
+    mesh->vertices.push_back((params.center + params.radius * northDirection).x);
+    mesh->vertices.push_back((params.center + params.radius * northDirection).y);
+    mesh->vertices.push_back((params.center + params.radius * northDirection).z);
+
+    for (int latitude = 1; latitude < params.latitudeSegments; ++latitude)
+    {
+      const float polarAngle = static_cast<float>(latitude) * Pi / static_cast<float>(params.latitudeSegments);
+      const float ringRadius = params.radius * std::sin(polarAngle);
+      const float ringOffset = params.radius * std::cos(polarAngle);
+      const glm::vec3 ringCenter = params.center + ringOffset * northDirection;
+      appendRing(*mesh, ringCenter, u, v, ringRadius, params.longitudeSegments);
+    }
+
+    const glm::vec3 southPole = params.center - params.radius * northDirection;
+    const std::uint32_t southPoleIndex = static_cast<std::uint32_t>(mesh->vertices.size() / 3U);
+    mesh->vertices.push_back(southPole.x);
+    mesh->vertices.push_back(southPole.y);
+    mesh->vertices.push_back(southPole.z);
+
+    const std::uint32_t firstRingStart = 1U;
+    const std::uint32_t lastRingStart  = static_cast<std::uint32_t>(1 + (params.latitudeSegments - 2) * params.longitudeSegments);
+
+    appendCap(*mesh, northPoleIndex, firstRingStart, params.longitudeSegments, true);
+
+    for (int latitude = 1; latitude < params.latitudeSegments - 1; ++latitude)
+    {
+      const std::uint32_t upperRingStart = static_cast<std::uint32_t>(1 + latitude * params.longitudeSegments);
+      const std::uint32_t lowerRingStart = static_cast<std::uint32_t>((latitude - 1) * params.longitudeSegments + 1U);
+      for (int segment = 0; segment < params.longitudeSegments; ++segment)
+      {
+        const std::uint32_t upperCurrent = upperRingStart + static_cast<std::uint32_t>(segment);
+        const std::uint32_t upperNext    = upperRingStart + static_cast<std::uint32_t>((segment + 1) % params.longitudeSegments);
+        const std::uint32_t lowerCurrent = lowerRingStart + static_cast<std::uint32_t>(segment);
+        const std::uint32_t lowerNext    = lowerRingStart + static_cast<std::uint32_t>((segment + 1) % params.longitudeSegments);
+
+        mesh->indexes.push_back(lowerCurrent);
+        mesh->indexes.push_back(lowerNext);
+        mesh->indexes.push_back(upperNext);
+
+        mesh->indexes.push_back(lowerCurrent);
+        mesh->indexes.push_back(upperNext);
+        mesh->indexes.push_back(upperCurrent);
+      }
+    }
+
+    appendCap(*mesh, southPoleIndex, lastRingStart, params.longitudeSegments, false);
   }
 } // namespace gen

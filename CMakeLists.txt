@@ -52,11 +52,11 @@ target_sources(probe_open_gl
     src/application.cppm
     src/arguments.cppm
     src/atom.cppm
+    src/generator.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm
     src/render.cppm
     src/scene.cppm
-    src/generator.cppm
     src/sync_map.cppm
     src/text_writer.cppm
     src/world.cppm
@@ -180,6 +180,7 @@ target_sources(scene_tests
     FILE_SET CXX_MODULES
     FILES
     src/atom.cppm
+    src/generator.cppm
     src/scene.cppm
 )
 

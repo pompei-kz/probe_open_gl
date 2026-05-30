@@ -20,6 +20,8 @@ module;
 
 module scene;
 
+import generator;
+
 namespace
 {
   struct DataSection
@@ -94,6 +96,15 @@ namespace
       throw std::runtime_error("MkrD0Lx4pS :: YAML scalar '" + std::string(name) + "' must contain 1 float in " + path.string());
     }
     return values[0];
+  }
+
+  int parseIntScalar(const YAML::Node &node, const std::filesystem::path &path, const std::string_view name)
+  {
+    if (!node || !node.IsScalar())
+    {
+      throw std::runtime_error("OtQRq1JqtC :: Missing YAML scalar '" + std::string(name) + "' in " + path.string());
+    }
+    return node.as<int>();
   }
 
   // ReSharper disable once CppDFAConstantParameter
@@ -336,13 +347,8 @@ namespace
   MeshRef parseGroupMeshRef(const YAML::Node &shapeGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
   {
     const YAML::Node mesh = shapeGroup["mesh"];
-    if (mesh)
+    if (mesh && mesh.IsMap() && mesh["ref"])
     {
-      if (!mesh.IsMap())
-      {
-        throw std::runtime_error("p3EsGrzP71 :: YAML container 'shape-groups." + std::string(groupName) + ".mesh' must be map in " + groupPath.string());
-      }
-
       const YAML::Node ref = mesh["ref"];
       if (!ref || !ref.IsScalar())
       {
@@ -360,6 +366,62 @@ namespace
     }
 
     return parseRefValue(legacyRef.as<std::string>(), groupPath);
+  }
+
+  scene::Mesh parseGeneratedMesh(const YAML::Node &meshNode, const std::filesystem::path &groupPath, const std::string_view groupName)
+  {
+    const YAML::Node typeNode = meshNode["type"];
+    if (!typeNode || !typeNode.IsScalar())
+    {
+      throw std::runtime_error("Q7R4M0xv8N :: Missing YAML scalar 'shape-groups." + std::string(groupName) + ".mesh.type' in " + groupPath.string());
+    }
+
+    const std::string typeName = trim(typeNode.as<std::string>());
+    const YAML::Node   params   = requiredMapChild(meshNode, "params", groupPath);
+
+    scene::Mesh result;
+    if (typeName == "cylinder")
+    {
+      gen::populateMeshWithCylinder(&result,
+                                    gen::GenCylinderParams{
+                                        .bottomBaseCenter = parseVector3(params["bottom-base-center"], groupPath,
+                                                                         "shape-groups." + std::string(groupName) + ".mesh.params.bottom-base-center"),
+                                        .topBaseCenter = parseVector3(params["top-base-center"], groupPath,
+                                                                      "shape-groups." + std::string(groupName) + ".mesh.params.top-base-center"),
+                                        .radius = parseFloatScalar(params["radius"], groupPath,
+                                                                   "shape-groups." + std::string(groupName) + ".mesh.params.radius"),
+                                        .loopSegments = parseIntScalar(params["loop-segments"], groupPath,
+                                                                       "shape-groups." + std::string(groupName) + ".mesh.params.loop-segments"),
+                                        .axisSegments = parseIntScalar(params["axis-segments"], groupPath,
+                                                                       "shape-groups." + std::string(groupName) + ".mesh.params.axis-segments"),
+                                    });
+      return result;
+    }
+
+    if (typeName == "sphera")
+    {
+      const glm::vec3 northPoleDirection = normalizeVector(
+          parseVector3(params["north-pole-direction"], groupPath, "shape-groups." + std::string(groupName) + ".mesh.params.north-pole-direction"),
+          groupPath,
+          "shape-groups." + std::string(groupName) + ".mesh.params.north-pole-direction");
+      gen::populateMeshWithSphera(&result,
+                                  gen::GenSpheraParams{
+                                      .center = parseVector3(params["center"], groupPath, "shape-groups." + std::string(groupName) + ".mesh.params.center"),
+                                      .northPoleDirection = northPoleDirection,
+                                      .radius = parseFloatScalar(params["radius"], groupPath,
+                                                                 "shape-groups." + std::string(groupName) + ".mesh.params.radius"),
+                                      .latitudeSegments = parseIntScalar(params["latitude-segments"], groupPath,
+                                                                         "shape-groups." + std::string(groupName) +
+                                                                             ".mesh.params.latitude-segments"),
+                                      .longitudeSegments = parseIntScalar(params["longitude-segments"], groupPath,
+                                                                          "shape-groups." + std::string(groupName) +
+                                                                              ".mesh.params.longitude-segments"),
+                                  });
+      return result;
+    }
+
+    throw std::runtime_error("w3V2mP8sL0 :: Unsupported mesh generator type '" + typeName + "' for shape group '" + std::string(groupName) +
+                             "' in " + groupPath.string());
   }
 
   std::string parseShaderName(const YAML::Node &shapeGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
@@ -544,22 +606,39 @@ namespace
                                scene::Scene &result)
   {
     const std::string                      shaderName = parseShaderName(shapeGroup, path, groupName);
-    const MeshRef                          meshRef    = parseGroupMeshRef(shapeGroup, path, groupName);
     const auto                             materials  = parseShapeGroupMaterials(shapeGroup, path, groupName);
     std::unordered_map<int, std::uint32_t> materialIndexByLocalIndex;
     for (const auto &[localIndex, material] : materials)
     {
       materialIndexByLocalIndex.emplace(localIndex, appendMaterial(result, material));
     }
-    const YAML::Node  meshDocument  = loadYamlFile(meshRef.path);
-    const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
-    const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Mesh       parsedMesh    = parseMesh(mesh, meshRef.path);
+    const YAML::Node meshNode = shapeGroup["mesh"];
+    if (meshNode && !meshNode.IsMap())
+    {
+      throw std::runtime_error("p3EsGrzP71 :: YAML container 'shape-groups." + std::string(groupName) + ".mesh' must be map in " + path.string());
+    }
+
+    scene::Mesh parsedMesh;
+    std::string meshDebugPath;
+    if (meshNode && meshNode["type"])
+    {
+      parsedMesh    = parseGeneratedMesh(meshNode, path, groupName);
+      meshDebugPath  = path.string();
+    }
+    else
+    {
+      const MeshRef meshRef = parseGroupMeshRef(shapeGroup, path, groupName);
+      const YAML::Node meshDocument = loadYamlFile(meshRef.path);
+      const YAML::Node meshes       = optionalMapChild(meshDocument, "meshes", meshRef.path);
+      const YAML::Node mesh         = requiredMapChild(meshes, meshRef.id, meshRef.path);
+      parsedMesh                    = parseMesh(mesh, meshRef.path);
+      meshDebugPath                 = meshRef.path.string();
+    }
     std::vector<scene::Shape> shapes;
 
     if (parsedMesh.vertices.empty() || parsedMesh.indexes.empty())
     {
-      throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshRef.path.string());
+      throw std::runtime_error("F8gTBaZnSl :: No drawable triangle data in " + meshDebugPath);
     }
     result.meshes.push_back(std::move(parsedMesh));
     const auto meshIndex = static_cast<std::uint32_t>(result.meshes.size() - 1U);
