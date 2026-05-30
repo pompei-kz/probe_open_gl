@@ -22,8 +22,8 @@ cameras:
       position: "0 0 10.0"
       forward: "0 0 -1.0"
       up: "0 1 0"
-      near: "0.1"
-      far: "100.0"
+      near: "0.01"
+      far: "1000.0"
       fov: "25"
     params:
       forwardVelocity: "3"
@@ -69,8 +69,8 @@ shape-groups:
         center: "0  0  0"
         north-pole-direction: "0 0 1"
         radius: "2"
-        latitude-segments: 16
-        longitude-segments: 12
+        latitude-segments: 4
+        longitude-segments: 14
     materials:
       - index: 0
         color: "0.9  0.0  0.0"
@@ -95,11 +95,11 @@ shape-groups:
     mesh:
       type: "cylinder"
       params:
-        bottom-base-center: "10.0  0  0"
-        top-base-center: "-10.0  0  0"
+        bottom-base-center: "25  0  0"
+        top-base-center: "-25  0  0"
         radius: "0.3"
-        loop-segments: 5  # сегментов по окружности
-        axis-segments: 4  # сегментов вдоль оси цилиндра
+        loop-segments: 5
+        axis-segments: 4
     materials:
       - index: 0
         color: "0.9  0.0  0.0"
@@ -108,16 +108,22 @@ shape-groups:
       type: "i X Y Z Mi"
       data: |
         # comments
-        # i   X   Y    Z    Mi
-          0   0   10   10   0
-          1   0  -10   10   0
-          2   0   10  -10   0
-          3   0  -10  -10   0
+        # i   X    Y    Z   Mi
+          0   0   25   10    0
+          1   0  -25   10    0
+          2   0   25  -10    0
+          3   0  -25  -10    0
 
   axis-Y:
     shader: "triangle"
     mesh:
-      ref: "meshes.yaml#axis-Y"
+      type: "cylinder"
+      params:
+        bottom-base-center: "0.0  25  0"
+        top-base-center: "0.0  -25  0"
+        radius: "0.3"
+        loop-segments: 5
+        axis-segments: 4
     materials:
       - index: 0
         color: "0.9  0.0  0.0"
@@ -127,15 +133,21 @@ shape-groups:
       data: |
         # comments
         # i    X   Y    Z   Mi
-          0   10   0   10   0
-          1  -10   0   10   0
-          2   10   0  -10   0
-          3  -10   0  -10   0
+          0   25   0   10    0
+          1  -25   0   10    0
+          2   25   0  -10    0
+          3  -25   0  -10    0
 
   axis-Z:
     shader: "triangle"
     mesh:
-      ref: "meshes.yaml#axis-Z"
+      type: "cylinder"
+      params:
+        bottom-base-center: "0.0   0 10.0"
+        top-base-center: "0.0  0  -10.0"
+        radius: "0.3"
+        loop-segments: 5
+        axis-segments: 4
     materials:
       - index: 0
         color: "0.9  0.0  0.0"
@@ -145,7 +157,7 @@ shape-groups:
       data: |
         # comments
         # i    X    Y   Z   Mi
-          0   10   10   0   0
-          1  -10   10   0   0
-          2   10  -10   0   0
-          3  -10  -10   0   0
+          0   25   25   0    0
+          1  -25   25   0    0
+          2   25  -25   0    0
+          3  -25  -25   0    0

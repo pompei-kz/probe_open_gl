@@ -1,5 +1,0 @@
-i added mesh generator to `scene.yaml` in `shape-groups.axis-X.mesh` with `type: cylinder`.
-
-Change class Scene to call `gen::populateMeshWithCylinder(...)` to fill mesh for this generator type.
-
-i also added mesh generator with `type: sphera`. Do it for sphera like for cylinder
