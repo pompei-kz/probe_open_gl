@@ -24,6 +24,7 @@ struct world::World_01::Impl
   using Timestamp = std::chrono::time_point<std::chrono::steady_clock>;
 
   const Timestamp         startedAt_ = std::chrono::steady_clock::now();
+  std::vector<glm::vec3>  startPositions_;
   std::vector<glm::vec3>  positions_;
   std::vector<glm::vec3>  moveX_;
   std::vector<glm::vec3>  moveY_;
@@ -34,7 +35,9 @@ struct world::World_01::Impl
 
   void initShapes(const scene::ShapeGroup &atoms, const std::vector<scene::MaterialParams> &materials);
 
-  void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) const;
+  void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup);
+
+  void calculateIdle();
 };
 
 world::World_01::World_01()
@@ -62,6 +65,7 @@ void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std
 
   const std::size_t atomsCount = atoms.shapes.size();
 
+  startPositions_.resize(atomsCount);
   positions_.resize(atomsCount);
   moveX_.resize(atomsCount);
   moveY_.resize(atomsCount);
@@ -74,6 +78,7 @@ void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std
     const scene::MaterialParams material = materials[shape.materialIndex];
 
     atoms_[i]     = material.atom;
+    startPositions_[i] = shape.offset;
     positions_[i] = shape.offset;
 
     glm::vec3 moveX = normalize(glm::vec3(dist(gen) - 0.5F, dist(gen) - 0.5F, dist(gen) - 0.5F));
@@ -94,24 +99,31 @@ void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std
   }
 }
 
-void world::World_01::Impl::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) const
+void world::World_01::Impl::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)
+{
+  calculateIdle();
+
+  for (std::size_t i = 0; scene::Shape &shape : shapeGroup.shapes)
+  {
+    shape.offset = positions_[i];
+    ++i;
+  }
+}
+void world::World_01::Impl::calculateIdle()
 {
   const float timeSec = std::chrono::duration<float>(std::chrono::steady_clock::now() - startedAt_).count();
 
-  for (std::size_t i = 0; scene::Shape &shape : shapeGroup.shapes)
+  for (std::size_t i = 0; auto &pos : startPositions_)
   {
     const float velocity = velocity_[i];
     const float angle    = angle_[i] + timeSec * velocity;
     const float s        = std::sin(angle);
     const float c        = std::cos(angle);
 
-    glm::vec3 pos   = positions_[i];
     glm::vec3 moveX = moveX_[i];
     glm::vec3 moveY = moveY_[i];
 
-    const glm::vec3 result = pos + moveX * c * R + moveY * s * R;
-
-    shape.offset = result;
+    positions_[i] = pos + moveX * c * R + moveY * s * R;
 
     ++i;
   }
