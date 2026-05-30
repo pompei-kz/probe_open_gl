@@ -43,6 +43,7 @@ target_sources(probe_open_gl
     src/scene.cpp
     src/text_writer.cpp
     src/world_01.cpp
+    src/world_02.cpp
 )
 
 target_sources(probe_open_gl
@@ -62,6 +63,7 @@ target_sources(probe_open_gl
     src/text_writer.cppm
     src/world.cppm
     src/world_01.cppm
+    src/world_02.cppm
     src/utils.cppm
 )
 

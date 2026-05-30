@@ -8,6 +8,7 @@ import main_window;
 import render;
 import world_01;
 import world;
+import world_02;
 
 int main(const int argvCount, char **argv)
 {
