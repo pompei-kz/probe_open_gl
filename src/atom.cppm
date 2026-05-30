@@ -1,7 +1,9 @@
 module;
 
-export module atom;
+#include <string>
 #include <string_view>
+
+export module atom;
 
 export namespace atom
 {
@@ -13,10 +15,21 @@ export namespace atom
     Carbon,
   };
 
-
   Atom byName(const std::string &name)
   {
-    // TODO convert name to Atom and return it
+    if (name == "Oxygen")
+    {
+      return Oxygen;
+    }
+    if (name == "Nitrogen")
+    {
+      return Nitrogen;
+    }
+    if (name == "Carbon")
+    {
+      return Carbon;
+    }
+
     return Unknown;
   }
-}
+} // namespace atom

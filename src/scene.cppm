@@ -27,7 +27,7 @@ export namespace scene
   {
     glm::vec3  color{1.0F, 1.0F, 1.0F};
     float      scale = 1.0F;
-    atom::Atom atom;
+    atom::Atom atom = atom::Unknown;
   };
 
   struct Mesh

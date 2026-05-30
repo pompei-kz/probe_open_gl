@@ -39,6 +39,7 @@ namespace
     int                  index = 0;
     std::array<float, 3> solidColor{1.0F, 1.0F, 1.0F};
     float                scale = 1.0F;
+    atom::Atom           atom = atom::Unknown;
   };
 
   struct OffsetRow
@@ -60,6 +61,7 @@ namespace
     result.materials.push_back(scene::MaterialParams{
         .color = {material.solidColor[0], material.solidColor[1], material.solidColor[2]},
         .scale = material.scale,
+        .atom = material.atom,
     });
     return static_cast<std::uint32_t>(result.materials.size() - 1U);
   }
@@ -395,6 +397,14 @@ namespace
       if (materialNode["scale"])
       {
         material.scale = parseFloatScalar(materialNode["scale"], path, "shape-groups." + std::string(groupName) + ".materials.scale");
+      }
+      if (const YAML::Node atomNode = materialNode["atom"])
+      {
+        if (!atomNode.IsScalar())
+        {
+          throw std::runtime_error("M4mG8E7qjP :: Shape group '" + std::string(groupName) + "' material atom must be scalar in " + path.string());
+        }
+        material.atom = atom::byName(atomNode.as<std::string>());
       }
       if (material.scale <= 0.0F)
       {

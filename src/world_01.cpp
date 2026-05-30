@@ -12,6 +12,7 @@ module world_01;
 
 import scene;
 import world;
+import atom;
 
 namespace
 {
@@ -22,12 +23,13 @@ struct world::World_01::Impl
 {
   using Timestamp = std::chrono::time_point<std::chrono::steady_clock>;
 
-  const Timestamp        startedAt_ = std::chrono::steady_clock::now();
-  std::vector<glm::vec3> positions_;
-  std::vector<glm::vec3> moveX_;
-  std::vector<glm::vec3> moveY_;
-  std::vector<float>     angle_;
-  const float            R = 0.5F;
+  const Timestamp         startedAt_ = std::chrono::steady_clock::now();
+  std::vector<glm::vec3>  positions_;
+  std::vector<glm::vec3>  moveX_;
+  std::vector<glm::vec3>  moveY_;
+  std::vector<float>      angle_;
+  std::vector<atom::Atom> atoms_;
+  const float             R = 0.5F;
 
   void initShapes(const std::vector<scene::Shape> &shapes, std::vector<scene::MaterialParams> &materials)
   {
@@ -39,9 +41,13 @@ struct world::World_01::Impl
     moveX_.resize(shapes.size());
     moveY_.resize(shapes.size());
     angle_.resize(shapes.size());
+    atoms_.resize(shapes.size());
 
     for (std::size_t i = 0; const scene::Shape &shape : shapes)
     {
+      const scene::MaterialParams material = materials[shape.materialIndex];
+
+      atoms_[i]     = material.atom;
       positions_[i] = shape.offset;
 
       glm::vec3 moveX = normalize(glm::vec3(dist(gen) - 0.5F, dist(gen) - 0.5F, dist(gen) - 0.5F));

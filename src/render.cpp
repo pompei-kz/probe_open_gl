@@ -216,7 +216,15 @@ struct Render::Impl
 
     glGenBuffers(1, &materialParamsBuffer_);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, materialParamsBuffer_);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, scene_.materialsSizeBytes(), scene_.materials.data(), GL_STATIC_DRAW);
+    materialParams_.reserve(scene_.materials.size());
+    for (const scene::MaterialParams &material : scene_.materials)
+    {
+      materialParams_.push_back(glm::vec4(material.color, material.scale));
+    }
+    glBufferData(GL_SHADER_STORAGE_BUFFER,
+                 static_cast<GLsizeiptr>(materialParams_.size() * sizeof(glm::vec4)),
+                 materialParams_.data(),
+                 GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, materialParamsBuffer_);
 
     meshBufferIds_.resize(scene_.meshes.size());
@@ -463,6 +471,7 @@ public:
 
 private:
   scene::Scene                                   scene_;
+  std::vector<glm::vec4>                         materialParams_;
   world::World                                  *worldRef_;
   GLuint                                         shapeGroup_           = 0;
   GLuint                                         materialParamsBuffer_ = 0;

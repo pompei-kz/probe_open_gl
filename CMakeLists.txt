@@ -51,6 +51,7 @@ target_sources(probe_open_gl
     FILES
     src/application.cppm
     src/arguments.cppm
+    src/atom.cppm
     src/deferred_tasks.cppm
     src/main_window.cppm
     src/render.cppm
@@ -177,6 +178,7 @@ target_sources(scene_tests
     PRIVATE
     FILE_SET CXX_MODULES
     FILES
+    src/atom.cppm
     src/scene.cppm
 )
 

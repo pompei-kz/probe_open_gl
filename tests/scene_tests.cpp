@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 import scene;
+import atom;
 
 #include <filesystem>
 #include <fstream>
@@ -169,9 +170,11 @@ shape-groups:
       - index: 0
         color: "0.2 0.4 0.6"
         scale: "2.5"
+        atom: "Oxygen"
       - index: 1
         color: "0.7 0.8 0.9"
         scale: "3.5"
+        atom: "Nitrogen"
     offsets:
       type: "i X Y Z Mi"
       data: |
@@ -209,10 +212,12 @@ shape-groups:
   EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[1], 0.4F);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].color[2], 0.6F);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[0].materialIndex].scale, 2.5F);
+  EXPECT_EQ(data.materials[data.shapes[0].materialIndex].atom, atom::Oxygen);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[0], 0.7F);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[1], 0.8F);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].color[2], 0.9F);
   EXPECT_FLOAT_EQ(data.materials[data.shapes[1].materialIndex].scale, 3.5F);
+  EXPECT_EQ(data.materials[data.shapes[1].materialIndex].atom, atom::Nitrogen);
 
   EXPECT_FLOAT_EQ(data.camera.position[2], 10.0F);
   EXPECT_FLOAT_EQ(data.camera.forward[2], -2.0F);
@@ -637,6 +642,7 @@ shape-groups:
     materials:
       - index: 1
         color: "0.2 0.4 0.6"
+        atom: "Oxygen"
     offsets:
       type: "i X Y Z Mi"
       data: |
@@ -644,6 +650,32 @@ shape-groups:
 )yaml");
 
   expectRuntimeErrorContains(path, " :: Missing material index 0 for shape group 'selected_group'");
+}
+
+TEST(LoadScene, ThrowsWhenAtomNameIsUnknown)
+{
+  const std::filesystem::path path = writeYaml("unknown_atom_name", R"yaml(
+scene:
+  camera: "main"
+  shape-groups:
+    - selected_group
+)yaml" + cameraYaml() + triangleMeshYaml() + R"yaml(
+shape-groups:
+  selected_group:
+    shader: "triangle"
+    mesh-ref: "#triangle"
+    materials:
+      - index: 0
+        color: "0.2 0.4 0.6"
+        scale: "2.5"
+        atom: "Helium"
+    offsets:
+      type: "i X Y Z Mi"
+      data: |
+        0 1 2 3 0
+)yaml");
+
+  expectRuntimeErrorContains(path, "atom::byName(): unknown atom name: Helium");
 }
 
 TEST(LoadScene, ThrowsWhenSunDirectionIsZero)
