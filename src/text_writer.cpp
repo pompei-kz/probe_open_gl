@@ -409,7 +409,7 @@ private:
     if (fpsElapsedSeconds_ >= 0.25F)
     {
       const float fps    = static_cast<float>(fpsFrameCount_) / fpsElapsedSeconds_;
-      fpsText_           = std::format("F P S: {}", std::lround(fps * 10.0F) / 10.0F);
+      fpsText_           = std::format("FPS: {}", std::lround(fps * 10.0F) / 10.0F);
       fpsElapsedSeconds_ = 0.0F;
       fpsFrameCount_     = 0;
     }

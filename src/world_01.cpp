@@ -28,6 +28,7 @@ struct world::World_01::Impl
   std::vector<glm::vec3>  moveX_;
   std::vector<glm::vec3>  moveY_;
   std::vector<float>      angle_;
+  std::vector<float>      velocity_;
   std::vector<atom::Atom> atoms_;
   const float             R = 0.5F;
 
@@ -42,6 +43,7 @@ struct world::World_01::Impl
     moveY_.resize(shapes.size());
     angle_.resize(shapes.size());
     atoms_.resize(shapes.size());
+    velocity_.resize(shapes.size());
 
     for (std::size_t i = 0; const scene::Shape &shape : shapes)
     {
@@ -62,6 +64,8 @@ struct world::World_01::Impl
       moveY_[i] = moveY;
       angle_[i] = dist(gen) * 2 * PI - PI;
 
+      velocity_[i] = 1.0F + dist(gen) * 40;
+
       ++i;
     }
   }
@@ -72,9 +76,10 @@ struct world::World_01::Impl
 
     for (std::size_t i = 0; scene::Shape &shape : shapes)
     {
-      const float angle = angle_[i] + timeSec * 3.0F;
-      const float s     = std::sin(angle);
-      const float c     = std::cos(angle);
+      const float velocity = velocity_[i];
+      const float angle    = angle_[i] + timeSec * velocity;
+      const float s        = std::sin(angle);
+      const float c        = std::cos(angle);
 
       glm::vec3 pos   = positions_[i];
       glm::vec3 moveX = moveX_[i];

@@ -10,6 +10,7 @@ scene:
   shape-groups:
     - group-AAA
     - group-BBB
+  world-shape-group: "group-AAA"
 
 cameras:
   main:
@@ -62,11 +63,9 @@ shape-groups:
       - index: 0
         color: "0.9  0.0  0.0"
         scale: "1.0"
-        atom: "Oxygen"
       - index: 1
         color: "0.1  0.5  0.5"
         scale: "0.5"
-        atom: "Carbon"
     offsets:
       type: "i X Y Z Mi"
       data: |

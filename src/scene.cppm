@@ -100,8 +100,6 @@ export namespace scene
     void load(const std::filesystem::path &path);
 
     GLsizeiptr shapesSizeBytes() const { return static_cast<GLsizeiptr>(shapes.size() * Shape::Stride); }
-
-    GLsizeiptr materialsSizeBytes() const { return static_cast<GLsizeiptr>(materials.size() * sizeof(MaterialParams)); }
   };
 
 } // namespace scene
