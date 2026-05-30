@@ -8,11 +8,11 @@ scene:
   params:
     background-color: "0.2 0.2 0.2"
   shape-groups:
-    - group-AAA
+    - group-atoms
     - group-BBB
   world:
     shape-groups:
-      atoms: "group-AAA"
+      atoms: "group-atoms"
 
 cameras:
   main:
@@ -31,7 +31,7 @@ cameras:
       forwardRotateDegPSec: "90"
 
 shape-groups:
-  group-AAA:
+  group-atoms:
     shader: "triangle"
     mesh-ref: "meshes.yaml#sphera_16x16"
     materials:

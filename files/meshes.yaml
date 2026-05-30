@@ -2,38 +2,38 @@ meshes:
   sphera_16x16:
     points:
       type: "i X Y Z"
-      data-ref: "sphera_16x16.points.txt"
+      data-ref: "sphera/sphera_16x16.points.txt"
 
     indexes:
       type: "i i i"
-      data-ref: "sphera_16x16.indexes.txt"
+      data-ref: "sphera/sphera_16x16.indexes.txt"
 
   sphera_8x8:
     points:
       type: "i X Y Z"
-      data-ref: "sphera_8x8.points.txt"
+      data-ref: "sphera/sphera_8x8.points.txt"
 
     indexes:
       type: "i i i"
-      data-ref: "sphera_8x8.indexes.txt"
+      data-ref: "sphera/sphera_8x8.indexes.txt"
 
   sphera_4x4:
     points:
       type: "i X Y Z"
-      data-ref: "sphera_4x4.points.txt"
+      data-ref: "sphera/sphera_4x4.points.txt"
 
     indexes:
       type: "i i i"
-      data-ref: "sphera_4x4.indexes.txt"
+      data-ref: "sphera/sphera_4x4.indexes.txt"
 
   sphera_32x32:
     points:
       type: "i X Y Z"
-      data-ref: "sphera_32x32.points.txt"
+      data-ref: "sphera/sphera_32x32.points.txt"
 
     indexes:
       type: "i i i"
-      data-ref: "sphera_32x32.indexes.txt"
+      data-ref: "sphera/sphera_32x32.indexes.txt"
 
   cube:
     points:
@@ -47,8 +47,8 @@ meshes:
   cylinder:
     points:
       type: "i X Y Z"
-      data-ref: "cylinder.points.txt"
+      data-ref: "cylinder/cylinder.points.txt"
 
     indexes:
       type: "i i i"
-      data-ref: "cylinder.indexes.txt"
+      data-ref: "cylinder/cylinder.indexes.txt"
