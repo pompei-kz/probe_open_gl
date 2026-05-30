@@ -56,6 +56,7 @@ target_sources(probe_open_gl
     src/main_window.cppm
     src/render.cppm
     src/scene.cppm
+    src/generator.cppm
     src/sync_map.cppm
     src/text_writer.cppm
     src/world.cppm
