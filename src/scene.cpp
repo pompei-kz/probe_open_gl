@@ -335,13 +335,31 @@ namespace
 
   MeshRef parseGroupMeshRef(const YAML::Node &shapeGroup, const std::filesystem::path &groupPath, const std::string_view groupName)
   {
-    const YAML::Node ref = shapeGroup["mesh-ref"];
-    if (!ref || !ref.IsScalar())
+    const YAML::Node mesh = shapeGroup["mesh"];
+    if (mesh)
     {
-      throw std::runtime_error("p3EsGrzP71 :: Missing mesh-ref for shape group '" + std::string(groupName) + "' in " + groupPath.string());
+      if (!mesh.IsMap())
+      {
+        throw std::runtime_error("p3EsGrzP71 :: YAML container 'shape-groups." + std::string(groupName) + ".mesh' must be map in " + groupPath.string());
+      }
+
+      const YAML::Node ref = mesh["ref"];
+      if (!ref || !ref.IsScalar())
+      {
+        throw std::runtime_error("p3EsGrzP71 :: Missing mesh-ref for shape group '" + std::string(groupName) +
+                                 "' in " + groupPath.string() + " (expected mesh.ref or mesh-ref)");
+      }
+      return parseRefValue(ref.as<std::string>(), groupPath);
     }
 
-    return parseRefValue(ref.as<std::string>(), groupPath);
+    const YAML::Node legacyRef = shapeGroup["mesh-ref"];
+    if (!legacyRef || !legacyRef.IsScalar())
+    {
+      throw std::runtime_error("p3EsGrzP71 :: Missing mesh-ref for shape group '" + std::string(groupName) +
+                               "' in " + groupPath.string() + " (expected mesh.ref or mesh-ref)");
+    }
+
+    return parseRefValue(legacyRef.as<std::string>(), groupPath);
   }
 
   std::string parseShaderName(const YAML::Node &shapeGroup, const std::filesystem::path &groupPath, const std::string_view groupName)

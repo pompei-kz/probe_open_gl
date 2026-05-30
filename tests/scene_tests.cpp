@@ -168,7 +168,8 @@ meshes:
 shape-groups:
   selected_group:
     shader: "triangle"
-    mesh-ref: "#triangle"
+    mesh:
+      ref: "#triangle"
     materials:
       - index: 0
         color: "0.2 0.4 0.6"
@@ -261,7 +262,8 @@ scene:
 shape-groups:
   selected_group:
     shader: "triangle"
-    mesh-ref: "probe_open_gl_external_meshes.yaml#triangle"
+    mesh:
+      ref: "probe_open_gl_external_meshes.yaml#triangle"
     offsets:
       type: "i X Y Z"
       data: |
