@@ -1,11 +1,9 @@
 module;
 
-#include <cstdint>
 #include <epoxy/gl.h>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <string>
-#include <string_view>
 #include <vector>
 
 export module scene;
@@ -32,12 +30,10 @@ export namespace scene
   struct Mesh
   {
     std::vector<float>       vertices;
-    static constexpr size_t  VertexPosFloatCount   = 3;
-    static constexpr size_t  VertexColorFloatCount = 3;
-    static constexpr size_t  VertexFloatCount      = VertexPosFloatCount + VertexColorFloatCount;
-    static constexpr GLsizei VertexStride          = VertexFloatCount * sizeof(float);
-    static constexpr size_t  VertexPosOffset       = 0 * sizeof(float);
-    static constexpr size_t  VertexColorOffset     = VertexPosFloatCount * sizeof(float);
+    static constexpr size_t  VertexPosFloatCount = 3;
+    static constexpr size_t  VertexFloatCount    = VertexPosFloatCount;
+    static constexpr GLsizei VertexStride        = VertexFloatCount * sizeof(float);
+    static constexpr size_t  VertexPosOffset     = 0 * sizeof(float);
 
     std::vector<GLuint> indexes;
 

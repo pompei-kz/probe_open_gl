@@ -11,6 +11,7 @@ module;
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -84,7 +85,7 @@ namespace
       return;
     }
 
-    glm::vec3       up        = normalize(cameraUp, "camera.up");
+    const glm::vec3 up        = normalize(cameraUp, "camera.up");
     const float     yaw       = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
     const float     pitch     = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
     const glm::mat4 yawMatrix = glm::rotate(glm::mat4{1.0F}, yaw, up);
@@ -261,21 +262,6 @@ struct Render::Impl
       glEnableVertexAttribArray(0);
 
       //
-      // Attribute index: 1
-      //
-
-      // Описываем атрибут цвета вершины.
-      glVertexAttribPointer(1,
-                            scene::Mesh::VertexColorFloatCount,
-                            GL_FLOAT,
-                            GL_FALSE,
-                            scene::Mesh::VertexStride,
-                            reinterpret_cast<void *>(scene::Mesh::VertexColorOffset));
-
-      // Включаем атрибут цвета вершины.
-      glEnableVertexAttribArray(1);
-
-      //
       // Attribute index: 2
       //
 
@@ -339,7 +325,7 @@ private:
         buffers.vertexArrayID = 0;
       }
     }
-    for (auto &[shaderName, shaderProgram] : shaderPrograms_)
+    for (auto &shaderProgram : shaderPrograms_ | std::views::values)
     {
       // Освобождаем шейдерную программу.
       if (shaderProgram.id != 0)

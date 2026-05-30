@@ -32,7 +32,6 @@ namespace
   {
     int vertexFloatCount   = 0;
     int positionFloatCount = 0;
-    int colorFloatCount    = 0;
   };
 
   struct Material
@@ -53,8 +52,6 @@ namespace
     std::filesystem::path path;
     std::string           id;
   };
-
-  constexpr glm::vec3 zeroOffset{0.0F, 0.0F, 0.0F};
 
   std::vector<float> parseFloatLine(std::string line);
 
@@ -97,6 +94,7 @@ namespace
     return values[0];
   }
 
+  // ReSharper disable once CppDFAConstantParameter
   glm::vec3 normalizeVector(const glm::vec3 &value, const std::filesystem::path &path, const std::string_view name)
   {
     if (glm::length(value) <= 0.0F)
@@ -278,7 +276,6 @@ namespace
       PointLayout layout;
       layout.vertexFloatCount   = 3;
       layout.positionFloatCount = 3;
-      layout.colorFloatCount    = 0;
       return layout;
     }
 
@@ -350,7 +347,7 @@ namespace
     const YAML::Node shader = shapeGroup["shader"];
     if (!shader || !shader.IsScalar())
     {
-      throw std::runtime_error("XAl9Vrbz1y :: Missing shader for shape group '" + std::string(groupName) + "' in " + groupPath.string());
+      throw std::runtime_error("XAl9Vr6z1y :: Missing shader for shape group '" + std::string(groupName) + "' in " + groupPath.string());
     }
 
     const std::string shaderName = trim(shader.as<std::string>());
@@ -386,7 +383,7 @@ namespace
       const YAML::Node index = materialNode["index"];
       if (!index || !index.IsScalar())
       {
-        throw std::runtime_error("wAOCGDwBmv :: Shape group '" + std::string(groupName) + "' material must define scalar index in " + path.string());
+        throw std::runtime_error("wA0CGDwBmv :: Shape group '" + std::string(groupName) + "' material must define scalar index in " + path.string());
       }
 
       Material material;
@@ -401,7 +398,7 @@ namespace
       }
       if (material.scale <= 0.0F)
       {
-        throw std::runtime_error("N8VNXRBUAx :: Shape group '" + std::string(groupName) + "' material scale must be positive in " + path.string());
+        throw std::runtime_error("N8VNX5BUAx :: Shape group '" + std::string(groupName) + "' material scale must be positive in " + path.string());
       }
       if (!result.emplace(material.index, material).second)
       {
@@ -442,7 +439,7 @@ namespace
     return result;
   }
 
-  scene::Mesh parseMesh(const YAML::Node &mesh, const Material &material, const std::filesystem::path &meshPath)
+  scene::Mesh parseMesh(const YAML::Node &mesh, const std::filesystem::path &meshPath)
   {
     const DataSection points     = extractDataSection(mesh, "points", meshPath);
     const DataSection indexes    = extractDataSection(mesh, "indexes", meshPath);
@@ -474,7 +471,6 @@ namespace
       {
         result.vertices.push_back(values[1 + static_cast<std::size_t>(i)]);
       }
-      result.vertices.insert(result.vertices.end(), material.solidColor.begin(), material.solidColor.end());
     }
 
     for (const std::string &line : indexes.lines)
@@ -526,7 +522,7 @@ namespace
     const YAML::Node  meshDocument  = loadYamlFile(meshRef.path);
     const YAML::Node  meshes        = optionalMapChild(meshDocument, "meshes", meshRef.path);
     const YAML::Node  mesh          = requiredMapChild(meshes, meshRef.id, meshRef.path);
-    scene::Mesh       parsedMesh    = parseMesh(mesh, Material{}, meshRef.path);
+    scene::Mesh       parsedMesh    = parseMesh(mesh, meshRef.path);
     const std::size_t firstInstance = result.shapes.size();
 
     if (parsedMesh.vertices.empty() || parsedMesh.indexes.empty())

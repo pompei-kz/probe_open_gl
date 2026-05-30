@@ -50,7 +50,7 @@ struct Application::Impl
     }
   }
 
-  void run(Render &render)
+  void run(const Render &render)
   {
     Uint64 previousCounter = SDL_GetPerformanceCounter();
 
@@ -71,7 +71,7 @@ struct Application::Impl
   }
 
 private:
-  void processEvent(const SDL_Event &event, Render &render)
+  void processEvent(const SDL_Event &event, const Render &render)
   {
     if (event.type == SDL_QUIT)
     {
@@ -171,7 +171,7 @@ private:
     }
   }
 
-  void processEvents(Render &render)
+  void processEvents(const Render &render)
   {
     SDL_Event event{};
 
@@ -212,7 +212,7 @@ Application::Application(MainWindow &window)
 
 Application::~Application() = default;
 
-void Application::run(Render &render) const
+void Application::run(const Render &render) const
 {
   impl_->run(render);
 }

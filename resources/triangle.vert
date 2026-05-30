@@ -1,7 +1,6 @@
 #version 460 core
 
 layout (location = 0) in vec3 position;
-layout (location = 1) in vec3 color;
 layout (location = 2) in vec3 instance;
 layout (location = 3) in uint instanceMaterialIndex;
 
@@ -18,9 +17,13 @@ out vec3 fragmentWorldPosition;
 
 void main() {
   vec4 material = materialParams[instanceMaterialIndex];
-  vec4 worldPosition = modelMatrix * vec4(position * material.w, 1.0);
+  vec3 color = material.rgb;
+  float scale = material.w;
+
+  vec4 worldPosition = modelMatrix * vec4(position * scale, 1.0);
+
   worldPosition.xyz += instance;
   fragmentWorldPosition = worldPosition.xyz;
-  vertexColor = color * material.rgb;
+  vertexColor = color;
   gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }

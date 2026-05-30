@@ -190,10 +190,11 @@ shape-groups:
   EXPECT_EQ(data.shapeGroups[0].firstInstance, 0U);
   EXPECT_EQ(data.shapeGroups[0].instanceCount, 2U);
   EXPECT_EQ(data.meshes[0].indexes, (std::vector<GLuint>{0, 1, 2}));
+  ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[0], 0.0F);
   EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
-  EXPECT_FLOAT_EQ(data.meshes[0].vertices[4], 1.0F);
-  EXPECT_FLOAT_EQ(data.meshes[0].vertices[5], 1.0F);
+  EXPECT_FLOAT_EQ(data.meshes[0].vertices[4], 0.0F);
+  EXPECT_FLOAT_EQ(data.meshes[0].vertices[5], 0.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[0], 10.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[1], 20.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 30.0F);
@@ -306,7 +307,8 @@ shape-groups:
 
   ASSERT_EQ(data.meshes.size(), 1U);
   ASSERT_EQ(data.shapes.size(), 1U);
-  EXPECT_FLOAT_EQ(data.meshes[0].vertices[6], 1.0F);
+  ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
+  EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[0], 4.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[1], 5.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 6.0F);
@@ -350,7 +352,8 @@ shape-groups:
 
   ASSERT_EQ(data.meshes.size(), 1U);
   ASSERT_EQ(data.shapes.size(), 1U);
-  EXPECT_FLOAT_EQ(data.meshes[0].vertices[6], 1.0F);
+  ASSERT_EQ(data.meshes[0].vertices.size(), 9U);
+  EXPECT_FLOAT_EQ(data.meshes[0].vertices[3], 1.0F);
   EXPECT_FLOAT_EQ(data.shapes[0].offset[2], 9.0F);
 }
 

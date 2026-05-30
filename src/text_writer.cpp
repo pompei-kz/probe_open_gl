@@ -117,6 +117,7 @@ namespace
       {
         return FallbackCodePoint;
       }
+      // ReSharper disable once CppRedundantParentheses
       result = static_cast<char32_t>((result << 6U) | static_cast<char32_t>(value & 0x3FU));
     }
 
