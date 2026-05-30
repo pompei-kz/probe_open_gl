@@ -79,21 +79,22 @@ namespace
     return glm::lookAt(position, position + forward, up);
   }
 
-  void rotateCameraAxes(glm::vec3 &forward, glm::vec3 &cameraUp, const int mouseDeltaX, const int mouseDeltaY, const float sensitivity)
+  void rotateCameraAxesByAngles(glm::vec3 &forward,
+                                glm::vec3 &cameraUp,
+                                const float yawDegrees,
+                                const float pitchDegrees)
   {
-    if (mouseDeltaX == 0 && mouseDeltaY == 0)
+    if (yawDegrees == 0.0F && pitchDegrees == 0.0F)
     {
       return;
     }
 
     const glm::vec3 up        = normalize(cameraUp, "camera.up");
-    const float     yaw       = glm::radians(-static_cast<float>(mouseDeltaX) * sensitivity);
-    const float     pitch     = glm::radians(-static_cast<float>(mouseDeltaY) * sensitivity);
-    const glm::mat4 yawMatrix = glm::rotate(glm::mat4{1.0F}, yaw, up);
+    const glm::mat4 yawMatrix = glm::rotate(glm::mat4{1.0F}, glm::radians(yawDegrees), up);
     forward                   = normalize(yawMatrix * glm::vec4(forward, 0.0F), "camera.forward");
 
     const glm::vec3 right          = normalize(glm::cross(forward, up), "camera.right");
-    const glm::mat4 pitchMatrix    = glm::rotate(glm::mat4{1.0F}, pitch, right);
+    const glm::mat4 pitchMatrix    = glm::rotate(glm::mat4{1.0F}, glm::radians(pitchDegrees), right);
     const glm::vec3 pitchedForward = normalize(pitchMatrix * glm::vec4(forward, 0.0F), "camera.forward");
     const glm::vec3 pitchedUp      = normalize(pitchMatrix * glm::vec4(up, 0.0F), "camera.up");
 
@@ -364,9 +365,16 @@ public:
 
   void setRotateForward(const RotateForward rotateForward) { rotateForward_ = rotateForward; }
 
+  void setRotateYaw(const RotateYaw rotateYaw) { rotateYaw_ = rotateYaw; }
+
+  void setRotatePitch(const RotatePitch rotatePitch) { rotatePitch_ = rotatePitch; }
+
   void rotateCamera(const int mouseDeltaX, const int mouseDeltaY)
   {
-    rotateCameraAxes(cameraForward_, cameraUp_, mouseDeltaX, mouseDeltaY, scene_.camera.forwardMouseSensitivity);
+    rotateCameraAxesByAngles(cameraForward_,
+                             cameraUp_,
+                             -static_cast<float>(mouseDeltaX) * scene_.camera.forwardMouseSensitivity,
+                             -static_cast<float>(mouseDeltaY) * scene_.camera.forwardMouseSensitivity);
   }
 
   void scrollCamera(const int wheelY) { cameraPosition_ += cameraForward_ * scene_.camera.forwardScrollStep * static_cast<float>(wheelY); }
@@ -382,13 +390,24 @@ public:
     const float     sideMoveDirection      = select1m1(moveHoriz_, MoveHoriz::RIGHT, MoveHoriz::LEFT);
     const float     vertMoveDirection      = select1m1(moveVert_, MoveVert::UP, MoveVert::DOWN);
     const float     forwardRotateDirection = select1m1(rotateForward_, RotateForward::RIGHT, RotateForward::LEFT);
+    const float     yawRotateDirection     = select1m1(rotateYaw_, RotateYaw::RIGHT, RotateYaw::LEFT);
+    const float     pitchRotateDirection   = select1m1(rotatePitch_, RotatePitch::UP, RotatePitch::DOWN);
+    const float     rotateSpeedScale       = 0.5F;
 
     cameraPosition_ += cameraLeft * scene_.camera.sideVelocity * sideMoveDirection * deltaSeconds;
     cameraPosition_ += cameraUp_ * scene_.camera.sideVelocity * vertMoveDirection * deltaSeconds;
 
+    if (yawRotateDirection != 0 || pitchRotateDirection != 0)
+    {
+      rotateCameraAxesByAngles(cameraForward_,
+                               cameraUp_,
+                               scene_.camera.forwardRotateDegPSec * rotateSpeedScale * static_cast<float>(-yawRotateDirection) * deltaSeconds,
+                               scene_.camera.forwardRotateDegPSec * rotateSpeedScale * static_cast<float>(pitchRotateDirection) * deltaSeconds);
+    }
+
     if (forwardRotateDirection != 0)
     {
-      const float     angle      = glm::radians(scene_.camera.forwardRotateDegPSec * static_cast<float>(forwardRotateDirection) * deltaSeconds);
+      const float     angle      = glm::radians(scene_.camera.forwardRotateDegPSec * rotateSpeedScale * static_cast<float>(forwardRotateDirection) * deltaSeconds);
       const glm::mat4 rollMatrix = glm::rotate(glm::mat4{1.0F}, angle, normalize(cameraForward_, "camera.forward"));
       cameraUp_                  = normalize(rollMatrix * glm::vec4(cameraUp_, 0.0F), "camera.up");
     }
@@ -506,6 +525,8 @@ private:
   MoveVert                                       moveVert_      = MoveVert::NONE;
   MoveHoriz                                      moveHoriz_     = MoveHoriz::NONE;
   RotateForward                                  rotateForward_ = RotateForward::NONE;
+  RotateYaw                                      rotateYaw_     = RotateYaw::NONE;
+  RotatePitch                                    rotatePitch_   = RotatePitch::NONE;
 
   std::size_t totalShapeCount() const
   {
@@ -553,6 +574,16 @@ void Render::setMoveHoriz(const MoveHoriz moveHoriz) const
 void Render::setRotateForward(const RotateForward rotateForward) const
 {
   impl_->setRotateForward(rotateForward);
+}
+
+void Render::setRotateYaw(const RotateYaw rotateYaw) const
+{
+  impl_->setRotateYaw(rotateYaw);
+}
+
+void Render::setRotatePitch(const RotatePitch rotatePitch) const
+{
+  impl_->setRotatePitch(rotatePitch);
 }
 
 void Render::rotateCamera(const int mouseDeltaX, const int mouseDeltaY) const

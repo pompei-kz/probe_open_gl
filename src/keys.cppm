@@ -160,6 +160,66 @@ export namespace keys
     // clang-format on
   }
 
+  bool KeyDown_FreeRight(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYDOWN
+            && event.key.repeat == 0
+            && event.key.keysym.sym == SDLK_RIGHT
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyDown_FreeLeft(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYDOWN
+            && event.key.repeat == 0
+            && event.key.keysym.sym == SDLK_LEFT
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyDown_FreeUp(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYDOWN
+            && event.key.repeat == 0
+            && event.key.keysym.sym == SDLK_UP
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyDown_FreeDown(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYDOWN
+            && event.key.repeat == 0
+            && event.key.keysym.sym == SDLK_DOWN
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
   bool KeyDown_ShiftW(const SDL_Event &event)
   {
     // clang-format off
@@ -852,6 +912,62 @@ export namespace keys
 
             && event.type == SDL_KEYUP
             && event.key.keysym.sym == SDLK_e
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyUp_FreeRight(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYUP
+            && event.key.keysym.sym == SDLK_RIGHT
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyUp_FreeLeft(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYUP
+            && event.key.keysym.sym == SDLK_LEFT
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyUp_FreeUp(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYUP
+            && event.key.keysym.sym == SDLK_UP
+            && (event.key.keysym.mod & KMOD_CTRL  ) == 0
+            && (event.key.keysym.mod & KMOD_SHIFT ) == 0
+            && (event.key.keysym.mod & KMOD_ALT   ) == 0
+    ;
+    // clang-format on
+  }
+
+  bool KeyUp_FreeDown(const SDL_Event &event)
+  {
+    // clang-format off
+    return true
+
+            && event.type == SDL_KEYUP
+            && event.key.keysym.sym == SDLK_DOWN
             && (event.key.keysym.mod & KMOD_CTRL  ) == 0
             && (event.key.keysym.mod & KMOD_SHIFT ) == 0
             && (event.key.keysym.mod & KMOD_ALT   ) == 0

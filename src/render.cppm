@@ -28,6 +28,20 @@ export enum class RotateForward
   RIGHT,
 };
 
+export enum class RotateYaw
+{
+  NONE,
+  LEFT,
+  RIGHT,
+};
+
+export enum class RotatePitch
+{
+  NONE,
+  UP,
+  DOWN,
+};
+
 export class Render
 {
 public:
@@ -48,6 +62,10 @@ public:
   void setMoveHoriz(MoveHoriz moveHoriz) const;
 
   void setRotateForward(RotateForward rotateForward) const;
+
+  void setRotateYaw(RotateYaw rotateYaw) const;
+
+  void setRotatePitch(RotatePitch rotatePitch) const;
 
   void rotateCamera(int mouseDeltaX, int mouseDeltaY) const;
 

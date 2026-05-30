@@ -127,6 +127,26 @@ private:
       render.setRotateForward(RotateForward::LEFT);
       return;
     }
+    if (keys::KeyDown_FreeRight(event))
+    {
+      render.setRotateYaw(RotateYaw::RIGHT);
+      return;
+    }
+    if (keys::KeyDown_FreeLeft(event))
+    {
+      render.setRotateYaw(RotateYaw::LEFT);
+      return;
+    }
+    if (keys::KeyDown_FreeUp(event))
+    {
+      render.setRotatePitch(RotatePitch::UP);
+      return;
+    }
+    if (keys::KeyDown_FreeDown(event))
+    {
+      render.setRotatePitch(RotatePitch::DOWN);
+      return;
+    }
     if (keys::KeyUp_FreeW(event))
     {
       render.setMoveVert(MoveVert::NONE);
@@ -155,6 +175,26 @@ private:
     if (keys::KeyUp_FreeE(event))
     {
       render.setRotateForward(RotateForward::NONE);
+      return;
+    }
+    if (keys::KeyUp_FreeRight(event))
+    {
+      render.setRotateYaw(RotateYaw::NONE);
+      return;
+    }
+    if (keys::KeyUp_FreeLeft(event))
+    {
+      render.setRotateYaw(RotateYaw::NONE);
+      return;
+    }
+    if (keys::KeyUp_FreeUp(event))
+    {
+      render.setRotatePitch(RotatePitch::NONE);
+      return;
+    }
+    if (keys::KeyUp_FreeDown(event))
+    {
+      render.setRotatePitch(RotatePitch::NONE);
       return;
     }
     if (keys::MouseMotion_Free(event) && mouseCaptured_)
