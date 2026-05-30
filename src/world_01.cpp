@@ -6,6 +6,7 @@ module;
 #include <memory>
 #include <numbers>
 #include <random>
+#include <thread>
 #include <vector>
 
 module world_01;
@@ -32,12 +33,19 @@ struct world::World_01::Impl
   std::vector<float>      velocity_;
   std::vector<atom::Atom> atoms_;
   const float             R = 0.5F;
+  std::atomic<bool>       waiting_ = true;
+
+  std::jthread thread_;
+
+  Impl();
 
   void initShapes(const scene::ShapeGroup &atoms, const std::vector<scene::MaterialParams> &materials);
 
-  void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup);
+  void writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) const;
 
   void calculateIdle();
+
+  void calculationProcess(const std::stop_token &stop_token);
 };
 
 world::World_01::World_01()
@@ -55,6 +63,11 @@ void world::World_01::initShapes(scene::ShapeGroup &atoms, const std::vector<sce
 void world::World_01::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)
 {
   impl_->writeToShapesBeforeRender(shapeGroup);
+}
+
+world::World_01::Impl::Impl()
+    : thread_([this](std::stop_token stopToken) { calculationProcess(stopToken); })
+{
 }
 
 void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std::vector<scene::MaterialParams> &materials)
@@ -77,9 +90,9 @@ void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std
   {
     const scene::MaterialParams material = materials[shape.materialIndex];
 
-    atoms_[i]     = material.atom;
+    atoms_[i]          = material.atom;
     startPositions_[i] = shape.offset;
-    positions_[i] = shape.offset;
+    positions_[i]      = shape.offset;
 
     glm::vec3 moveX = normalize(glm::vec3(dist(gen) - 0.5F, dist(gen) - 0.5F, dist(gen) - 0.5F));
     glm::vec3 moveY = normalize(glm::vec3(dist(gen) - 0.5F, dist(gen) - 0.5F, dist(gen) - 0.5F));
@@ -97,11 +110,13 @@ void world::World_01::Impl::initShapes(const scene::ShapeGroup &atoms, const std
 
     ++i;
   }
+
+  waiting_ = false;
 }
 
-void world::World_01::Impl::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup)
+void world::World_01::Impl::writeToShapesBeforeRender(scene::ShapeGroup &shapeGroup) const
 {
-  calculateIdle();
+  //calculateIdle();
 
   for (std::size_t i = 0; scene::Shape &shape : shapeGroup.shapes)
   {
@@ -109,6 +124,7 @@ void world::World_01::Impl::writeToShapesBeforeRender(scene::ShapeGroup &shapeGr
     ++i;
   }
 }
+
 void world::World_01::Impl::calculateIdle()
 {
   const float timeSec = std::chrono::duration<float>(std::chrono::steady_clock::now() - startedAt_).count();
@@ -126,5 +142,20 @@ void world::World_01::Impl::calculateIdle()
     positions_[i] = pos + moveX * c * R + moveY * s * R;
 
     ++i;
+  }
+}
+
+void world::World_01::Impl::calculationProcess(const std::stop_token &stop_token)
+{
+  while (waiting_)
+  {
+    if (stop_token.stop_requested()) return;
+    std::this_thread::yield();
+  }
+
+  while (!stop_token.stop_requested())
+  {
+    calculateIdle();
+    std::this_thread::yield();
   }
 }
